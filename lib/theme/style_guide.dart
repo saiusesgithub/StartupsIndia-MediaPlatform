@@ -21,43 +21,60 @@ class AppColors {
   static const Color errorDefault = Color(0xFFED2E7E);
   static const Color successDefault = Color(0xFF00BA88);
   static const Color warningDefault = Color(0xFFF4B740);
+  // Added from Login Flow
+  static const Color errorLight = Color(0xFFFFF3F8);
+  static const Color errorDark = Color(0xFFC30052);
+  static const Color linkBlue = Color(0xFF5890FF);
 }
 
 class AppTypography {
-  // Extracting typography styles globally from Figma
+  static TextStyle displayLargeBold = GoogleFonts.poppins(
+    fontWeight: FontWeight.w700,
+    fontSize: 48,
+    height: 1.5,
+    letterSpacing: 0.25 * 48 / 100, // 0.25%
+  );
+
+  static TextStyle textLarge = GoogleFonts.poppins(
+    fontWeight: FontWeight.w400,
+    fontSize: 20,
+    height: 1.5,
+    letterSpacing: 0.60 * 20 / 100, // 0.6%
+  );
+
   static TextStyle displayMediumBold = GoogleFonts.poppins(
     fontWeight: FontWeight.w700,
     fontSize: 32,
     height: 1.5,
-    letterSpacing: 0.12, // Calculated based on Figma % spacing conventions
+    letterSpacing: 0.12,
   );
 
   static TextStyle displaySmallBold = GoogleFonts.poppins(
     fontWeight: FontWeight.w700,
     fontSize: 24,
     height: 1.5,
-    letterSpacing: 0.12,
+    letterSpacing: 0.50 * 24 / 100, // 0.5%
   );
 
   static TextStyle linkMedium = GoogleFonts.poppins(
     fontWeight: FontWeight.w600,
     fontSize: 16,
     height: 1.5,
-    letterSpacing: 0.12,
+    letterSpacing: 0.75 * 16 / 100, // 0.75%
   );
 
   static TextStyle textMedium = GoogleFonts.poppins(
     fontWeight: FontWeight.w400,
     fontSize: 16,
     height: 1.5,
-    letterSpacing: 0.12,
+    letterSpacing: 0.75 * 16 / 100, // 0.75%
   );
 
   static TextStyle textSmall = GoogleFonts.poppins(
     fontWeight: FontWeight.w400,
     fontSize: 14,
     height: 1.5,
-    letterSpacing: 0.12,
+    letterSpacing: 0.85 * 14 / 100, // 0.85%
   );
   
   static TextStyle labelLarge = GoogleFonts.poppins(

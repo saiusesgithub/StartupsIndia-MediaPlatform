@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
 import 'features/auth/presentation/screens/forgot_password_screen.dart';
 
-import 'package:startups_india_media_platform/features/auth/presentation/screens/onboarding_screen.dart';
+import 'package:startups_india_media_platform/features/auth/presentation/screens/login_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'News App',
       theme: AppTheme.lightTheme,
-      home: const OnboardingScreen(),
+      home: const LoginScreen(),
     );
   }
 }

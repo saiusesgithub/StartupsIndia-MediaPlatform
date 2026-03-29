@@ -15,6 +15,8 @@ class AppTheme {
     return ThemeData(
       scaffoldBackgroundColor: AppColors.grayscaleWhite,
       primaryColor: AppColors.primaryDefault,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       colorScheme: const ColorScheme.light(
         primary: AppColors.primaryDefault,
         background: AppColors.grayscaleWhite,
