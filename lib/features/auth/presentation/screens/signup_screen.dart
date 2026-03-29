@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
-import 'signup_screen.dart';
+import 'login_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       
-      // Push & Remove Until completely unmounts auth stack making the back button native exit
+      // Navigate to Home replacing entire auth stack identically
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -59,14 +59,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Hello\nAgain!',
+                    'Hello!',
                     style: AppTypography.displayLargeBold.copyWith(
-                      color: AppColors.grayscaleTitleActive,
+                      color: AppColors.primaryDefault,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Welcome back you\'ve\nbeen missed',
+                    'Signup to get Started',
                     style: AppTypography.textLarge.copyWith(
                       color: AppColors.grayscaleBodyText,
                     ),
@@ -98,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
 
+                  // To strictly keep exact layout as requested, keeping Remember Me alignment
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -127,17 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          print("Forgot password tapped");
-                        },
-                        child: Text(
-                          'Forgot the password ?',
-                          style: AppTypography.textSmall.copyWith(
-                            color: AppColors.linkBlue,
-                          ),
-                        ),
-                      ),
+                      // Intentionally empty for exact padding mapping, signup has no forgot password
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -163,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           )
                         : Text(
-                            'Login',
+                            'Sign Up',
                             style: AppTypography.linkMedium.copyWith(
                               color: AppColors.grayscaleWhite,
                             ),
@@ -239,20 +230,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'don\'t have an account ? ',
+                        'Already have an account ? ',
                         style: AppTypography.textSmall.copyWith(
                           color: AppColors.grayscaleBodyText,
                         ),
                       ),
                       GestureDetector(
                         onTap: () {
+                          // Swap back to Login cleanly
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => const SignupScreen()),
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
                           );
                         },
                         child: Text(
-                          'Sign Up',
+                          'Login',
                           style: AppTypography.linkMedium.copyWith(
                             color: AppColors.primaryDefault,
                           ),
