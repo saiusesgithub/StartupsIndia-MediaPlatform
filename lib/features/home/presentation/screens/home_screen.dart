@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          'Welcome to the News App!',
+          'Welcome to the Dashboard',
           style: AppTypography.textLarge.copyWith(
             color: AppColors.grayscaleBodyText,
           ),

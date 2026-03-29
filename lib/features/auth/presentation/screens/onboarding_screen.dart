@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:startups_india_media_platform/theme/style_guide.dart';
 
 class OnboardingModel {
@@ -42,7 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
   ];
 
-  void _nextPage() {
+  void _nextPage() async {
     if (_currentIndex < _pages.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -50,7 +51,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     } else {
       // Handle "Get Started" tap
-      // e.g. Navigate to login/home
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isFirstRun', false);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     }
   }
 

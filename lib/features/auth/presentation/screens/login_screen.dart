@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
-import 'signup_screen.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,9 +29,9 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = false);
       
       // Push & Remove Until completely unmounts auth stack making the back button native exit
-      Navigator.pushAndRemoveUntil(
+      Navigator.pushNamedAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        '/home',
         (route) => false,
       );
     }
@@ -246,10 +245,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const SignupScreen()),
-                          );
+                          Navigator.pushReplacementNamed(context, '/signup');
                         },
                         child: Text(
                           'Sign Up',

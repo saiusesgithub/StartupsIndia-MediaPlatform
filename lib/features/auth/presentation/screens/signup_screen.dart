@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
-import 'login_screen.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -29,11 +28,10 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       
-      // Navigate to Home replacing entire auth stack identically
-      Navigator.pushAndRemoveUntil(
+      // Navigate to SelectCountryScreen
+      Navigator.pushNamed(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
+        '/select-country',
       );
     }
   }
@@ -238,10 +236,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       GestureDetector(
                         onTap: () {
                           // Swap back to Login cleanly
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LoginScreen()),
-                          );
+                          Navigator.pushReplacementNamed(context, '/login');
                         },
                         child: Text(
                           'Login',
