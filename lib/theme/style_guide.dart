@@ -32,6 +32,13 @@ class AppTypography {
     letterSpacing: 0.12, // Calculated based on Figma % spacing conventions
   );
 
+  static TextStyle displaySmallBold = GoogleFonts.poppins(
+    fontWeight: FontWeight.w700,
+    fontSize: 24,
+    height: 1.5,
+    letterSpacing: 0.12,
+  );
+
   static TextStyle linkMedium = GoogleFonts.poppins(
     fontWeight: FontWeight.w600,
     fontSize: 16,
