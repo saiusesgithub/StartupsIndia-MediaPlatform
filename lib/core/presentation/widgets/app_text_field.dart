@@ -6,6 +6,7 @@ class AppTextField extends StatefulWidget {
   final String label;
   final String? hintText;
   final bool isPassword;
+  final TextInputType keyboardType;
   final String? Function(String?)? validator;
 
   const AppTextField({
@@ -14,6 +15,7 @@ class AppTextField extends StatefulWidget {
     required this.label,
     this.hintText,
     this.isPassword = false,
+    this.keyboardType = TextInputType.text,
     this.validator,
   });
 
@@ -58,6 +60,7 @@ class _AppTextFieldState extends State<AppTextField> {
                         child: TextField(
                           controller: widget.controller,
                           obscureText: widget.isPassword ? _obscureText : false,
+                          keyboardType: widget.isPassword ? TextInputType.visiblePassword : widget.keyboardType,
                           style: AppTypography.textSmall.copyWith(
                             color: AppColors.grayscaleTitleActive,
                           ),
