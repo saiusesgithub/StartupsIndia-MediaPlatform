@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -9,10 +10,12 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
     FirebaseAuth? firebaseAuth,
     GoogleSignIn? googleSignIn,
   })  : _auth = firebaseAuth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
+        // On Web, GoogleSignIn.instance is not pre-initialized (no clientId meta
+        // tag configured yet), so we fall back gracefully.
+        _googleSignIn = googleSignIn ?? (kIsWeb ? null : GoogleSignIn.instance);
 
   final FirebaseAuth _auth;
-  final GoogleSignIn _googleSignIn;
+  final GoogleSignIn? _googleSignIn; // nullable — null on Web until configured
 
   // ── Getters ──────────────────────────────────────────────────────────────
 
@@ -50,7 +53,20 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserCredential?> signInWithGoogle() async {
+    // Web: Google Sign-In via popup (Firebase Auth native web flow).
+    // This avoids the google_sign_in package entirely on web — more reliable.
+    if (kIsWeb) {
+      final googleProvider = GoogleAuthProvider();
+      // Add scopes as needed
+      googleProvider.addScope('email');
+      googleProvider.addScope('profile');
+      return _auth.signInWithPopup(googleProvider);
+    }
+
+    // Mobile (Android / iOS):
     // google_sign_in v7.0.0+ uses authenticate() instead of signIn()
+    if (_googleSignIn == null) return null;
+
     final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
     if (googleUser == null) return null; // user cancelled
 
@@ -58,9 +74,6 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
         await googleUser.authentication;
 
     final AuthCredential credential = GoogleAuthProvider.credential(
-      // Note: accessToken is handled separately in v7.0+ (Authorization vs Authentication)
-      // For basic Firebase sign-in, the idToken is often sufficient.
-      // If we don't have an accessToken, we pass null.
       idToken: googleAuth.idToken,
     );
 
@@ -71,9 +84,13 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signOut() async {
+    if (kIsWeb) {
+      await _auth.signOut();
+      return;
+    }
     await Future.wait([
       _auth.signOut(),
-      _googleSignIn.signOut(),
+      if (_googleSignIn != null) _googleSignIn.signOut(),
     ]);
   }
 }

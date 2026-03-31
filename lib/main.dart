@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -23,8 +24,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Initialize Google Sign-In singleton (Required in v7.0.0+)
-  await GoogleSignIn.instance.initialize();
+  // Initialize Google Sign-In singleton (Required in v7.0.0+).
+  // On Web, the clientId is read from the <meta name="google-signin-client_id"> tag
+  // in web/index.html — see README for setup. Skip on web until that is configured.
+  if (!kIsWeb) {
+    await GoogleSignIn.instance.initialize();
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final bool isFirstRun = prefs.getBool('isFirstRun') ?? true;
