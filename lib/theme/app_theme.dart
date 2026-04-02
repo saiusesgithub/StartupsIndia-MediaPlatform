@@ -31,6 +31,10 @@ class AppTheme {
         bodyMedium: AppTypography.textSmall.copyWith(
           color: AppColors.grayscaleButtonText,
         ),
+        bodySmall: AppTypography.textSmall.copyWith(
+          fontSize: 13,
+          color: AppColors.grayscaleButtonText,
+        ),
         labelLarge: AppTypography.labelLarge.copyWith(
           color: AppColors.grayscaleWhite,
         ),
