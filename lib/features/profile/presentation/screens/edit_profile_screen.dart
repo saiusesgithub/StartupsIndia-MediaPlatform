@@ -27,6 +27,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Uint8List? _pickedAvatarBytes;
   String? _pickedAvatarPath;
+  UserModel? _currentUser;
   bool _isLoading = false;
   bool _isSubmitting = false;
 
@@ -241,6 +242,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           newsCount: 23,
         );
 
+    _currentUser = resolved;
+
     _usernameController.text = resolved.username;
     _fullNameController.text = resolved.fullName.isEmpty
         ? resolved.displayName
@@ -282,28 +285,56 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     setState(() => _isSubmitting = true);
 
-    await ref
-        .read(authRepositoryProvider)
-        .updateUserData(
-          username: _usernameController.text.trim(),
-          fullName: _fullNameController.text.trim(),
-          email: _emailController.text.trim(),
-          phone: _phoneController.text.trim(),
-          bio: _bioController.text.trim(),
-          website: _websiteController.text.trim(),
-          avatarPath: _pickedAvatarPath,
+    final baseUser =
+        _currentUser ??
+        const UserModel(
+          uid: 'demo_user',
+          displayName: 'User',
+          bio: '',
+          avatarUrl: '',
+          websiteUrl: '',
+          followersCount: 0,
+          followingCount: 0,
+          newsCount: 0,
         );
 
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _isSubmitting = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully')),
+    final updatedUser = baseUser.copyWith(
+      username: _usernameController.text.trim(),
+      fullName: _fullNameController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      displayName: _fullNameController.text.trim().isEmpty
+          ? baseUser.displayName
+          : _fullNameController.text.trim(),
+      bio: _bioController.text.trim(),
+      websiteUrl: _websiteController.text.trim(),
+      avatarUrl: _pickedAvatarPath ?? baseUser.avatarUrl,
     );
-    Navigator.of(context).maybePop();
+
+    try {
+      await ref.read(authRepositoryProvider).updateUserData(updatedUser);
+
+      if (!mounted) {
+        return;
+      }
+
+      _currentUser = updatedUser;
+      setState(() => _isSubmitting = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile Synced to Cloud!')));
+      Navigator.of(context).maybePop();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sync failed. Please try again.')),
+      );
+    }
   }
 
   String? _validateEmail(String? value) {
