@@ -35,14 +35,9 @@ abstract class AuthRepository {
   /// Returns the active user data for profile UI.
   Future<UserModel?> getCurrentUserModel();
 
+  /// Persists user profile information into Firestore users/{uid}.
+  Future<void> saveUserData(UserModel user);
+
   /// Updates user profile fields from edit-profile form.
-  Future<void> updateUserData({
-    required String username,
-    required String fullName,
-    required String email,
-    required String phone,
-    required String bio,
-    required String website,
-    String? avatarPath,
-  });
+  Future<void> updateUserData(UserModel updatedUser);
 }

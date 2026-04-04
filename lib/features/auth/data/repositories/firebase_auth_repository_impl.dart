@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../domain/models/user_model.dart';
@@ -9,13 +10,16 @@ import '../../domain/repositories/auth_repository.dart';
 class FirebaseAuthRepositoryImpl implements AuthRepository {
   FirebaseAuthRepositoryImpl({
     FirebaseAuth? firebaseAuth,
+    FirebaseFirestore? firebaseFirestore,
     GoogleSignIn? googleSignIn,
   }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
+       _firestore = firebaseFirestore ?? FirebaseFirestore.instance,
        // On Web, GoogleSignIn.instance is not pre-initialized (no clientId meta
        // tag configured yet), so we fall back gracefully.
        _googleSignIn = googleSignIn ?? (kIsWeb ? null : GoogleSignIn.instance);
 
   final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
   final GoogleSignIn? _googleSignIn; // nullable — null on Web until configured
 
   // ── Getters ──────────────────────────────────────────────────────────────
@@ -117,7 +121,12 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
       );
     }
 
-    return UserModel(
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    if (doc.exists) {
+      return UserModel.fromFirestore(doc);
+    }
+
+    final fallback = UserModel(
       uid: user.uid,
       username: user.email?.split('@').first ?? 'newscreator',
       fullName: (user.displayName == null || user.displayName!.trim().isEmpty)
@@ -136,41 +145,47 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
       followingCount: 567,
       newsCount: 23,
     );
+
+    await saveUserData(fallback);
+    return fallback;
   }
 
   @override
-  Future<void> updateUserData({
-    required String username,
-    required String fullName,
-    required String email,
-    required String phone,
-    required String bio,
-    required String website,
-    String? avatarPath,
-  }) async {
+  Future<void> saveUserData(UserModel user) async {
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .set(user.toFirestore(), SetOptions(merge: true));
+  }
+
+  @override
+  Future<void> updateUserData(UserModel updatedUser) async {
     final user = _auth.currentUser;
     if (user == null) {
       return;
     }
 
-    await user.updateDisplayName(fullName.trim());
+    await user.updateDisplayName(updatedUser.fullName.trim());
 
-    if (email.trim().isNotEmpty && email.trim() != (user.email ?? '')) {
+    if (updatedUser.email.trim().isNotEmpty &&
+        updatedUser.email.trim() != (user.email ?? '')) {
       try {
-        await user.verifyBeforeUpdateEmail(email.trim());
+        await user.verifyBeforeUpdateEmail(updatedUser.email.trim());
       } on FirebaseAuthException {
         // Ignore for now if recent login is required; UI remains responsive.
       }
     }
 
-    // Placeholder: persist extra fields (username/phone/bio/website/avatarPath)
-    // in Firestore profile document when backend schema is finalized.
-    final _ = <String, String?>{
-      'username': username.trim(),
-      'phone': phone.trim(),
-      'bio': bio.trim(),
-      'website': website.trim(),
-      'avatarPath': avatarPath,
-    };
+    final merged = updatedUser.copyWith(
+      uid: user.uid,
+      displayName: updatedUser.fullName.trim().isEmpty
+          ? updatedUser.displayName
+          : updatedUser.fullName.trim(),
+      avatarUrl: updatedUser.avatarUrl.isEmpty
+          ? (user.photoURL ?? updatedUser.avatarUrl)
+          : updatedUser.avatarUrl,
+    );
+
+    await saveUserData(merged);
   }
 }

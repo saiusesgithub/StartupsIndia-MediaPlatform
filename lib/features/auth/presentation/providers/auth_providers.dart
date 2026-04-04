@@ -7,5 +7,9 @@ import '../../domain/repositories/auth_repository.dart';
 /// Screens and other providers import this — never the impl directly.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final firebaseAuth = ref.watch(firebaseAuthProvider);
-  return FirebaseAuthRepositoryImpl(firebaseAuth: firebaseAuth);
+  final firestore = ref.watch(firebaseFirestoreProvider);
+  return FirebaseAuthRepositoryImpl(
+    firebaseAuth: firebaseAuth,
+    firebaseFirestore: firestore,
+  );
 });
