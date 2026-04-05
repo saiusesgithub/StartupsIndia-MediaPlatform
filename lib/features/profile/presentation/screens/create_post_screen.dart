@@ -393,10 +393,24 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       // Upload image to Firebase Storage
       final Uint8List imageBytes = await _coverImageFile!.readAsBytes();
-      final String imageUrl = await firestoreRepository.uploadImage(
-        imageBytes,
-        'article_covers/',
-      );
+      String imageUrl;
+      try {
+        imageUrl = await firestoreRepository.uploadImage(
+          imageBytes,
+          'article_covers/',
+        );
+      } catch (uploadError) {
+        // If upload fails (e.g., CORS on web), use placeholder
+        imageUrl = 'assets/images/placeholder.png';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image upload failed, using placeholder image'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
 
       // Get current timestamp
       final now = DateTime.now();
