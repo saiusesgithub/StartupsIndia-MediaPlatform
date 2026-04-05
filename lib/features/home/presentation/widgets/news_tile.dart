@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import '../../../../core/presentation/widgets/shimmer_placeholder.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -102,7 +103,7 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                         height: 96,
                         fit: BoxFit.cover,
                         placeholder: (context, url) =>
-                            _loadingPlaceholder(width: 96, height: 96),
+                            const ShimmerPlaceholder(width: 96, height: 96),
                         errorWidget: (context, url, error) =>
                             _thumbnailFallback(),
                       )
@@ -162,7 +163,10 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                                 height: 20,
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) =>
-                                    _loadingPlaceholder(width: 20, height: 20),
+                                    const ShimmerPlaceholder(
+                                      width: 20,
+                                      height: 20,
+                                    ),
                                 errorWidget: (context, url, error) =>
                                     _logoFallback(),
                               )
@@ -302,24 +306,6 @@ class _NewsTileState extends ConsumerState<NewsTile> {
         size: 12,
         color: AppColors.grayscaleButtonText,
       ),
-    );
-  }
-
-  Widget _loadingPlaceholder({required double width, required double height}) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.35, end: 0.8),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeInOut,
-      builder: (context, value, child) {
-        return Container(
-          width: width,
-          height: height,
-          color: AppColors.grayscaleSecondaryButton.withValues(alpha: value),
-        );
-      },
-      onEnd: () {
-        if (mounted) setState(() {});
-      },
     );
   }
 

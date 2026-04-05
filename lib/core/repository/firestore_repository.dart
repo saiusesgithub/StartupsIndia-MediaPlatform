@@ -113,21 +113,28 @@ class FirestoreRepository {
   }
 
   Future<void> toggleLike(String articleId, String userId) async {
-    final doc = await _articles.doc(articleId).get();
-    if (!doc.exists) return;
+    final docRef = _articles.doc(articleId);
 
-    final likedBy = List<String>.from(doc['likedBy'] as List? ?? []);
-    if (likedBy.contains(userId)) {
-      // Remove like
-      await _articles.doc(articleId).update({
-        'likedBy': FieldValue.arrayRemove([userId]),
+    await _firestore.runTransaction((transaction) async {
+      final doc = await transaction.get(docRef);
+      if (!doc.exists) return;
+
+      final data = doc.data() ?? <String, dynamic>{};
+      final likedBy = List<String>.from(data['likedBy'] as List? ?? []);
+      final alreadyLiked = likedBy.contains(userId);
+
+      if (alreadyLiked) {
+        likedBy.remove(userId);
+      } else {
+        likedBy.add(userId);
+      }
+
+      transaction.update(docRef, {
+        'likedBy': likedBy,
+        'likesCount': likedBy.length,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
-    } else {
-      // Add like
-      await _articles.doc(articleId).update({
-        'likedBy': FieldValue.arrayUnion([userId]),
-      });
-    }
+    });
   }
 
   Future<void> toggleBookmark(String articleId, String userId) async {

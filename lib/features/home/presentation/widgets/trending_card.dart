@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/presentation/widgets/shimmer_placeholder.dart';
 import '../../domain/models/news_article.dart';
 import '../../../../theme/style_guide.dart';
 
@@ -35,13 +36,18 @@ class TrendingCard extends StatelessWidget {
                     ? CachedNetworkImage(
                         imageUrl: article.thumbnailAsset,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => _buildImageFallback(),
-                        errorWidget: (_, __, ___) => _buildImageFallback(),
+                        placeholder: (context, _) => const ShimmerPlaceholder(
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                        errorWidget: (context, _, error) =>
+                            _buildImageFallback(),
                       )
                     : Image.asset(
                         article.thumbnailAsset,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildImageFallback(),
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildImageFallback(),
                       ),
 
                 // ── Gradient overlay ────────────────────────────────
@@ -53,8 +59,8 @@ class TrendingCard extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.15),
-                          Colors.black.withOpacity(0.80),
+                          Colors.black.withValues(alpha: 0.15),
+                          Colors.black.withValues(alpha: 0.80),
                         ],
                         stops: const [0.0, 0.4, 1.0],
                       ),
@@ -74,7 +80,9 @@ class TrendingCard extends StatelessWidget {
                       // Category chip
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF6B35),
                           borderRadius: BorderRadius.circular(4),
@@ -109,27 +117,29 @@ class TrendingCard extends StatelessWidget {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(3),
-                            child: Image.asset(
-                              article.sourceLogoAsset,
-                              width: 20,
-                              height: 20,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFBB1919),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: const Center(
-                                  child: Text('B',
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w900)),
-                                ),
-                              ),
-                            ),
+                            child: article.sourceLogoAsset.startsWith('http')
+                                ? CachedNetworkImage(
+                                    imageUrl: article.sourceLogoAsset,
+                                    width: 20,
+                                    height: 20,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, _) =>
+                                        const ShimmerPlaceholder(
+                                          width: 20,
+                                          height: 20,
+                                        ),
+                                    errorWidget: (context, _, error) =>
+                                        _sourceLogoFallback(),
+                                  )
+                                : Image.asset(
+                                    article.sourceLogoAsset,
+                                    width: 20,
+                                    height: 20,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            _sourceLogoFallback(),
+                                  ),
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -141,8 +151,11 @@ class TrendingCard extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          const Icon(Icons.access_time_rounded,
-                              size: 12, color: Colors.white70),
+                          const Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: Colors.white70,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             article.timeAgo,
@@ -170,15 +183,30 @@ class TrendingCard extends StatelessWidget {
         color: AppColors.grayscaleSecondaryButton,
       ),
       child: Center(
-        child: CachedNetworkImage(
-          imageUrl: 'https://placehold.co/96x96/e5e7eb/9ca3af.png?text=Image',
-          width: 56,
-          height: 56,
-          fit: BoxFit.cover,
-          errorWidget: (_, __, ___) => const Icon(
-            Icons.image_not_supported_outlined,
-            size: 40,
-            color: AppColors.grayscaleButtonText,
+        child: const Icon(
+          Icons.image_not_supported_outlined,
+          size: 40,
+          color: AppColors.grayscaleButtonText,
+        ),
+      ),
+    );
+  }
+
+  Widget _sourceLogoFallback() {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: const Color(0xFFBB1919),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: const Center(
+        child: Text(
+          'B',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
           ),
         ),
       ),
