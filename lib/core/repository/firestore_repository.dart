@@ -1,7 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io';
 
 import '../models/news_article_model.dart';
 import '../models/user_model.dart';
@@ -92,15 +93,17 @@ class FirestoreRepository {
         .set(article.toFirestore(), SetOptions(merge: true));
   }
 
-  Future<String> uploadImage(File imageFile, String path) async {
+  Future<String> uploadImage(Uint8List imageBytes, String path) async {
     final storageRef = FirebaseStorage.instance.ref().child(path);
-    final uploadTask = await storageRef.putFile(imageFile);
+    final uploadTask = await storageRef.putData(imageBytes);
     return uploadTask.ref.getDownloadURL();
   }
 
   Future<void> createArticle(NewsArticleModel article) async {
     final docId = article.id.trim().isEmpty ? _articles.doc().id : article.id;
-    await _articles.doc(docId).set(article.toFirestore(), SetOptions(merge: true));
+    await _articles
+        .doc(docId)
+        .set(article.toFirestore(), SetOptions(merge: true));
   }
 
   Future<void> toggleLike(String articleId, String userId) async {

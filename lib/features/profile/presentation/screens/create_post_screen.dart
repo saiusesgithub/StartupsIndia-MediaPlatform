@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -392,9 +392,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       }
 
       // Upload image to Firebase Storage
-      final File imageFile = File(_coverImageFile!.path);
+      final Uint8List imageBytes = await _coverImageFile!.readAsBytes();
       final String imageUrl = await firestoreRepository.uploadImage(
-        imageFile,
+        imageBytes,
         'article_covers/',
       );
 
