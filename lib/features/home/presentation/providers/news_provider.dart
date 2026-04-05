@@ -49,3 +49,5 @@ final searchArticlesProvider = FutureProvider<List<NewsArticleModel>>((
   final repository = ref.watch(firestoreRepositoryProvider);
   return repository.searchArticles(debouncedQuery);
 });
+
+final searchResultProvider = searchArticlesProvider;

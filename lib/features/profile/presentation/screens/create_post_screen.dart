@@ -391,26 +391,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Upload image to Firebase Storage
-      final Uint8List imageBytes = await _coverImageFile!.readAsBytes();
-      String imageUrl;
-      try {
-        imageUrl = await firestoreRepository.uploadImage(
-          imageBytes,
-          'article_covers/',
-        );
-      } catch (uploadError) {
-        // If upload fails (e.g., CORS on web), use placeholder
-        imageUrl = 'assets/images/placeholder.png';
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Image upload failed, using placeholder image'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
+      // Upload image to Cloudinary
+      final String imageUrl = await firestoreRepository.uploadImage(
+        _coverImageFile!.path,
+      );
 
       // Get current timestamp
       final now = DateTime.now();
@@ -447,14 +431,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       if (!mounted) return;
 
-      // Success feedback
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('News Published Successfully!'),
-          backgroundColor: Color(0xFF4CAF50),
-        ),
-      );
+      // Success feedback on Home screen
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      messenger.showSnackBar(const SnackBar(content: Text('News Published!')));
     } catch (e) {
       if (!mounted) return;
 

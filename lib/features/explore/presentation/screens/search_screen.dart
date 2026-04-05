@@ -224,7 +224,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _buildBodyList() {
     if (_currentTab == SearchTab.news) {
-      final searchAsync = ref.watch(searchArticlesProvider);
+      final searchAsync = ref.watch(searchResultProvider);
       return searchAsync.when(
         data: (articles) {
           if (articles.isEmpty) {

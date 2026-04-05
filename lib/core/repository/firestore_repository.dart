@@ -1,7 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/news_article_model.dart';
@@ -93,10 +91,18 @@ class FirestoreRepository {
         .set(article.toFirestore(), SetOptions(merge: true));
   }
 
-  Future<String> uploadImage(Uint8List imageBytes, String path) async {
-    final storageRef = FirebaseStorage.instance.ref().child(path);
-    final uploadTask = await storageRef.putData(imageBytes);
-    return uploadTask.ref.getDownloadURL();
+  Future<String> uploadImage(String imagePath) async {
+    final cloudinary = CloudinaryPublic(
+      'dmrp1d1tv',
+      'startups india upload preset',
+      cache: false,
+    );
+
+    final response = await cloudinary.uploadFile(
+      CloudinaryFile.fromFile(imagePath),
+    );
+
+    return response.secureUrl;
   }
 
   Future<void> createArticle(NewsArticleModel article) async {
