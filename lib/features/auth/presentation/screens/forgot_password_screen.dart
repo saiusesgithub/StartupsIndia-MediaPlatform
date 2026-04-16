@@ -47,19 +47,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final authRepo = ref.read(authRepositoryProvider);
 
     try {
-      // Detect sign-in methods to see if it is a Google-only account.
-      final methods = await authRepo.fetchSignInMethodsForEmail(email);
-
-      // If Google is the only provider, guide the user accordingly.
-      if (methods.isNotEmpty &&
-          !methods.contains('password') &&
-          methods.contains('google.com')) {
-        if (!mounted) return;
-        setState(() => _state = _ScreenState.googleAccount);
-        return;
-      }
-
-      // Send the reset email (works for email+password & linked accounts).
+      // Send the reset email directly. If the user only has a Google account, 
+      // Firebase will still send a password reset email to allow them to add
+      // a password provider to their account, or it will succeed silently/fail
+      // based on Firebase project settings.
       await authRepo.sendPasswordResetEmail(email);
 
       if (!mounted) return;
