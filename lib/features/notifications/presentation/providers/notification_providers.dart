@@ -12,7 +12,7 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 });
 
 final userNotificationsProvider = StreamProvider<List<AppNotification>>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authState = ref.watch(authStateChangesProvider);
   final user = authState.value;
 
   if (user == null) {
@@ -26,7 +26,7 @@ final userNotificationsProvider = StreamProvider<List<AppNotification>>((ref) {
 // A provider block that automatically saves the FCM token whenever the user or token changes,
 // ensuring the latest token is written to the user's Firestore document.
 final fcmTokenSyncProvider = Provider.autoDispose<void>((ref) {
-  final user = ref.watch(authStateProvider).value;
+  final user = ref.watch(authStateChangesProvider).value;
   if (user == null) return;
 
   final repository = ref.watch(notificationRepositoryProvider);
