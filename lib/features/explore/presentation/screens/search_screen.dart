@@ -79,7 +79,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            'Kabar',
+            'Startups India',
             style: AppTypography.displaySmallBold.copyWith(
               fontSize: 22,
               color: AppColors.primaryDefault,

@@ -244,7 +244,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
         children: [
-          // Kabar text logo (SVG unavailable → styled text logo)
+          // Startups India text logo
           RichText(
             text: TextSpan(
               children: [
@@ -271,7 +271,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
                 TextSpan(
-                  text: 'Kabar',
+                  text: 'Startups India',
                   style: AppTypography.displaySmallBold.copyWith(
                     fontSize: 22,
                     color: AppColors.primaryDefault,
