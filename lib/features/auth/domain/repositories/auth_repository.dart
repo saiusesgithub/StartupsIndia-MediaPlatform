@@ -40,4 +40,12 @@ abstract class AuthRepository {
 
   /// Updates user profile fields from edit-profile form.
   Future<void> updateUserData(UserModel updatedUser);
+
+  /// Sends a Firebase password-reset email to [email].
+  /// Throws [FirebaseAuthException] on failure.
+  Future<void> sendPasswordResetEmail(String email);
+
+  /// Fetches the sign-in methods registered for [email].
+  /// Returns an empty list if the email is not registered.
+  Future<List<String>> fetchSignInMethodsForEmail(String email);
 }
