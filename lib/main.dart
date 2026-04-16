@@ -31,6 +31,8 @@ import 'features/profile/presentation/screens/settings_screen.dart';
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 const AndroidNotificationChannel _highImportanceChannel =
     AndroidNotificationChannel(
       'high_importance_channel',
@@ -155,11 +157,39 @@ class _MyAppState extends ConsumerState<MyApp> {
       final body = message.notification?.body ?? 'You have a new update.';
 
       rootScaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text('$title: $body')),
+        SnackBar(
+          content: Text('$title: $body'),
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () => _handleMessage(message),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
 
       unawaited(_showForegroundLocalNotification(message));
     });
+
+    // Handle tap from background state
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+
+    // Handle tap from terminated state
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        // App started by tapping on a notification
+        _handleMessage(message);
+      }
+    });
+  }
+
+  void _handleMessage(RemoteMessage message) {
+    if (message.data.containsKey('page')) {
+      final page = message.data['page'];
+      if (page == 'notifications') {
+        navigatorKey.currentState?.pushNamed('/notifications');
+      }
+      // Add other page navigations here based on payload
+    }
   }
 
   @override
@@ -173,6 +203,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     final themeMode = ref.watch(themeServiceProvider);
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       title: 'News App',
