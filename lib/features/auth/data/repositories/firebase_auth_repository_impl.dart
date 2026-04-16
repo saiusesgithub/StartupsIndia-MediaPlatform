@@ -188,4 +188,11 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
 
     await saveUserData(merged);
   }
+
+  // ── Password Reset ────────────────────────────────────────────────────────
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) {
+    return _auth.sendPasswordResetEmail(email: email.trim());
+  }
 }

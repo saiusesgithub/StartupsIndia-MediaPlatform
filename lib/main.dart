@@ -16,6 +16,7 @@ import 'core/providers/theme_service_provider.dart';
 import 'features/auth/presentation/screens/onboarding_screen.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/signup_screen.dart';
+import 'features/auth/presentation/screens/forgot_password_screen.dart';
 import 'features/auth/presentation/screens/fill_profile_screen.dart';
 import 'features/onboarding/presentation/screens/select_country_screen.dart';
 import 'features/onboarding/presentation/screens/choose_topics_screen.dart';
@@ -218,6 +219,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/news-sources': (context) => const ChooseNewsSourcesScreen(),
         '/fill-profile': (context) => const FillProfileScreen(),
         '/select-country': (context) => const SelectCountryScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/home': (context) => const MainAppScaffold(initialIndex: 0),
         '/explore': (context) => const MainAppScaffold(initialIndex: 1),
         '/trending': (context) => const TrendingScreen(),
