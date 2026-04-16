@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/style_guide.dart';
+import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../../../bookmark/presentation/screens/bookmark_screen.dart';
 import '../../../explore/presentation/screens/explore_screen.dart';
 import '../../../profile/presentation/screens/personal_profile_screen.dart';
 import '../../domain/models/news_article.dart';
 import 'home_screen.dart';
 
-class MainAppScaffold extends StatefulWidget {
+class MainAppScaffold extends ConsumerStatefulWidget {
   final int initialIndex;
   final List<NewsArticle> bookmarkedArticles;
 
@@ -17,10 +19,10 @@ class MainAppScaffold extends StatefulWidget {
   });
 
   @override
-  State<MainAppScaffold> createState() => _MainAppScaffoldState();
+  ConsumerState<MainAppScaffold> createState() => _MainAppScaffoldState();
 }
 
-class _MainAppScaffoldState extends State<MainAppScaffold> {
+class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
   late int _navIndex;
 
   @override
@@ -31,6 +33,9 @@ class _MainAppScaffoldState extends State<MainAppScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep the FCM token in sync while the user is logged in
+    ref.watch(fcmTokenSyncProvider);
+
     return Scaffold(
       backgroundColor: AppColors.grayscaleWhite,
       body: IndexedStack(

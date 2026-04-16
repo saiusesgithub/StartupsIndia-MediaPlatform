@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../theme/style_guide.dart';
-
-enum NotificationType { news, follow, interaction }
+import '../../../notifications/domain/models/app_notification.dart';
 
 class NotificationTile extends StatelessWidget {
   final NotificationType type;

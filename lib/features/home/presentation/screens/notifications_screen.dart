@@ -1,83 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/style_guide.dart';
 import '../widgets/notification_tile.dart';
+import '../../../notifications/presentation/providers/notification_providers.dart';
+import '../../../notifications/domain/models/app_notification.dart';
+import '../../../../core/utils/time_format_helper.dart';
 
-class NotificationItem {
-  final String id;
-  final NotificationType type;
-  final String title;
-  final String subtitle;
-  final String timeAgo;
-  final String avatarLabel;
-
-  const NotificationItem({
-    required this.id,
-    required this.type,
-    required this.title,
-    required this.subtitle,
-    required this.timeAgo,
-    required this.avatarLabel,
-  });
-}
-
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final Set<String> _followingIds = {'follow_01'};
-
-  final List<NotificationItem> _todayNotifications = const [
-    NotificationItem(
-      id: 'news_01',
-      type: NotificationType.news,
-      title: 'Breaking: Global markets rally',
-      subtitle: 'Bloomberg published a major update in Business.',
-      timeAgo: '15m ago',
-      avatarLabel: 'B',
-    ),
-    NotificationItem(
-      id: 'follow_01',
-      type: NotificationType.follow,
-      title: 'The Verge posted a new article',
-      subtitle: 'Follow them to stay updated on technology news.',
-      timeAgo: '42m ago',
-      avatarLabel: 'TV',
-    ),
-    NotificationItem(
-      id: 'interact_01',
-      type: NotificationType.interaction,
-      title: 'Ava liked your saved story',
-      subtitle: '“Russian warship: Moskva sinks in Black Sea”.',
-      timeAgo: '1h ago',
-      avatarLabel: 'A',
-    ),
-  ];
-
-  final List<NotificationItem> _yesterdayNotifications = const [
-    NotificationItem(
-      id: 'news_02',
-      type: NotificationType.news,
-      title: 'Sports alert from ESPN',
-      subtitle: 'New Champions League preview is now live.',
-      timeAgo: '20h ago',
-      avatarLabel: 'E',
-    ),
-    NotificationItem(
-      id: 'follow_02',
-      type: NotificationType.follow,
-      title: 'Reuters published politics coverage',
-      subtitle: 'Tap follow to get updates in your feed.',
-      timeAgo: '22h ago',
-      avatarLabel: 'R',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final notificationsAsync = ref.watch(userNotificationsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.grayscaleWhite,
       appBar: AppBar(
@@ -100,15 +42,65 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ),
       ),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildGroupHeader('Today, April 22'),
-          _buildGroupList(_todayNotifications),
-          _buildGroupHeader('Yesterday, April 21'),
-          _buildGroupList(_yesterdayNotifications),
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
-        ],
+      body: notificationsAsync.when(
+        data: (notifications) {
+          if (notifications.isEmpty) {
+            return Center(
+              child: Text(
+                'No notifications yet.',
+                style: AppTypography.textSmall.copyWith(
+                  color: AppColors.grayscaleBodyText,
+                ),
+              ),
+            );
+          }
+
+          // Simple grouping: Today, Yesterday, Older
+          final today = <AppNotification>[];
+          final yesterday = <AppNotification>[];
+          final older = <AppNotification>[];
+
+          final now = DateTime.now();
+          final startOfToday = DateTime(now.year, now.month, now.day);
+          final startOfYesterday = startOfToday.subtract(const Duration(days: 1));
+
+          for (final n in notifications) {
+            if (n.createdAt.isAfter(startOfToday)) {
+              today.add(n);
+            } else if (n.createdAt.isAfter(startOfYesterday)) {
+              yesterday.add(n);
+            } else {
+              older.add(n);
+            }
+          }
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              if (today.isNotEmpty) ...[
+                _buildGroupHeader('Today'),
+                _buildGroupList(today),
+              ],
+              if (yesterday.isNotEmpty) ...[
+                _buildGroupHeader('Yesterday'),
+                _buildGroupList(yesterday),
+              ],
+              if (older.isNotEmpty) ...[
+                _buildGroupHeader('Older'),
+                _buildGroupList(older),
+              ],
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+            ],
+          );
+        },
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryDefault)),
+        error: (error, _) => Center(
+          child: Text(
+            'Failed to load notifications: $error',
+            style: AppTypography.textSmall.copyWith(color: AppColors.errorDark),
+          ),
+        ),
       ),
     );
   }
@@ -127,7 +119,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  SliverList _buildGroupList(List<NotificationItem> items) {
+  SliverList _buildGroupList(List<AppNotification> items) {
     return SliverList.builder(
       itemCount: items.length,
       itemBuilder: (context, index) {
@@ -136,7 +128,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           type: item.type,
           title: item.title,
           subtitle: item.subtitle,
-          timeAgo: item.timeAgo,
+          timeAgo: formatArticleTimestamp(item.createdAt),
           avatarLabel: item.avatarLabel,
           isFollowing: _followingIds.contains(item.id),
           onFollowTap: item.type == NotificationType.follow
