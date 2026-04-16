@@ -251,59 +251,34 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  Row(
-                    children: [
-                      // Facebook (placeholder — not yet implemented)
-                      Expanded(
-                        child: TextButton.icon(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            backgroundColor: AppColors.grayscaleSecondaryButton,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            elevation: 0,
-                          ),
-                          icon: const FaIcon(FontAwesomeIcons.facebook, color: Color(0xFF1877F2)),
-                          label: Text(
-                            'Facebook',
-                            style: AppTypography.linkMedium.copyWith(
-                              color: AppColors.grayscaleButtonText,
-                            ),
-                          ),
+                  // Google Sign-In
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: _isGoogleLoading ? null : _signInWithGoogle,
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppColors.grayscaleSecondaryButton,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: _isGoogleLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const FaIcon(FontAwesomeIcons.google,
+                              color: AppColors.grayscaleTitleActive, size: 20),
+                      label: Text(
+                        'Continue with Google',
+                        style: AppTypography.linkMedium.copyWith(
+                          color: AppColors.grayscaleButtonText,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      // Google Sign-In
-                      Expanded(
-                        child: TextButton.icon(
-                          onPressed: _isGoogleLoading ? null : _signInWithGoogle,
-                          style: TextButton.styleFrom(
-                            backgroundColor: AppColors.grayscaleSecondaryButton,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            elevation: 0,
-                          ),
-                          icon: _isGoogleLoading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const FaIcon(FontAwesomeIcons.google,
-                                  color: AppColors.grayscaleTitleActive, size: 22),
-                          label: Text(
-                            'Google',
-                            style: AppTypography.linkMedium.copyWith(
-                              color: AppColors.grayscaleButtonText,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 
