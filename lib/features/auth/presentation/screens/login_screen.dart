@@ -1,10 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
 import '../providers/auth_providers.dart';
+import 'auth_screen_widgets.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -21,8 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
   bool _isGoogleLoading = false;
 
-  // ── Validators ─────────────────────────────────────────────────────────────
-
+  // ── Validators ──────────────────────────────────────────────────────────────
   String? _validateEmail(String? val) {
     if (val == null || val.trim().isEmpty) return 'Email is required.';
     final emailRegex = RegExp(r'^[\w.+-]+@[a-zA-Z\d\-]+\.[a-zA-Z\d\-.]+$');
@@ -32,55 +31,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   String? _validatePassword(String? val) {
     if (val == null || val.isEmpty) return 'Password is required.';
-    if (val.length < 8) return 'Password must be at least 8 characters.';
-    if (!RegExp(r'[A-Z]').hasMatch(val)) return 'Must contain at least one uppercase letter.';
-    if (!RegExp(r'[0-9]').hasMatch(val)) return 'Must contain at least one number.';
-    if (!RegExp(r'[@#\$%^&*!?]').hasMatch(val)) return 'Must contain at least one special character (@#\$%^&*!?).';
+    if (val.length < 8) return 'Must be at least 8 characters.';
+    if (!RegExp(r'[A-Z]').hasMatch(val)) return 'Must contain an uppercase letter.';
+    if (!RegExp(r'[0-9]').hasMatch(val)) return 'Must contain a number.';
+    if (!RegExp(r'[@#\$%^&*!?]').hasMatch(val)) return 'Must contain a special character.';
     return null;
   }
 
-  // ── Email / Password Submit ────────────────────────────────────────────────
-
+  // ── Submit ──────────────────────────────────────────────────────────────────
   void _submit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-
       try {
         final authRepo = ref.read(authRepositoryProvider);
         await authRepo.signInWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
-
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_friendlyError(e.code)),
-            backgroundColor: AppColors.errorDark,
-          ),
-        );
+        _showError(_friendlyError(e.code));
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
     }
   }
 
-  // ── Google Sign-In ─────────────────────────────────────────────────────────
-
   void _signInWithGoogle() async {
     setState(() => _isGoogleLoading = true);
     try {
       final authRepo = ref.read(authRepositoryProvider);
       final credential = await authRepo.signInWithGoogle();
-
-      if (credential == null) return; // user cancelled
-
+      if (credential == null) return;
       if (!mounted) return;
-
-      // New user → go through onboarding; returning user → go home
       final isNewUser = credential.additionalUserInfo?.isNewUser ?? false;
       if (isNewUser) {
         Navigator.pushNamedAndRemoveUntil(context, '/select-country', (route) => false);
@@ -89,23 +74,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Google Sign-In failed: ${e.message}'),
-          backgroundColor: AppColors.errorDark,
-        ),
-      );
+      _showError('Google Sign-In failed: ${e.message}');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Google Sign-In error: $e'),
-          backgroundColor: AppColors.errorDark,
-        ),
-      );
+      _showError('Google Sign-In error: $e');
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: AppColors.errorDark,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   String _friendlyError(String code) {
@@ -130,198 +113,122 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.grayscaleWhite,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 44),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Hello\nAgain!',
-                    style: AppTypography.displayLargeBold.copyWith(
-                      color: AppColors.grayscaleTitleActive,
+      body: Column(
+        children: [
+          // ── 1. Brand header (fixed) ────────────────────────────────────
+          BrandHeader(
+            title: 'Welcome Back',
+            subtitle: 'Sign in to continue reading',
+          ),
+
+          // ── 2. Scrollable form fields ──────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AppTextField(
+                      controller: _emailController,
+                      label: 'Email',
+                      hintText: 'you@example.com',
+                      keyboardType: TextInputType.emailAddress,
+                      validator: _validateEmail,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Welcome back you\'ve\nbeen missed',
-                    style: AppTypography.textLarge.copyWith(
-                      color: AppColors.grayscaleBodyText,
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _passwordController,
+                      label: 'Password',
+                      hintText: '••••••••',
+                      isPassword: true,
+                      validator: _validatePassword,
                     ),
-                  ),
-                  const SizedBox(height: 48),
-
-                  // ── Email field ──────────────────────────────────────────
-                  AppTextField(
-                    controller: _emailController,
-                    label: 'Email*',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: _validateEmail,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Password field ───────────────────────────────────────
-                  AppTextField(
-                    controller: _passwordController,
-                    label: 'Password*',
-                    isPassword: true,
-                    validator: _validatePassword,
-                  ),
-                  const SizedBox(height: 8),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: Checkbox(
-                              value: _rememberMe,
-                              onChanged: (val) {
-                                setState(() => _rememberMe = val ?? true);
-                              },
-                              activeColor: AppColors.primaryDefault,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(3),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: Checkbox(
+                                value: _rememberMe,
+                                onChanged: (val) =>
+                                    setState(() => _rememberMe = val ?? true),
+                                activeColor: AppColors.primaryDefault,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4)),
+                                side: const BorderSide(
+                                    color: AppColors.grayscaleLine),
                               ),
-                              side: const BorderSide(color: AppColors.grayscaleBodyText),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Remember me',
+                            const SizedBox(width: 8),
+                            Text(
+                              'Remember me',
+                              style: AppTypography.textSmall.copyWith(
+                                color: AppColors.grayscaleBodyText,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(
+                              context, '/forgot-password'),
+                          child: Text(
+                            'Forgot password?',
                             style: AppTypography.textSmall.copyWith(
-                              color: AppColors.grayscaleBodyText,
+                              color: AppColors.primaryDefault,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
                           ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/forgot-password');
-                        },
-                        child: Text(
-                          'Forgot the password ?',
-                          style: AppTypography.textSmall.copyWith(
-                            color: AppColors.linkBlue,
-                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryDefault,
-                      disabledBackgroundColor: AppColors.primaryDefault,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
+                      ],
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: AppColors.grayscaleWhite,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : Text(
-                            'Login',
-                            style: AppTypography.linkMedium.copyWith(
-                              color: AppColors.grayscaleWhite,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Row(
-                    children: [
-                      const Expanded(child: Divider(color: AppColors.grayscaleLine)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'or continue with',
-                          style: AppTypography.textSmall.copyWith(
-                            color: AppColors.grayscaleBodyText,
-                          ),
-                        ),
-                      ),
-                      const Expanded(child: Divider(color: AppColors.grayscaleLine)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Google Sign-In
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: _isGoogleLoading ? null : _signInWithGoogle,
-                      style: TextButton.styleFrom(
-                        backgroundColor: AppColors.grayscaleSecondaryButton,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        elevation: 0,
-                      ),
-                      icon: _isGoogleLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const FaIcon(FontAwesomeIcons.google,
-                              color: AppColors.grayscaleTitleActive, size: 20),
-                      label: Text(
-                        'Continue with Google',
-                        style: AppTypography.linkMedium.copyWith(
-                          color: AppColors.grayscaleButtonText,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'don\'t have an account ? ',
-                        style: AppTypography.textSmall.copyWith(
-                          color: AppColors.grayscaleBodyText,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacementNamed(context, '/signup');
-                        },
-                        child: Text(
-                          'Sign Up',
-                          style: AppTypography.linkMedium.copyWith(
-                            color: AppColors.primaryDefault,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+
+          // ── 3. Pinned bottom CTAs ──────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              24, 16, 24,
+              MediaQuery.of(context).padding.bottom + 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PrimaryButton(
+                  label: 'Login',
+                  isLoading: _isLoading,
+                  onPressed: _submit,
+                ),
+                const SizedBox(height: 16),
+                OrDivider(),
+                const SizedBox(height: 16),
+                GoogleButton(
+                  isLoading: _isGoogleLoading,
+                  onPressed: _signInWithGoogle,
+                ),
+                const SizedBox(height: 20),
+                AuthSwitchRow(
+                  question: "Don't have an account?",
+                  actionLabel: 'Sign Up',
+                  onTap: () =>
+                      Navigator.pushReplacementNamed(context, '/signup'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
+
 }
