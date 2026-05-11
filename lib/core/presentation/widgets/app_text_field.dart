@@ -25,6 +25,22 @@ class AppTextField extends StatefulWidget {
 
 class _AppTextFieldState extends State<AppTextField> {
   bool _obscureText = true;
+  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      setState(() => _isFocused = _focusNode.hasFocus);
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,16 +58,28 @@ class _AppTextFieldState extends State<AppTextField> {
           validator: widget.validator,
           builder: (field) {
             final hasError = field.hasError;
+
+            // Border priority: error → focused (red) → default (grey)
+            final borderColor = hasError
+                ? AppColors.errorDark
+                : _isFocused
+                    ? AppColors.primaryDefault
+                    : AppColors.grayscaleLine;
+
+            final fillColor = hasError
+                ? AppColors.errorLight
+                : AppColors.grayscaleWhite;
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: hasError ? AppColors.errorLight : AppColors.grayscaleWhite,
+                    color: fillColor,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: hasError ? AppColors.errorDark : AppColors.grayscaleBodyText,
-                      width: 1,
+                      color: borderColor,
+                      width: _isFocused && !hasError ? 1.5 : 1.0,
                     ),
                   ),
                   child: Row(
@@ -59,39 +87,52 @@ class _AppTextFieldState extends State<AppTextField> {
                       Expanded(
                         child: TextField(
                           controller: widget.controller,
+                          focusNode: _focusNode,
                           obscureText: widget.isPassword ? _obscureText : false,
-                          keyboardType: widget.isPassword ? TextInputType.visiblePassword : widget.keyboardType,
+                          keyboardType: widget.isPassword
+                              ? TextInputType.visiblePassword
+                              : widget.keyboardType,
                           style: AppTypography.textSmall.copyWith(
                             color: AppColors.grayscaleTitleActive,
                           ),
-                          onChanged: (value) {
-                            field.didChange(value);
-                          },
+                          onChanged: field.didChange,
                           decoration: InputDecoration(
                             hintText: widget.hintText,
+                            hintStyle: AppTypography.textSmall.copyWith(
+                              color: AppColors.grayscaleButtonText,
+                            ),
+                            // Suppress ALL theme borders — Container handles visuals
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            // Suppress theme fill so no grey appears
+                            filled: true,
+                            fillColor: Colors.transparent,
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 12),
                           ),
                         ),
                       ),
                       if (hasError && !widget.isPassword)
                         const Padding(
                           padding: EdgeInsets.only(right: 10),
-                          child: Icon(Icons.close, color: AppColors.errorDark, size: 16),
+                          child: Icon(Icons.close,
+                              color: AppColors.errorDark, size: 16),
                         ),
                       if (widget.isPassword)
                         IconButton(
                           icon: Icon(
-                            _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: AppColors.grayscaleTitleActive,
+                            _obscureText
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppColors.grayscaleButtonText,
                             size: 20,
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _obscureText = !_obscureText;
-                            });
-                          },
+                          onPressed: () =>
+                              setState(() => _obscureText = !_obscureText),
                         ),
                     ],
                   ),
@@ -103,9 +144,10 @@ class _AppTextFieldState extends State<AppTextField> {
                       field.errorText ?? '',
                       style: AppTypography.textSmall.copyWith(
                         color: AppColors.errorDark,
+                        fontSize: 12,
                       ),
                     ),
-                  )
+                  ),
               ],
             );
           },
