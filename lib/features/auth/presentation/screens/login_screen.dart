@@ -113,120 +113,134 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.grayscaleWhite,
-      body: Column(
-        children: [
-          // ── 1. Brand header (fixed) ────────────────────────────────────
-          BrandHeader(
-            title: 'Welcome Back',
-            subtitle: 'Sign in to continue reading',
-          ),
-
-          // ── 2. Scrollable form fields ──────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Form(
-                key: _formKey,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
+              ),
+              child: IntrinsicHeight(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppTextField(
-                      controller: _emailController,
-                      label: 'Email',
-                      hintText: 'you@example.com',
-                      keyboardType: TextInputType.emailAddress,
-                      validator: _validateEmail,
+                    // ── 1. Brand header (fixed) ────────────────────────────────────
+                    BrandHeader(
+                      title: 'Welcome Back',
+                      subtitle: 'Sign in to continue reading',
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _passwordController,
-                      label: 'Password',
-                      hintText: '••••••••',
-                      isPassword: true,
-                      validator: _validatePassword,
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
+
+                    // ── 2. Scrollable form fields ──────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Checkbox(
-                                value: _rememberMe,
-                                onChanged: (val) =>
-                                    setState(() => _rememberMe = val ?? true),
-                                activeColor: AppColors.primaryDefault,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4)),
-                                side: const BorderSide(
-                                    color: AppColors.grayscaleLine),
-                              ),
+                            AppTextField(
+                              controller: _emailController,
+                              label: 'Email',
+                              hintText: 'you@example.com',
+                              keyboardType: TextInputType.emailAddress,
+                              validator: _validateEmail,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Remember me',
-                              style: AppTypography.textSmall.copyWith(
-                                color: AppColors.grayscaleBodyText,
-                                fontSize: 13,
-                              ),
+                            const SizedBox(height: 16),
+                            AppTextField(
+                              controller: _passwordController,
+                              label: 'Password',
+                              hintText: '••••••••',
+                              isPassword: true,
+                              validator: _validatePassword,
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Checkbox(
+                                        value: _rememberMe,
+                                        onChanged: (val) =>
+                                            setState(() => _rememberMe = val ?? true),
+                                        activeColor: AppColors.primaryDefault,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(4)),
+                                        side: const BorderSide(
+                                            color: AppColors.grayscaleLine),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Remember me',
+                                      style: AppTypography.textSmall.copyWith(
+                                        color: AppColors.grayscaleBodyText,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                GestureDetector(
+                                  onTap: () => Navigator.pushNamed(
+                                      context, '/forgot-password'),
+                                  child: Text(
+                                    'Forgot password?',
+                                    style: AppTypography.textSmall.copyWith(
+                                      color: AppColors.primaryDefault,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        GestureDetector(
-                          onTap: () => Navigator.pushNamed(
-                              context, '/forgot-password'),
-                          child: Text(
-                            'Forgot password?',
-                            style: AppTypography.textSmall.copyWith(
-                              color: AppColors.primaryDefault,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
+                      ),
+                    ),
+
+                    // Spacer pushes the CTAs to the bottom when there is space
+                    const Spacer(),
+
+                    // ── 3. Pinned bottom CTAs ──────────────────────────────────────
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        24, 24, 24,
+                        MediaQuery.of(context).padding.bottom + 24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          PrimaryButton(
+                            label: 'Login',
+                            isLoading: _isLoading,
+                            onPressed: _submit,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          OrDivider(),
+                          const SizedBox(height: 16),
+                          GoogleButton(
+                            isLoading: _isGoogleLoading,
+                            onPressed: _signInWithGoogle,
+                          ),
+                          const SizedBox(height: 20),
+                          AuthSwitchRow(
+                            question: "Don't have an account?",
+                            actionLabel: 'Sign Up',
+                            onTap: () =>
+                                Navigator.pushReplacementNamed(context, '/signup'),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-
-          // ── 3. Pinned bottom CTAs ──────────────────────────────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              24, 16, 24,
-              MediaQuery.of(context).padding.bottom + 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                PrimaryButton(
-                  label: 'Login',
-                  isLoading: _isLoading,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: 16),
-                OrDivider(),
-                const SizedBox(height: 16),
-                GoogleButton(
-                  isLoading: _isGoogleLoading,
-                  onPressed: _signInWithGoogle,
-                ),
-                const SizedBox(height: 20),
-                AuthSwitchRow(
-                  question: "Don't have an account?",
-                  actionLabel: 'Sign Up',
-                  onTap: () =>
-                      Navigator.pushReplacementNamed(context, '/signup'),
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

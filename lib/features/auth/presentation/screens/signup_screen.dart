@@ -116,92 +116,138 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.grayscaleWhite,
-      body: Column(
-        children: [
-          // ── 1. Brand header (fixed) ────────────────────────────────────
-          BrandHeader(
-            title: 'Create Account',
-            subtitle: 'Join the StartupsIndia community',
-          ),
-
-          // ── 2. Scrollable form fields ──────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Form(
-                key: _formKey,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
+              ),
+              child: IntrinsicHeight(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppTextField(
-                      controller: _emailController,
-                      label: 'Email',
-                      hintText: 'you@example.com',
-                      keyboardType: TextInputType.emailAddress,
-                      validator: _validateEmail,
+                    // ── 1. Brand header (fixed) ────────────────────────────────────
+                    BrandHeader(
+                      title: 'Create Account',
+                      subtitle: 'Join the StartupsIndia community',
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _passwordController,
-                      label: 'Password',
-                      hintText: 'Min 8 chars, 1 upper, 1 number, 1 symbol',
-                      isPassword: true,
-                      validator: _validatePassword,
-                    ),
-                    const SizedBox(height: 12),
-                    _PasswordHintRow(),
-                    const SizedBox(height: 14),
-                    // Terms & Conditions
-                    GestureDetector(
-                      onTap: () =>
-                          setState(() => _agreedToTerms = !_agreedToTerms),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: Checkbox(
-                              value: _agreedToTerms,
-                              onChanged: (val) => setState(
-                                  () => _agreedToTerms = val ?? false),
-                              activeColor: AppColors.primaryDefault,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4)),
-                              side: const BorderSide(
-                                  color: AppColors.grayscaleLine),
+
+                    // ── 2. Scrollable form fields ──────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            AppTextField(
+                              controller: _emailController,
+                              label: 'Email',
+                              hintText: 'you@example.com',
+                              keyboardType: TextInputType.emailAddress,
+                              validator: _validateEmail,
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                style: AppTypography.textSmall.copyWith(
-                                  color: AppColors.grayscaleBodyText,
-                                  fontSize: 13,
-                                ),
+                            const SizedBox(height: 16),
+                            AppTextField(
+                              controller: _passwordController,
+                              label: 'Password',
+                              hintText: 'Min 8 chars, 1 upper, 1 number, 1 symbol',
+                              isPassword: true,
+                              validator: _validatePassword,
+                            ),
+                            const SizedBox(height: 12),
+                            _PasswordHintRow(),
+                            const SizedBox(height: 14),
+                            // Terms & Conditions
+                            GestureDetector(
+                              onTap: () =>
+                                  setState(() => _agreedToTerms = !_agreedToTerms),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const TextSpan(text: 'I agree to the '),
-                                  TextSpan(
-                                    text: 'Terms of Service',
-                                    style: AppTypography.textSmall.copyWith(
-                                      color: AppColors.primaryDefault,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: Checkbox(
+                                      value: _agreedToTerms,
+                                      onChanged: (val) => setState(
+                                          () => _agreedToTerms = val ?? false),
+                                      activeColor: AppColors.primaryDefault,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(4)),
+                                      side: const BorderSide(
+                                          color: AppColors.grayscaleLine),
                                     ),
                                   ),
-                                  const TextSpan(text: ' and '),
-                                  TextSpan(
-                                    text: 'Privacy Policy',
-                                    style: AppTypography.textSmall.copyWith(
-                                      color: AppColors.primaryDefault,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: AppTypography.textSmall.copyWith(
+                                          color: AppColors.grayscaleBodyText,
+                                          fontSize: 13,
+                                        ),
+                                        children: [
+                                          const TextSpan(text: 'I agree to the '),
+                                          TextSpan(
+                                            text: 'Terms of Service',
+                                            style: AppTypography.textSmall.copyWith(
+                                              color: AppColors.primaryDefault,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          const TextSpan(text: ' and '),
+                                          TextSpan(
+                                            text: 'Privacy Policy',
+                                            style: AppTypography.textSmall.copyWith(
+                                              color: AppColors.primaryDefault,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Spacer pushes the CTAs to the bottom when there is space
+                    const Spacer(),
+
+                    // ── 3. Pinned bottom CTAs ──────────────────────────────────────
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        24, 24, 24,
+                        MediaQuery.of(context).padding.bottom + 24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          PrimaryButton(
+                            label: 'Create Account',
+                            isLoading: _isLoading,
+                            onPressed: _submit,
+                          ),
+                          const SizedBox(height: 16),
+                          OrDivider(),
+                          const SizedBox(height: 16),
+                          GoogleButton(
+                            isLoading: _isGoogleLoading,
+                            onPressed: _signInWithGoogle,
+                          ),
+                          const SizedBox(height: 20),
+                          AuthSwitchRow(
+                            question: 'Already have an account?',
+                            actionLabel: 'Login',
+                            onTap: () =>
+                                Navigator.pushReplacementNamed(context, '/login'),
                           ),
                         ],
                       ),
@@ -210,40 +256,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 ),
               ),
             ),
-          ),
-
-          // ── 3. Pinned bottom CTAs ──────────────────────────────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              24, 16, 24,
-              MediaQuery.of(context).padding.bottom + 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                PrimaryButton(
-                  label: 'Create Account',
-                  isLoading: _isLoading,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: 16),
-                OrDivider(),
-                const SizedBox(height: 16),
-                GoogleButton(
-                  isLoading: _isGoogleLoading,
-                  onPressed: _signInWithGoogle,
-                ),
-                const SizedBox(height: 20),
-                AuthSwitchRow(
-                  question: 'Already have an account?',
-                  actionLabel: 'Login',
-                  onTap: () =>
-                      Navigator.pushReplacementNamed(context, '/login'),
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
