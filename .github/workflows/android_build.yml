@@ -59,8 +59,8 @@ jobs:
           keyPassword=$KEYSTORE_KEY_PASSWORD
           EOF
 
-      - name: Build signed release APK
-        run: flutter build apk --release
+      - name: Build signed release APK (ARM64 only)
+        run: flutter build apk --release --target-platform=android-arm64
 
       - name: Upload app-release.apk artifact
         uses: actions/upload-artifact@v4
