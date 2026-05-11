@@ -119,17 +119,20 @@ class _PersonalProfileScreenState extends ConsumerState<PersonalProfileScreen> {
 
   Widget _buildHeader(BuildContext context, UserModel user) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Title row: balanced leading SizedBox mirrors the icon ──────
           Row(
             children: [
+              const SizedBox(width: 40), // mirrors the icon on the right
               const Spacer(),
               Text(
                 'Profile',
                 style: AppTypography.displaySmallBold.copyWith(
                   color: AppColors.grayscaleTitleActive,
+                  fontSize: 20,
                 ),
               ),
               const Spacer(),
@@ -142,12 +145,14 @@ class _PersonalProfileScreenState extends ConsumerState<PersonalProfileScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
+
+          // ── Avatar + stats: vertically centred ─────────────────────────
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _UserAvatar(url: user.avatarUrl),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -170,27 +175,35 @@ class _PersonalProfileScreenState extends ConsumerState<PersonalProfileScreen> {
             ],
           ),
           const SizedBox(height: 14),
+
+          // ── Display name ───────────────────────────────────────────────
           Text(
             user.displayName,
             style: AppTypography.displaySmallBold.copyWith(
               color: AppColors.grayscaleTitleActive,
-              fontSize: 30,
+              fontSize: 22,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            user.bio,
-            style: AppTypography.textMedium.copyWith(
-              color: AppColors.grayscaleBodyText,
-              height: 1.4,
+
+          // ── Bio (only if non-empty) ────────────────────────────────────
+          if (user.bio.trim().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              user.bio,
+              style: AppTypography.textSmall.copyWith(
+                color: AppColors.grayscaleBodyText,
+                height: 1.4,
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
+          ],
+          const SizedBox(height: 16),
+
+          // ── Action buttons ─────────────────────────────────────────────
           Row(
             children: [
               Expanded(
                 child: SizedBox(
-                  height: 42,
+                  height: 40,
                   child: ElevatedButton(
                     onPressed: () =>
                         Navigator.pushNamed(context, '/edit-profile'),
@@ -204,7 +217,7 @@ class _PersonalProfileScreenState extends ConsumerState<PersonalProfileScreen> {
                     ),
                     child: Text(
                       'Edit profile',
-                      style: AppTypography.textMedium.copyWith(
+                      style: AppTypography.textSmall.copyWith(
                         color: AppColors.grayscaleWhite,
                         fontWeight: FontWeight.w600,
                       ),
@@ -215,21 +228,21 @@ class _PersonalProfileScreenState extends ConsumerState<PersonalProfileScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: SizedBox(
-                  height: 42,
-                  child: ElevatedButton(
+                  height: 40,
+                  child: OutlinedButton(
                     onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: AppColors.primaryDefault,
-                      foregroundColor: AppColors.grayscaleWhite,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryDefault,
+                      side: const BorderSide(
+                          color: AppColors.primaryDefault, width: 1.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: Text(
                       'Website',
-                      style: AppTypography.textMedium.copyWith(
-                        color: AppColors.grayscaleWhite,
+                      style: AppTypography.textSmall.copyWith(
+                        color: AppColors.primaryDefault,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -238,10 +251,12 @@ class _PersonalProfileScreenState extends ConsumerState<PersonalProfileScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 4),
         ],
       ),
     );
   }
+
 
   List<NewsArticle> _articlesForUser(String userId) {
     final all = <NewsArticle>[
