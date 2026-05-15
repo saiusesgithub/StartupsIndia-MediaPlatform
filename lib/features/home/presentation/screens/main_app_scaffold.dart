@@ -2,20 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
-import '../../../bookmark/presentation/screens/bookmark_screen.dart';
+import '../../../build/presentation/screens/build_screen.dart';
+import '../../../community/presentation/screens/community_screen.dart';
 import '../../../explore/presentation/screens/explore_screen.dart';
 import '../../../profile/presentation/screens/personal_profile_screen.dart';
-import '../../domain/models/news_article.dart';
 import 'home_screen.dart';
 
 class MainAppScaffold extends ConsumerStatefulWidget {
   final int initialIndex;
-  final List<NewsArticle> bookmarkedArticles;
 
   const MainAppScaffold({
     super.key,
     this.initialIndex = 0,
-    this.bookmarkedArticles = const <NewsArticle>[],
   });
 
   @override
@@ -33,38 +31,37 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep the FCM token in sync while the user is logged in
     ref.watch(fcmTokenSyncProvider);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: IndexedStack(
         index: _navIndex,
-        children: [
-          const HomeScreen(showBottomNav: false),
-          const ExploreScreen(),
-          BookmarkScreen(
-            bookmarkedArticles: widget.bookmarkedArticles,
-            onGoHome: () => setState(() => _navIndex = 0),
-          ),
-          const PersonalProfileScreen(),
+        children: const [
+          HomeScreen(),
+          ExploreScreen(),
+          BuildScreen(),
+          CommunityScreen(),
+          PersonalProfileScreen(),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(isDark),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.grayscaleWhite,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            width: 1,
           ),
-        ],
+        ),
       ),
       child: BottomNavigationBar(
         currentIndex: _navIndex,
@@ -73,7 +70,9 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         selectedItemColor: AppColors.primaryDefault,
-        unselectedItemColor: AppColors.grayscaleButtonText,
+        unselectedItemColor: isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.grayscaleButtonText,
         selectedLabelStyle: AppTypography.textSmall.copyWith(
           fontSize: 10,
           fontWeight: FontWeight.w600,
@@ -91,9 +90,14 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
             label: 'Explore',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border_rounded),
-            activeIcon: Icon(Icons.bookmark_rounded),
-            label: 'Bookmark',
+            icon: Icon(Icons.rocket_launch_outlined),
+            activeIcon: Icon(Icons.rocket_launch_rounded),
+            label: 'Build',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline_rounded),
+            activeIcon: Icon(Icons.people_rounded),
+            label: 'Community',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline_rounded),
