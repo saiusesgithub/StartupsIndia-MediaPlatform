@@ -13,6 +13,10 @@ class UserModel {
   final int followersCount;
   final int followingCount;
   final int newsCount;
+  // ── Onboarding ────────────────────────────────────────────────────────────
+  final String role;              // e.g. 'founder', 'student'
+  final List<String> interests;   // e.g. ['ai', 'saas']
+  final bool onboardingCompleted;
 
   const UserModel({
     required this.uid,
@@ -27,6 +31,9 @@ class UserModel {
     required this.followersCount,
     required this.followingCount,
     required this.newsCount,
+    this.role = '',
+    this.interests = const [],
+    this.onboardingCompleted = false,
   });
 
   UserModel copyWith({
@@ -42,6 +49,9 @@ class UserModel {
     int? followersCount,
     int? followingCount,
     int? newsCount,
+    String? role,
+    List<String>? interests,
+    bool? onboardingCompleted,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -56,6 +66,9 @@ class UserModel {
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
       newsCount: newsCount ?? this.newsCount,
+      role: role ?? this.role,
+      interests: interests ?? this.interests,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 
@@ -74,6 +87,9 @@ class UserModel {
       followersCount: (data['followersCount'] as num?)?.toInt() ?? 0,
       followingCount: (data['followingCount'] as num?)?.toInt() ?? 0,
       newsCount: (data['newsCount'] as num?)?.toInt() ?? 0,
+      role: data['role'] as String? ?? '',
+      interests: List<String>.from(data['interests'] as List? ?? []),
+      onboardingCompleted: data['onboardingCompleted'] as bool? ?? false,
     );
   }
 
@@ -91,6 +107,9 @@ class UserModel {
       'followersCount': followersCount,
       'followingCount': followingCount,
       'newsCount': newsCount,
+      'role': role,
+      'interests': interests,
+      'onboardingCompleted': onboardingCompleted,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
