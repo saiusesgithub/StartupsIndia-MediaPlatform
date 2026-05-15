@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
@@ -17,11 +18,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = true;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
 
   // ── Validators ──────────────────────────────────────────────────────────────
+
   String? _validateEmail(String? val) {
     if (val == null || val.trim().isEmpty) return 'Email is required.';
     final emailRegex = RegExp(r'^[\w.+-]+@[a-zA-Z\d\-]+\.[a-zA-Z\d\-.]+$');
@@ -32,24 +33,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _validatePassword(String? val) {
     if (val == null || val.isEmpty) return 'Password is required.';
     if (val.length < 8) return 'Must be at least 8 characters.';
-    if (!RegExp(r'[A-Z]').hasMatch(val)) return 'Must contain an uppercase letter.';
-    if (!RegExp(r'[0-9]').hasMatch(val)) return 'Must contain a number.';
-    if (!RegExp(r'[@#\$%^&*!?]').hasMatch(val)) return 'Must contain a special character.';
     return null;
   }
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
+  // ── Actions ─────────────────────────────────────────────────────────────────
+
   void _submit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
         final authRepo = ref.read(authRepositoryProvider);
         await authRepo.signInWithEmailAndPassword(
-          email: _emailController.text,
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         _showError(_friendlyError(e.code));
@@ -68,9 +67,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       final isNewUser = credential.additionalUserInfo?.isNewUser ?? false;
       if (isNewUser) {
-        Navigator.pushNamedAndRemoveUntil(context, '/select-country', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/role-selection', (_) => false);
       } else {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -93,12 +93,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   String _friendlyError(String code) {
     switch (code) {
-      case 'user-not-found':    return 'No account found for this email.';
-      case 'wrong-password':    return 'Incorrect password. Please try again.';
-      case 'invalid-email':     return 'Please enter a valid email address.';
-      case 'user-disabled':     return 'This account has been disabled.';
-      case 'too-many-requests': return 'Too many attempts. Try again later.';
-      default:                  return 'Login failed. Please try again.';
+      case 'user-not-found':
+        return 'No account found for this email.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later.';
+      default:
+        return 'Login failed. Please try again.';
     }
   }
 
@@ -111,138 +117,213 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    // ── 1. Brand header (fixed) ────────────────────────────────────
-                    BrandHeader(
-                      title: 'Welcome Back',
-                      subtitle: 'Sign in to continue reading',
-                    ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-                    // ── 2. Scrollable form fields ──────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                      child: Form(
-                        key: _formKey,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+          .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        body: Stack(
+          children: [
+            // ── Dark-mode radial glow ──────────────────────────────────────
+            if (isDark)
+              Positioned(
+                top: -60,
+                right: -60,
+                child: _GlowCircle(
+                  size: 260,
+                  color: AppColors.primaryDefault.withValues(alpha: 0.16),
+                ),
+              ),
+
+            // ── Main content ───────────────────────────────────────────────
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            AppTextField(
-                              controller: _emailController,
-                              label: 'Email',
-                              hintText: 'you@example.com',
-                              keyboardType: TextInputType.emailAddress,
-                              validator: _validateEmail,
+                            // Back button
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 8, top: 4),
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    size: 20,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.grayscaleTitleActive,
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            AppTextField(
-                              controller: _passwordController,
-                              label: 'Password',
-                              hintText: '••••••••',
-                              isPassword: true,
-                              validator: _validatePassword,
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: Checkbox(
-                                        value: _rememberMe,
-                                        onChanged: (val) =>
-                                            setState(() => _rememberMe = val ?? true),
-                                        activeColor: AppColors.primaryDefault,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(4)),
-                                        side: const BorderSide(
-                                            color: AppColors.grayscaleLine),
-                                      ),
+
+                            const SizedBox(height: 8),
+
+                            // Logo
+                            const Center(child: AppLogoMark(scale: 0.72)),
+
+                            const SizedBox(height: 28),
+
+                            // Title + subtitle
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 28),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Welcome Back!',
+                                    style:
+                                        AppTypography.displaySmallBold.copyWith(
+                                      color: isDark
+                                          ? AppColors.darkTextPrimary
+                                          : AppColors.grayscaleTitleActive,
+                                      fontSize: 26,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Remember me',
-                                      style: AppTypography.textSmall.copyWith(
-                                        color: AppColors.grayscaleBodyText,
-                                        fontSize: 13,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Login to continue your startup journey',
+                                    style: AppTypography.textSmall.copyWith(
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.grayscaleBodyText,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Form fields
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    AppTextField(
+                                      controller: _emailController,
+                                      label: 'Email',
+                                      hintText: 'you@example.com',
+                                      keyboardType: TextInputType.emailAddress,
+                                      validator: _validateEmail,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    AppTextField(
+                                      controller: _passwordController,
+                                      label: 'Password',
+                                      hintText: '••••••••',
+                                      isPassword: true,
+                                      validator: _validatePassword,
+                                    ),
+                                    const SizedBox(height: 12),
+
+                                    // Forgot password link
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: GestureDetector(
+                                        onTap: () => Navigator.pushNamed(
+                                            context, '/forgot-password'),
+                                        child: Text(
+                                          'Forgot password?',
+                                          style:
+                                              AppTypography.textSmall.copyWith(
+                                            color: AppColors.primaryDefault,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                GestureDetector(
-                                  onTap: () => Navigator.pushNamed(
-                                      context, '/forgot-password'),
-                                  child: Text(
-                                    'Forgot password?',
-                                    style: AppTypography.textSmall.copyWith(
-                                      color: AppColors.primaryDefault,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
+                              ),
+                            ),
+
+                            const Spacer(),
+
+                            // CTAs
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                  24, 24, 24, bottomPadding + 24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  PrimaryButton(
+                                    label: 'Login',
+                                    isLoading: _isLoading,
+                                    onPressed: _submit,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 20),
+                                  const OrDivider(),
+                                  const SizedBox(height: 20),
+                                  GoogleButton(
+                                    isLoading: _isGoogleLoading,
+                                    onPressed: _signInWithGoogle,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  AuthSwitchRow(
+                                    question: "Don't have an account?",
+                                    actionLabel: 'Create Account',
+                                    onTap: () => Navigator.pushReplacementNamed(
+                                        context, '/signup'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-
-                    // Spacer pushes the CTAs to the bottom when there is space
-                    const Spacer(),
-
-                    // ── 3. Pinned bottom CTAs ──────────────────────────────────────
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        24, 24, 24,
-                        MediaQuery.of(context).padding.bottom + 24,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          PrimaryButton(
-                            label: 'Login',
-                            isLoading: _isLoading,
-                            onPressed: _submit,
-                          ),
-                          const SizedBox(height: 16),
-                          OrDivider(),
-                          const SizedBox(height: 16),
-                          GoogleButton(
-                            isLoading: _isGoogleLoading,
-                            onPressed: _signInWithGoogle,
-                          ),
-                          const SizedBox(height: 20),
-                          AuthSwitchRow(
-                            question: "Don't have an account?",
-                            actionLabel: 'Sign Up',
-                            onTap: () =>
-                                Navigator.pushReplacementNamed(context, '/signup'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
+}
 
+// ── Radial glow decoration ─────────────────────────────────────────────────────
+
+class _GlowCircle extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _GlowCircle({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, Colors.transparent],
+        ),
+      ),
+    );
+  }
 }

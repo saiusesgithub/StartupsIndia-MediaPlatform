@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
@@ -17,11 +18,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _agreedToTerms = false;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
 
   // ── Validators ──────────────────────────────────────────────────────────────
+
   String? _validateEmail(String? val) {
     if (val == null || val.trim().isEmpty) return 'Email is required.';
     final emailRegex = RegExp(r'^[\w.+-]+@[a-zA-Z\d\-]+\.[a-zA-Z\d\-.]+$');
@@ -38,7 +41,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     return null;
   }
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
+  String? _validateConfirmPassword(String? val) {
+    if (val == null || val.isEmpty) return 'Please confirm your password.';
+    if (val != _passwordController.text) return 'Passwords do not match.';
+    return null;
+  }
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
+
   void _submit() async {
     if (!_agreedToTerms) {
       _showError('Please agree to the Terms & Conditions to continue.');
@@ -49,11 +59,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       try {
         final authRepo = ref.read(authRepositoryProvider);
         await authRepo.createUserWithEmailAndPassword(
-          email: _emailController.text,
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         if (!mounted) return;
-        Navigator.pushNamed(context, '/select-country');
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/role-selection', (_) => false);
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         _showError(_friendlyError(e.code));
@@ -72,9 +83,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       if (!mounted) return;
       final isNewUser = credential.additionalUserInfo?.isNewUser ?? false;
       if (isNewUser) {
-        Navigator.pushNamedAndRemoveUntil(context, '/select-country', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/role-selection', (_) => false);
       } else {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -97,11 +109,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   String _friendlyError(String code) {
     switch (code) {
-      case 'email-already-in-use':  return 'An account already exists for this email.';
-      case 'invalid-email':         return 'Please enter a valid email address.';
-      case 'weak-password':         return 'Password is too weak.';
-      case 'operation-not-allowed': return 'Email/password sign-up is not enabled.';
-      default:                      return 'Sign up failed. Please try again.';
+      case 'email-already-in-use':
+        return 'An account already exists for this email.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'weak-password':
+        return 'Password is too weak.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-up is not enabled.';
+      default:
+        return 'Sign up failed. Please try again.';
     }
   }
 
@@ -109,106 +126,249 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    // ── 1. Brand header (fixed) ────────────────────────────────────
-                    BrandHeader(
-                      title: 'Create Account',
-                      subtitle: 'Join the StartupsIndia community',
-                    ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-                    // ── 2. Scrollable form fields ──────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                      child: Form(
-                        key: _formKey,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+          .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        body: Stack(
+          children: [
+            // ── Dark-mode radial glow ──────────────────────────────────────
+            if (isDark)
+              Positioned(
+                top: -60,
+                left: -60,
+                child: _GlowCircle(
+                  size: 260,
+                  color: AppColors.primaryDefault.withValues(alpha: 0.14),
+                ),
+              ),
+
+            // ── Main content ───────────────────────────────────────────────
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            AppTextField(
-                              controller: _emailController,
-                              label: 'Email',
-                              hintText: 'you@example.com',
-                              keyboardType: TextInputType.emailAddress,
-                              validator: _validateEmail,
+                            // Back button
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 8, top: 4),
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    size: 20,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.grayscaleTitleActive,
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            AppTextField(
-                              controller: _passwordController,
-                              label: 'Password',
-                              hintText: 'Min 8 chars, 1 upper, 1 number, 1 symbol',
-                              isPassword: true,
-                              validator: _validatePassword,
-                            ),
-                            const SizedBox(height: 12),
-                            _PasswordHintRow(),
-                            const SizedBox(height: 14),
-                            // Terms & Conditions
-                            GestureDetector(
-                              onTap: () =>
-                                  setState(() => _agreedToTerms = !_agreedToTerms),
-                              child: Row(
+
+                            const SizedBox(height: 8),
+
+                            // Logo
+                            const Center(child: AppLogoMark(scale: 0.72)),
+
+                            const SizedBox(height: 28),
+
+                            // Title + subtitle
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 28),
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: Checkbox(
-                                      value: _agreedToTerms,
-                                      onChanged: (val) => setState(
-                                          () => _agreedToTerms = val ?? false),
-                                      activeColor: AppColors.primaryDefault,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4)),
-                                      side: const BorderSide(
-                                          color: AppColors.grayscaleLine),
+                                  Text(
+                                    'Create Account',
+                                    style:
+                                        AppTypography.displaySmallBold.copyWith(
+                                      color: isDark
+                                          ? AppColors.darkTextPrimary
+                                          : AppColors.grayscaleTitleActive,
+                                      fontSize: 26,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: AppTypography.textSmall.copyWith(
-                                          color: AppColors.grayscaleBodyText,
-                                          fontSize: 13,
-                                        ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Join the StartupsIndia community',
+                                    style: AppTypography.textSmall.copyWith(
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.grayscaleBodyText,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Form fields
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    AppTextField(
+                                      controller: _emailController,
+                                      label: 'Email',
+                                      hintText: 'you@example.com',
+                                      keyboardType: TextInputType.emailAddress,
+                                      validator: _validateEmail,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    AppTextField(
+                                      controller: _passwordController,
+                                      label: 'Password',
+                                      hintText: 'Min 8 chars, 1 upper, 1 number, 1 symbol',
+                                      isPassword: true,
+                                      validator: _validatePassword,
+                                    ),
+                                    const SizedBox(height: 10),
+
+                                    // Password requirement chips
+                                    _PasswordRequirements(isDark: isDark),
+
+                                    const SizedBox(height: 16),
+                                    AppTextField(
+                                      controller: _confirmPasswordController,
+                                      label: 'Confirm Password',
+                                      hintText: 'Re-enter your password',
+                                      isPassword: true,
+                                      validator: _validateConfirmPassword,
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Terms & Conditions
+                                    GestureDetector(
+                                      onTap: () => setState(
+                                          () => _agreedToTerms = !_agreedToTerms),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          const TextSpan(text: 'I agree to the '),
-                                          TextSpan(
-                                            text: 'Terms of Service',
-                                            style: AppTypography.textSmall.copyWith(
-                                              color: AppColors.primaryDefault,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
+                                          SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: Checkbox(
+                                              value: _agreedToTerms,
+                                              onChanged: (val) => setState(() =>
+                                                  _agreedToTerms = val ?? false),
+                                              activeColor:
+                                                  AppColors.primaryDefault,
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(4)),
+                                              side: BorderSide(
+                                                color: isDark
+                                                    ? AppColors.darkBorder
+                                                    : AppColors.grayscaleLine,
+                                              ),
                                             ),
                                           ),
-                                          const TextSpan(text: ' and '),
-                                          TextSpan(
-                                            text: 'Privacy Policy',
-                                            style: AppTypography.textSmall.copyWith(
-                                              color: AppColors.primaryDefault,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: RichText(
+                                              text: TextSpan(
+                                                style: AppTypography.textSmall
+                                                    .copyWith(
+                                                  color: isDark
+                                                      ? AppColors.darkTextSecondary
+                                                      : AppColors
+                                                          .grayscaleBodyText,
+                                                  fontSize: 13,
+                                                ),
+                                                children: [
+                                                  const TextSpan(
+                                                      text: 'I agree to the '),
+                                                  TextSpan(
+                                                    text: 'Terms of Service',
+                                                    style: AppTypography
+                                                        .textSmall
+                                                        .copyWith(
+                                                      color: AppColors
+                                                          .primaryDefault,
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const TextSpan(text: ' and '),
+                                                  TextSpan(
+                                                    text: 'Privacy Policy',
+                                                    style: AppTypography
+                                                        .textSmall
+                                                        .copyWith(
+                                                      color: AppColors
+                                                          .primaryDefault,
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            const Spacer(),
+
+                            // CTAs
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                  24, 24, 24, bottomPadding + 24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  PrimaryButton(
+                                    label: 'Create Account',
+                                    isLoading: _isLoading,
+                                    onPressed: _submit,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const OrDivider(),
+                                  const SizedBox(height: 20),
+                                  GoogleButton(
+                                    isLoading: _isGoogleLoading,
+                                    onPressed: _signInWithGoogle,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  AuthSwitchRow(
+                                    question: 'Already have an account?',
+                                    actionLabel: 'Login',
+                                    onTap: () => Navigator.pushReplacementNamed(
+                                        context, '/login'),
                                   ),
                                 ],
                               ),
@@ -217,88 +377,84 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         ),
                       ),
                     ),
-
-                    // Spacer pushes the CTAs to the bottom when there is space
-                    const Spacer(),
-
-                    // ── 3. Pinned bottom CTAs ──────────────────────────────────────
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        24, 24, 24,
-                        MediaQuery.of(context).padding.bottom + 24,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          PrimaryButton(
-                            label: 'Create Account',
-                            isLoading: _isLoading,
-                            onPressed: _submit,
-                          ),
-                          const SizedBox(height: 16),
-                          OrDivider(),
-                          const SizedBox(height: 16),
-                          GoogleButton(
-                            isLoading: _isGoogleLoading,
-                            onPressed: _signInWithGoogle,
-                          ),
-                          const SizedBox(height: 20),
-                          AuthSwitchRow(
-                            question: 'Already have an account?',
-                            actionLabel: 'Login',
-                            onTap: () =>
-                                Navigator.pushReplacementNamed(context, '/login'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
-
 }
 
-// ── Password hint row ──────────────────────────────────────────────────────────
-class _PasswordHintRow extends StatelessWidget {
+// ── Password requirement chips ─────────────────────────────────────────────────
+
+class _PasswordRequirements extends StatelessWidget {
+  final bool isDark;
+  const _PasswordRequirements({required this.isDark});
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 8,
-      runSpacing: 4,
+      runSpacing: 6,
       children: const [
-        _HintChip('8+ chars'),
-        _HintChip('Uppercase'),
-        _HintChip('Number'),
-        _HintChip('Symbol'),
+        _ReqChip('8+ chars'),
+        _ReqChip('Uppercase'),
+        _ReqChip('Number'),
+        _ReqChip('Symbol'),
       ],
     );
   }
 }
 
-class _HintChip extends StatelessWidget {
+class _ReqChip extends StatelessWidget {
   final String label;
-  const _HintChip(this.label);
+  const _ReqChip(this.label);
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.grayscaleSecondaryButton,
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
+          width: 1,
+        ),
       ),
       child: Text(
         label,
         style: AppTypography.textSmall.copyWith(
           fontSize: 11,
-          color: AppColors.grayscaleBodyText,
+          color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText,
           fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Radial glow decoration ─────────────────────────────────────────────────────
+
+class _GlowCircle extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _GlowCircle({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, Colors.transparent],
         ),
       ),
     );
