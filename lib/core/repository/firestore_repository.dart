@@ -17,6 +17,9 @@ class FirestoreRepository {
   CollectionReference<Map<String, dynamic>> get _articles =>
       _firestore.collection('articles');
 
+  CollectionReference<Map<String, dynamic>> get _userTopics =>
+      _firestore.collection('user_topics');
+
   Future<void> saveUser(UserModel user) {
     return _users
         .doc(user.uid)
@@ -130,6 +133,30 @@ class FirestoreRepository {
         .doc(docId)
         .set(article.toFirestore(), SetOptions(merge: true));
   }
+
+  // ── user_topics ──────────────────────────────────────────────────────────
+
+  Stream<List<String>> watchUserTopics(String uid) {
+    return _userTopics.doc(uid).snapshots().map(
+          (doc) => List<String>.from(doc.data()?['topics'] as List? ?? []),
+        );
+  }
+
+  Future<void> followTopic(String uid, String topic) {
+    return _userTopics.doc(uid).set({
+      'topics': FieldValue.arrayUnion([topic]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> unfollowTopic(String uid, String topic) {
+    return _userTopics.doc(uid).set({
+      'topics': FieldValue.arrayRemove([topic]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  // ── likes ─────────────────────────────────────────────────────────────────
 
   Future<void> toggleLike(String articleId, String userId) async {
     final docRef = _articles.doc(articleId);
