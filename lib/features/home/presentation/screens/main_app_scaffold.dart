@@ -4,7 +4,7 @@ import '../../../../theme/style_guide.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../../../build/presentation/screens/build_screen.dart';
 import '../../../community/presentation/screens/community_screen.dart';
-import '../../../explore/presentation/screens/explore_screen.dart';
+import '../../../explore/presentation/screens/media_feed_screen.dart';
 import '../../../profile/presentation/screens/personal_profile_screen.dart';
 import 'home_screen.dart';
 
@@ -42,7 +42,7 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
         index: _navIndex,
         children: const [
           HomeScreen(),
-          ExploreScreen(),
+          MediaFeedScreen(),
           BuildScreen(),
           CommunityScreen(),
           PersonalProfileScreen(),
