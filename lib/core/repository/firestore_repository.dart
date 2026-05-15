@@ -23,6 +23,25 @@ class FirestoreRepository {
         .set(user.toFirestore(), SetOptions(merge: true));
   }
 
+  /// Persists the role + interests chosen during onboarding and marks the
+  /// account as fully onboarded. Uses merge so existing profile fields are
+  /// never overwritten.
+  Future<void> saveUserOnboarding({
+    required String uid,
+    required String role,
+    required List<String> interests,
+  }) {
+    return _users.doc(uid).set(
+      {
+        'role': role,
+        'interests': interests,
+        'onboardingCompleted': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
   Future<UserModel?> getUserById(String uid) async {
     final doc = await _users.doc(uid).get();
     if (!doc.exists) return null;
