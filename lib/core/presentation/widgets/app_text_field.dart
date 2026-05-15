@@ -44,31 +44,40 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.label,
           style: AppTypography.textSmall.copyWith(
-            color: AppColors.grayscaleBodyText,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.grayscaleBodyText,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         FormField<String>(
           validator: widget.validator,
           builder: (field) {
             final hasError = field.hasError;
 
-            // Border priority: error → focused (red) → default (grey)
             final borderColor = hasError
                 ? AppColors.errorDark
                 : _isFocused
                     ? AppColors.primaryDefault
-                    : AppColors.grayscaleLine;
+                    : (isDark ? AppColors.darkBorder : AppColors.grayscaleLine);
 
             final fillColor = hasError
-                ? AppColors.errorLight
-                : AppColors.grayscaleWhite;
+                ? (isDark
+                    ? const Color(0xFF2A1015)
+                    : AppColors.errorLight)
+                : (isDark
+                    ? AppColors.darkInputBackground
+                    : AppColors.grayscaleWhite);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,7 +85,7 @@ class _AppTextFieldState extends State<AppTextField> {
                 Container(
                   decoration: BoxDecoration(
                     color: fillColor,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: borderColor,
                       width: _isFocused && !hasError ? 1.5 : 1.0,
@@ -93,32 +102,36 @@ class _AppTextFieldState extends State<AppTextField> {
                               ? TextInputType.visiblePassword
                               : widget.keyboardType,
                           style: AppTypography.textSmall.copyWith(
-                            color: AppColors.grayscaleTitleActive,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.grayscaleTitleActive,
+                            fontSize: 14,
                           ),
                           onChanged: field.didChange,
                           decoration: InputDecoration(
                             hintText: widget.hintText,
                             hintStyle: AppTypography.textSmall.copyWith(
-                              color: AppColors.grayscaleButtonText,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.grayscaleButtonText,
+                              fontSize: 14,
                             ),
-                            // Suppress ALL theme borders — Container handles visuals
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
                             errorBorder: InputBorder.none,
                             focusedErrorBorder: InputBorder.none,
-                            // Suppress theme fill so no grey appears
                             filled: true,
                             fillColor: Colors.transparent,
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 12),
+                                horizontal: 14, vertical: 14),
                           ),
                         ),
                       ),
                       if (hasError && !widget.isPassword)
                         const Padding(
-                          padding: EdgeInsets.only(right: 10),
+                          padding: EdgeInsets.only(right: 12),
                           child: Icon(Icons.close,
                               color: AppColors.errorDark, size: 16),
                         ),
@@ -128,7 +141,9 @@ class _AppTextFieldState extends State<AppTextField> {
                             _obscureText
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
-                            color: AppColors.grayscaleButtonText,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.grayscaleButtonText,
                             size: 20,
                           ),
                           onPressed: () =>
@@ -139,7 +154,7 @@ class _AppTextFieldState extends State<AppTextField> {
                 ),
                 if (hasError)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: 5),
                     child: Text(
                       field.errorText ?? '',
                       style: AppTypography.textSmall.copyWith(

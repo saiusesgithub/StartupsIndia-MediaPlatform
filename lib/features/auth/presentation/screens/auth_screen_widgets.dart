@@ -2,13 +2,80 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../theme/style_guide.dart';
 
+/// Centered brand logo mark — icon badge + wordmark.
+/// Used on Splash and Welcome screens. [scale] multiplies all dimensions.
+class AppLogoMark extends StatelessWidget {
+  final double scale;
+  const AppLogoMark({super.key, this.scale = 1.0});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final boxSize = 76.0 * scale;
+    final iconSize = 40.0 * scale;
+    final radius = 22.0 * scale;
+    final fontSize = 30.0 * scale;
+    final gap = 14.0 * scale;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: boxSize,
+          height: boxSize,
+          decoration: BoxDecoration(
+            color: AppColors.primaryDefault,
+            borderRadius: BorderRadius.circular(radius),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryDefault
+                    .withValues(alpha: isDark ? 0.35 : 0.20),
+                blurRadius: 28,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.rocket_launch_rounded,
+            color: Colors.white,
+            size: iconSize,
+          ),
+        ),
+        SizedBox(height: gap),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: 'Startups',
+                style: AppTypography.displaySmallBold.copyWith(
+                  color: AppColors.primaryDefault,
+                  fontSize: fontSize,
+                ),
+              ),
+              TextSpan(
+                text: 'India',
+                style: AppTypography.displaySmallBold.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive,
+                  fontSize: fontSize,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Dark brand header used at the top of Login & Signup screens.
 /// Features the StartupsIndia logo mark + title + subtitle.
 class BrandHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const BrandHeader({required this.title, required this.subtitle});
+  const BrandHeader({super.key, required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +157,7 @@ class PrimaryButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   const PrimaryButton({
+    super.key,
     required this.label,
     required this.isLoading,
     required this.onPressed,
@@ -132,56 +200,70 @@ class PrimaryButton extends StatelessWidget {
 
 /// "— or continue with —" divider row.
 class OrDivider extends StatelessWidget {
+  const OrDivider({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lineColor = isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
+    final textColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText;
+
     return Row(
       children: [
-        const Expanded(
-          child: Divider(color: AppColors.grayscaleLine, thickness: 1),
-        ),
+        Expanded(child: Divider(color: lineColor, thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
             'or continue with',
             style: AppTypography.textSmall.copyWith(
-              color: AppColors.grayscaleButtonText,
+              color: textColor,
               fontSize: 12,
             ),
           ),
         ),
-        const Expanded(
-          child: Divider(color: AppColors.grayscaleLine, thickness: 1),
-        ),
+        Expanded(child: Divider(color: lineColor, thickness: 1)),
       ],
     );
   }
 }
 
-/// Google Sign-In button with proper Google branding style.
+/// Google Sign-In button — adapts to light and dark theme.
 class GoogleButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
 
-  const GoogleButton({required this.isLoading, required this.onPressed});
+  const GoogleButton({super.key, required this.isLoading, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       height: 50,
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: AppColors.grayscaleLine, width: 1.5),
+          backgroundColor:
+              isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+          side: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            width: 1.5,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive,
+                ),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -195,7 +277,9 @@ class GoogleButton extends StatelessWidget {
                   Text(
                     'Continue with Google',
                     style: AppTypography.textSmall.copyWith(
-                      color: AppColors.grayscaleTitleActive,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -214,6 +298,7 @@ class AuthSwitchRow extends StatelessWidget {
   final VoidCallback onTap;
 
   const AuthSwitchRow({
+    super.key,
     required this.question,
     required this.actionLabel,
     required this.onTap,
@@ -221,13 +306,17 @@ class AuthSwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           '$question ',
           style: AppTypography.textSmall.copyWith(
-            color: AppColors.grayscaleBodyText,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.grayscaleBodyText,
             fontSize: 13,
           ),
         ),
