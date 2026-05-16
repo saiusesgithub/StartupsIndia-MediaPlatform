@@ -34,18 +34,35 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Android CMake
         run: |
           set -e
+          SDKMANAGER="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(command -v sdkmanager || true)"
+          fi
+          if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
+            echo "sdkmanager not found"
+            echo "ANDROID_HOME=${ANDROID_HOME:-}"
+            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-}"
+            exit 127
+          fi
+
           for attempt in 1 2 3; do
             echo "Installing CMake 3.22.1 (attempt $attempt)"
-            if yes | sdkmanager "cmake;3.22.1"; then
+            if yes | "$SDKMANAGER" "cmake;3.22.1"; then
               exit 0
             fi
             rm -rf "$ANDROID_HOME/cmake/3.22.1" "$ANDROID_SDK_ROOT/cmake/3.22.1"
             sleep 5
           done
-          yes | sdkmanager "cmake;3.22.1"
+          yes | "$SDKMANAGER" "cmake;3.22.1"
 
       - name: Decode google-services.json from secret
         env:
