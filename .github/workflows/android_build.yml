@@ -118,6 +118,5 @@ jobs:
             gh release create "$TAG_NAME" "$APK_NAME" \
               --title "Preview 0.0.${{ github.run_number }}" \
               --notes "Preview APK from commit ${{ github.sha }}" \
-              --prerelease \
-              --latest
+              --prerelease
           fi
