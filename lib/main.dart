@@ -22,12 +22,17 @@ import 'features/auth/presentation/screens/fill_profile_screen.dart';
 import 'features/onboarding/presentation/screens/role_selection_screen.dart';
 import 'features/onboarding/presentation/screens/interest_selection_screen.dart';
 import 'features/home/presentation/screens/main_app_scaffold.dart';
+import 'features/home/presentation/screens/article_detail_screen.dart';
+import 'features/home/presentation/screens/comments_screen.dart';
 import 'features/home/presentation/screens/trending_screen.dart';
 import 'features/home/presentation/screens/notifications_screen.dart';
 import 'features/profile/presentation/screens/create_post_screen.dart';
 import 'features/profile/presentation/screens/edit_profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
 import 'features/explore/presentation/screens/search_screen.dart';
+import 'features/explore/presentation/screens/source_profile_screen.dart';
+import 'features/explore/domain/models/source_profile_model.dart';
+import 'core/models/news_article_model.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -221,7 +226,28 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/home': (context) => const MainAppScaffold(initialIndex: 0),
         '/explore': (context) => const MainAppScaffold(initialIndex: 1),
         '/profile': (context) => const MainAppScaffold(initialIndex: 4),
-        '/search': (context) => const SearchScreen(showBottomNav: false),
+        '/search': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return SearchScreen(
+            showBottomNav: false,
+            initialTab: args is SearchTab ? args : SearchTab.news,
+          );
+        },
+        '/source-profile': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return SourceProfileScreen(source: args as SourceProfileModel);
+        },
+        '/article-detail': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is NewsArticleModel) {
+            return ArticleDetailScreen(article: args);
+          }
+          return ArticleDetailScreen(articleId: args as String? ?? '');
+        },
+        '/comments': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return CommentsScreen(article: args as NewsArticleModel);
+        },
         '/trending': (context) => const TrendingScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/settings': (context) => const SettingsScreen(),

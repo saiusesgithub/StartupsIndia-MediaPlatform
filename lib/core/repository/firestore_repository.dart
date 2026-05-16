@@ -80,6 +80,14 @@ class FirestoreRepository {
     );
   }
 
+  Future<NewsArticleModel?> getArticleById(String articleId) async {
+    if (articleId.trim().isEmpty) return null;
+
+    final doc = await _articles.doc(articleId).get();
+    if (!doc.exists) return null;
+    return NewsArticleModel.fromFirestore(doc);
+  }
+
   Stream<List<NewsArticleModel>> getArticlesByAuthor(String authorId) {
     if (authorId.trim().isEmpty) return Stream.value(<NewsArticleModel>[]);
 

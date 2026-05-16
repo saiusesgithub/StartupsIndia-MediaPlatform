@@ -64,13 +64,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     const Spacer(),
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const SearchScreen(
-                              showBottomNav: false,
-                              initialTab: SearchTab.topics,
-                            ),
-                          ),
+                        Navigator.pushNamed(
+                          context,
+                          '/search',
+                          arguments: SearchTab.topics,
                         );
                       },
                       style: TextButton.styleFrom(

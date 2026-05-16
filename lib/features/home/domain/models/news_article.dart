@@ -1,3 +1,5 @@
+import '../../../../core/models/news_article_model.dart';
+
 /// Data model for a news article.
 /// Structured to make Firebase stream swap trivial tomorrow:
 /// just replace the hardcoded list with a Firestore StreamBuilder.
@@ -74,4 +76,26 @@ class NewsArticle {
     'isBookmarked': isBookmarked,
     'isLiked': isLiked,
   };
+}
+
+extension NewsArticleModelAdapter on NewsArticle {
+  NewsArticleModel toNewsArticleModel() {
+    return NewsArticleModel(
+      id: id,
+      authorId: authorId,
+      category: category,
+      headline: headline,
+      sourceName: sourceName,
+      sourceId: sourceId,
+      sourceLogoAsset: sourceLogoAsset,
+      thumbnailAsset: thumbnailAsset,
+      timeAgo: timeAgo,
+      body: body,
+      likesCount: likesCount,
+      commentsCount: commentsCount,
+      isSourceFollowing: isSourceFollowing,
+      isBookmarked: isBookmarked,
+      isLiked: isLiked,
+    );
+  }
 }

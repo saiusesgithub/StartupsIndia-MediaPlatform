@@ -76,8 +76,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: Column(
         children: [
           // Expand PageView to take up most of the screen

@@ -47,22 +47,22 @@ The main gap is that several screens look complete but are still mock, local-onl
   - Support create, list, delete-own-comment, and count updates.
   - Replace placeholder comment screens/actions with real data.
 
-- [ ] Improve article detail screen.
-  - Use the Firestore article model directly.
-  - Show author/source, category, created time, body, image, likes, comments, bookmark, share.
-  - Add loading/error states if opened by article ID.
-
-- [ ] Complete create post.
-  - Add category selector instead of hardcoded `Trending`.
-  - Add draft validation: title, body, image, category.
-  - Upload avatar/profile images correctly instead of storing local paths.
-  - Decide whether posts are published immediately or require moderation.
+- [x] Improve article detail screen.
+  - Uses `NewsArticleModel` directly and can load by article ID.
+  - Shows source, author/source identifier, category, created time, body, image, likes, comments, bookmark, and share action.
+  - Includes loading/error states when opened by article ID.
 
 - [x] Complete profile content tabs.
   - Posts: current user's articles.
   - Saved: bookmarked articles.
   - Liked: liked articles.
   - Courses and Events: removed from the profile tabs until real course/event data exists.
+
+- [ ] Complete create post.
+  - Add category selector instead of hardcoded `Trending`.
+  - Add draft validation: title, body, image, category.
+  - Upload avatar/profile images correctly instead of storing local paths.
+  - Decide whether posts are published immediately or require moderation.
 
 ## Priority 2 - Product Features to Add
 
@@ -133,9 +133,12 @@ The main gap is that several screens look complete but are still mock, local-onl
 
 ## Priority 4 - UX and Visual Polish
 
-- [ ] Make dark mode complete.
-  - Several newer screens hardcode light backgrounds.
-  - Audit Create Post, Edit Profile, Search, Bookmark, Auth screens, and all empty states.
+- [x] Make dark mode complete.
+  - Audited Create Post, Edit Profile, Search, Bookmark, Auth screens, source profile, article detail, comments, and common empty/search states.
+
+- [x] Clean navigation UX.
+  - Standardized article, comments, search tab, and source profile navigation through named routes.
+  - Removed inline `MaterialPageRoute` usage from app code.
 
 - [ ] Improve loading, empty, and error states.
   - Home, Explore, Search, Notifications, Profile, Bookmarks should all have specific empty/error UI.
@@ -146,10 +149,6 @@ The main gap is that several screens look complete but are still mock, local-onl
   - Settings Notification/Security/Help do nothing.
   - Create Post toolbar buttons do nothing.
   - Article share/menu actions are placeholders.
-
-- [ ] Clean navigation UX.
-  - Decide whether the app uses named routes, typed route helpers, or a router package.
-  - Avoid mixing named routes and inline `MaterialPageRoute` unless intentional.
 
 - [ ] Improve image handling.
   - Support both local assets and remote URLs consistently.

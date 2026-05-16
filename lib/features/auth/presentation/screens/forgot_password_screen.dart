@@ -93,14 +93,25 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       appBar: AppBar(
-        backgroundColor: AppColors.grayscaleWhite,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        surfaceTintColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.grayscaleTitleActive, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),

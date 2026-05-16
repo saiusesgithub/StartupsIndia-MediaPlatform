@@ -9,7 +9,6 @@ import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/time_format_helper.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../home/domain/models/news_article.dart';
-import '../../../home/presentation/screens/article_detail_screen.dart';
 import '../../../home/presentation/widgets/news_tile.dart';
 import '../../../../theme/style_guide.dart';
 
@@ -858,10 +857,10 @@ class _PostGridItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => ArticleDetailScreen(article: _toNewsArticle()),
-          ),
+        Navigator.pushNamed(
+          context,
+          '/article-detail',
+          arguments: article,
         );
       },
       child: ClipRRect(
@@ -968,31 +967,6 @@ class _PostGridItem extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  NewsArticle _toNewsArticle() {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-    return NewsArticle(
-      id: article.id,
-      authorId: article.authorId,
-      category: article.category,
-      headline: article.headline,
-      sourceName: article.sourceName,
-      sourceId: article.sourceId,
-      sourceLogoAsset: article.sourceLogoAsset,
-      thumbnailAsset: article.thumbnailAsset,
-      timeAgo: formatArticleTimestamp(
-        article.createdAt,
-        fallback: article.timeAgo,
-      ),
-      body: article.body,
-      likesCount: article.likesCount,
-      commentsCount: article.commentsCount,
-      isSourceFollowing: article.isSourceFollowing,
-      isBookmarked:
-          article.isBookmarked || article.bookmarkedBy.contains(currentUserId),
-      isLiked: article.isLiked || article.likedBy.contains(currentUserId),
     );
   }
 

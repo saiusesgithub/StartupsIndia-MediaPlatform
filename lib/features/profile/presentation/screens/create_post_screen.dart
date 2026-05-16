@@ -54,36 +54,46 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.grayscaleWhite,
-        surfaceTintColor: AppColors.grayscaleWhite,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        surfaceTintColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppColors.grayscaleTitleActive,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
             size: 20,
           ),
         ),
         title: Text(
           'Create News',
           style: AppTypography.textMedium.copyWith(
-            color: AppColors.grayscaleTitleActive,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
             fontWeight: FontWeight.w600,
           ),
         ),
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(
+            icon: Icon(
               Icons.more_vert_rounded,
-              color: AppColors.grayscaleBodyText,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
             ),
           ),
         ],
@@ -94,11 +104,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildCoverSection(),
+            _buildCoverSection(isDark),
             const SizedBox(height: 12),
-            _buildTitleInput(),
+            _buildTitleInput(isDark),
             const SizedBox(height: 8),
-            _buildBodyInput(),
+            _buildBodyInput(isDark),
           ],
         ),
       ),
@@ -106,12 +116,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         duration: const Duration(milliseconds: 170),
         curve: Curves.easeOut,
         padding: EdgeInsets.only(bottom: viewInsets.bottom),
-        child: _buildEditorBottomBars(),
+        child: _buildEditorBottomBars(isDark),
       ),
     );
   }
 
-  Widget _buildCoverSection() {
+  Widget _buildCoverSection(bool isDark) {
     final hasImage = _coverImageBytes != null;
 
     return GestureDetector(
@@ -147,23 +157,30 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 )
               : CustomPaint(
                   painter: _DashedBorderPainter(
-                    color: AppColors.grayscaleButtonText.withValues(alpha: 0.6),
+                    color: (isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleButtonText)
+                        .withValues(alpha: 0.6),
                     radius: 12,
                   ),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.add_rounded,
-                          color: AppColors.grayscaleBodyText,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.grayscaleBodyText,
                           size: 28,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Add Cover Photo',
                           style: AppTypography.textMedium.copyWith(
-                            color: AppColors.grayscaleBodyText,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.grayscaleBodyText,
                           ),
                         ),
                       ],
@@ -175,7 +192,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  Widget _buildTitleInput() {
+  Widget _buildTitleInput(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -183,7 +200,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           controller: _titleController,
           focusNode: _titleFocusNode,
           style: AppTypography.displaySmallBold.copyWith(
-            color: AppColors.grayscaleTitleActive,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
             fontSize: 36,
             height: 1.2,
           ),
@@ -193,7 +212,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           decoration: InputDecoration(
             hintText: 'News title',
             hintStyle: AppTypography.displaySmallBold.copyWith(
-              color: AppColors.grayscaleButtonText,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleButtonText,
               fontSize: 34,
               height: 1.2,
             ),
@@ -203,17 +224,17 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        const Divider(height: 1, color: AppColors.grayscaleLine),
+        Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
       ],
     );
   }
 
-  Widget _buildBodyInput() {
+  Widget _buildBodyInput(bool isDark) {
     return TextField(
       controller: _bodyController,
       focusNode: _bodyFocusNode,
       style: AppTypography.textMedium.copyWith(
-        color: AppColors.grayscaleBodyText,
+        color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText,
         height: 1.6,
       ),
       keyboardType: TextInputType.multiline,
@@ -224,7 +245,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       decoration: InputDecoration(
         hintText: 'Add News/Article',
         hintStyle: AppTypography.textLarge.copyWith(
-          color: AppColors.grayscaleButtonText,
+          color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText,
         ),
         border: InputBorder.none,
         isDense: true,
@@ -233,15 +254,17 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  Widget _buildEditorBottomBars() {
+  Widget _buildEditorBottomBars(bool isDark) {
     return SafeArea(
       top: false,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.grayscaleWhite,
+          color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
           border: Border(
             top: BorderSide(
-              color: AppColors.grayscaleLine.withValues(alpha: 0.85),
+              color: isDark
+                  ? AppColors.darkBorder
+                  : AppColors.grayscaleLine.withValues(alpha: 0.85),
             ),
           ),
         ),
@@ -255,17 +278,21 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 height: 34,
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.grayscaleInputBackground,
+                  color: isDark
+                      ? AppColors.darkBackground
+                      : AppColors.grayscaleInputBackground,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.grayscaleLine),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _toolButton(icon: Icons.format_bold_rounded),
-                    _toolButton(icon: Icons.format_italic_rounded),
-                    _toolButton(icon: Icons.format_list_bulleted_rounded),
-                    _toolButton(icon: Icons.link_rounded),
+                    _toolButton(icon: Icons.format_bold_rounded, isDark: isDark),
+                    _toolButton(icon: Icons.format_italic_rounded, isDark: isDark),
+                    _toolButton(icon: Icons.format_list_bulleted_rounded, isDark: isDark),
+                    _toolButton(icon: Icons.link_rounded, isDark: isDark),
                   ],
                 ),
               ),
@@ -273,10 +300,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                _toolButton(icon: Icons.text_fields_rounded, label: 'Aa'),
-                _toolButton(icon: Icons.format_align_left_rounded),
-                _toolButton(icon: Icons.image_outlined),
-                _toolButton(icon: Icons.more_horiz_rounded),
+                _toolButton(icon: Icons.text_fields_rounded, label: 'Aa', isDark: isDark),
+                _toolButton(icon: Icons.format_align_left_rounded, isDark: isDark),
+                _toolButton(icon: Icons.image_outlined, isDark: isDark),
+                _toolButton(icon: Icons.more_horiz_rounded, isDark: isDark),
                 const Spacer(),
                 SizedBox(
                   height: 42,
@@ -321,18 +348,26 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  Widget _toolButton({required IconData icon, String? label}) {
+  Widget _toolButton({required IconData icon, required bool isDark, String? label}) {
     return IconButton(
       visualDensity: VisualDensity.compact,
       padding: const EdgeInsets.symmetric(horizontal: 6),
       constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
       onPressed: () {},
       icon: label == null
-          ? Icon(icon, size: 20, color: AppColors.grayscaleBodyText)
+          ? Icon(
+              icon,
+              size: 20,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
+            )
           : Text(
               label,
               style: AppTypography.textMedium.copyWith(
-                color: AppColors.grayscaleBodyText,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.grayscaleBodyText,
                 fontWeight: FontWeight.w600,
               ),
             ),

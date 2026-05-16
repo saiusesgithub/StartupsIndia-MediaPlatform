@@ -9,7 +9,6 @@ import '../../../home/domain/models/news_article.dart';
 import '../../domain/models/mock_explore_data.dart';
 import '../widgets/topic_search_tile.dart';
 import '../widgets/author_tile.dart';
-import 'source_profile_screen.dart';
 
 enum SearchTab { news, topics, author }
 
@@ -345,11 +344,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           isFollowing: _followingAuthors.contains(author.id),
           onTap: () {
             final source = MockExploreData.sourceProfileForAuthor(author);
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => SourceProfileScreen(source: source),
-              ),
-            );
+            Navigator.pushNamed(context, '/source-profile', arguments: source);
           },
           onToggleFollow: () {
             setState(() {

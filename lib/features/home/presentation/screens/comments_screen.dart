@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../../core/models/news_article_model.dart';
 import '../../../../theme/style_guide.dart';
-import '../../domain/models/news_article.dart';
 import '../widgets/comment_tile.dart';
 
 class CommentsScreen extends StatefulWidget {
-  final NewsArticle article;
+  final NewsArticleModel article;
 
   const CommentsScreen({super.key, required this.article});
 
@@ -35,25 +35,34 @@ class _CommentsScreenState extends State<CommentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       appBar: AppBar(
-        backgroundColor: AppColors.grayscaleWhite,
-        surfaceTintColor: AppColors.grayscaleWhite,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        surfaceTintColor:
+            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppColors.grayscaleTitleActive,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
             size: 20,
           ),
         ),
         title: Text(
           'Comments',
           style: AppTypography.textMedium.copyWith(
-            color: AppColors.grayscaleTitleActive,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -87,18 +96,22 @@ class _CommentsScreenState extends State<CommentsScreen> {
           );
         },
       ),
-      bottomNavigationBar: _buildComposerBar(),
+      bottomNavigationBar: _buildComposerBar(isDark),
     );
   }
 
-  Widget _buildComposerBar() {
+  Widget _buildComposerBar(bool isDark) {
     return SafeArea(
       top: false,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.grayscaleWhite,
+          color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
           border: Border(
-            top: BorderSide(color: AppColors.grayscaleLine.withOpacity(0.8)),
+            top: BorderSide(
+              color: isDark
+                  ? AppColors.darkBorder
+                  : AppColors.grayscaleLine.withOpacity(0.8),
+            ),
           ),
         ),
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -109,19 +122,27 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 height: 42,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.grayscaleBodyText),
+                  border: Border.all(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.grayscaleBodyText,
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: TextField(
                   controller: _commentController,
                   focusNode: _inputFocusNode,
                   style: AppTypography.textMedium.copyWith(
-                    color: AppColors.grayscaleTitleActive,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Type your comment',
                     hintStyle: AppTypography.textMedium.copyWith(
-                      color: AppColors.grayscaleButtonText,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleButtonText,
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),

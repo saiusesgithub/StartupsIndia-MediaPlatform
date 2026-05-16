@@ -45,19 +45,22 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final articles = _activeArticles;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: SafeArea(
         child: CustomScrollView(
           cacheExtent: 900,
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverToBoxAdapter(child: _buildHeader(context, isDark)),
             SliverPersistentHeader(
               pinned: true,
               delegate: _SourceTabsHeaderDelegate(
                 activeTab: _activeTab,
+                isDark: isDark,
                 onTabSelected: (tab) => setState(() => _activeTab = tab),
               ),
             ),
@@ -74,7 +77,7 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
       child: Column(
@@ -84,9 +87,11 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
             children: [
               IconButton(
                 onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.grayscaleTitleActive,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive,
                   size: 20,
                 ),
               ),
@@ -97,9 +102,11 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
                     const SnackBar(content: Text('Menu action coming soon')),
                   );
                 },
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_vert_rounded,
-                  color: AppColors.grayscaleTitleActive,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive,
                   size: 22,
                 ),
               ),
@@ -118,14 +125,17 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
                     _StatColumn(
                       value: _formatCompactNumber(widget.source.followersCount),
                       label: 'Followers',
+                      isDark: isDark,
                     ),
                     _StatColumn(
                       value: _formatCompactNumber(widget.source.followingCount),
                       label: 'Following',
+                      isDark: isDark,
                     ),
                     _StatColumn(
                       value: _formatCompactNumber(widget.source.newsCount),
                       label: 'News',
+                      isDark: isDark,
                     ),
                   ],
                 ),
@@ -136,7 +146,9 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
           Text(
             widget.source.name,
             style: AppTypography.textMedium.copyWith(
-              color: AppColors.grayscaleTitleActive,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -144,7 +156,9 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
           Text(
             widget.source.bio,
             style: AppTypography.textMedium.copyWith(
-              color: AppColors.grayscaleBodyText,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
               height: 1.45,
             ),
           ),
@@ -292,8 +306,13 @@ class _SourceAvatar extends StatelessWidget {
 class _StatColumn extends StatelessWidget {
   final String value;
   final String label;
+  final bool isDark;
 
-  const _StatColumn({required this.value, required this.label});
+  const _StatColumn({
+    required this.value,
+    required this.label,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +321,9 @@ class _StatColumn extends StatelessWidget {
         Text(
           value,
           style: AppTypography.textMedium.copyWith(
-            color: AppColors.grayscaleTitleActive,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -310,7 +331,9 @@ class _StatColumn extends StatelessWidget {
         Text(
           label,
           style: AppTypography.textMedium.copyWith(
-            color: AppColors.grayscaleBodyText,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.grayscaleBodyText,
           ),
         ),
       ],
@@ -321,10 +344,12 @@ class _StatColumn extends StatelessWidget {
 class _SourceTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
   final SourceProfileTab activeTab;
   final ValueChanged<SourceProfileTab> onTabSelected;
+  final bool isDark;
 
   _SourceTabsHeaderDelegate({
     required this.activeTab,
     required this.onTabSelected,
+    required this.isDark,
   });
 
   @override
@@ -334,19 +359,21 @@ class _SourceTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Container(
-      color: AppColors.grayscaleWhite,
+      color: isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
           _TabItem(
             label: 'News',
             active: activeTab == SourceProfileTab.news,
+            isDark: isDark,
             onTap: () => onTabSelected(SourceProfileTab.news),
           ),
           const SizedBox(width: 22),
           _TabItem(
             label: 'Recent',
             active: activeTab == SourceProfileTab.recent,
+            isDark: isDark,
             onTap: () => onTabSelected(SourceProfileTab.recent),
           ),
         ],
@@ -362,18 +389,20 @@ class _SourceTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _SourceTabsHeaderDelegate oldDelegate) {
-    return oldDelegate.activeTab != activeTab;
+    return oldDelegate.activeTab != activeTab || oldDelegate.isDark != isDark;
   }
 }
 
 class _TabItem extends StatelessWidget {
   final String label;
   final bool active;
+  final bool isDark;
   final VoidCallback onTap;
 
   const _TabItem({
     required this.label,
     required this.active,
+    required this.isDark,
     required this.onTap,
   });
 
@@ -389,8 +418,12 @@ class _TabItem extends StatelessWidget {
             label,
             style: AppTypography.textMedium.copyWith(
               color: active
-                  ? AppColors.grayscaleTitleActive
-                  : AppColors.grayscaleButtonText,
+                  ? (isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive)
+                  : (isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.grayscaleButtonText),
               fontWeight: active ? FontWeight.w600 : FontWeight.w400,
             ),
           ),

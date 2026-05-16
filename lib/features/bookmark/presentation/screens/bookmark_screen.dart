@@ -49,9 +49,11 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredBookmarks = _filteredBookmarks;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: SafeArea(
         child: Column(
           children: [
@@ -62,7 +64,9 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 child: Text(
                   'Bookmark',
                   style: AppTypography.displayMediumBold.copyWith(
-                    color: AppColors.grayscaleTitleActive,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
                     height: 1.15,
                   ),
                 ),
@@ -79,18 +83,22 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             ),
             Expanded(
               child: filteredBookmarks.isEmpty
-                  ? _BookmarkEmptyState(onGoHome: widget.onGoHome)
+                  ? _BookmarkEmptyState(
+                      onGoHome: widget.onGoHome,
+                      isDark: isDark,
+                    )
                   : ListView.separated(
                       physics: const BouncingScrollPhysics(),
                       itemCount: filteredBookmarks.length,
                       itemBuilder: (context, index) {
                         return NewsTile(article: filteredBookmarks[index]);
                       },
-                      separatorBuilder: (context, index) => const Divider(
+                      separatorBuilder: (context, index) => Divider(
                         height: 1,
                         indent: 24,
                         endIndent: 24,
-                        color: AppColors.grayscaleLine,
+                        color:
+                            isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
                       ),
                     ),
             ),
@@ -103,8 +111,9 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
 
 class _BookmarkEmptyState extends StatelessWidget {
   final VoidCallback? onGoHome;
+  final bool isDark;
 
-  const _BookmarkEmptyState({this.onGoHome});
+  const _BookmarkEmptyState({this.onGoHome, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -114,16 +123,20 @@ class _BookmarkEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.bookmark_border_rounded,
               size: 60,
-              color: AppColors.grayscaleButtonText,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleButtonText,
             ),
             const SizedBox(height: 14),
             Text(
               'No saved stories yet',
               style: AppTypography.displaySmallBold.copyWith(
-                color: AppColors.grayscaleTitleActive,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.grayscaleTitleActive,
                 fontSize: 22,
               ),
               textAlign: TextAlign.center,
@@ -132,7 +145,9 @@ class _BookmarkEmptyState extends StatelessWidget {
             Text(
               'Save stories from the feed and they will show up here.',
               style: AppTypography.textSmall.copyWith(
-                color: AppColors.grayscaleBodyText,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.grayscaleBodyText,
               ),
               textAlign: TextAlign.center,
             ),

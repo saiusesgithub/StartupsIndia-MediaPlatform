@@ -8,7 +8,6 @@ import '../../../../core/repository/firestore_repository.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/news_article.dart';
 import '../../../../theme/style_guide.dart';
-import '../screens/article_detail_screen.dart';
 
 final tileLikeStateProvider = StateProvider.autoDispose.family<bool, String>((
   ref,
@@ -74,6 +73,7 @@ class _NewsTileState extends ConsumerState<NewsTile> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isLiked = ref.watch(tileLikeStateProvider(widget.article.id));
     final authorAsync = ref.watch(tileAuthorProvider(widget.article.authorId));
     final authorName = authorAsync.maybeWhen(
@@ -143,7 +143,9 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.textSmall.copyWith(
-                      color: AppColors.grayscaleTitleActive,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       height: 1.4,
@@ -185,23 +187,29 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                           authorName,
                           overflow: TextOverflow.ellipsis,
                           style: AppTypography.textSmall.copyWith(
-                            color: AppColors.grayscaleBodyText,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.grayscaleBodyText,
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(
+                      Icon(
                         Icons.access_time_rounded,
                         size: 12,
-                        color: AppColors.grayscaleButtonText,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleButtonText,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         widget.article.timeAgo,
                         style: AppTypography.textSmall.copyWith(
-                          color: AppColors.grayscaleButtonText,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.grayscaleButtonText,
                           fontSize: 11,
                         ),
                       ),
@@ -214,7 +222,9 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                               : Icons.favorite_border_rounded,
                           color: isLiked
                               ? Colors.redAccent
-                              : AppColors.grayscaleButtonText,
+                              : isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.grayscaleButtonText,
                           size: 20,
                         ),
                       ),
@@ -228,7 +238,9 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                               : Icons.bookmark_outline_rounded,
                           color: _isBookmarked
                               ? AppColors.primaryDefault
-                              : AppColors.grayscaleButtonText,
+                              : isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.grayscaleButtonText,
                           size: 20,
                         ),
                       ),
@@ -325,10 +337,10 @@ class _NewsTileState extends ConsumerState<NewsTile> {
   }
 
   void _openDetail(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ArticleDetailScreen(article: widget.article),
-      ),
+    Navigator.pushNamed(
+      context,
+      '/article-detail',
+      arguments: widget.article.toNewsArticleModel(),
     );
   }
 }

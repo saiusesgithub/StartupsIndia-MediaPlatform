@@ -13,7 +13,6 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/home_mock_data.dart';
 import '../../domain/models/news_article.dart';
 import '../providers/news_provider.dart';
-import '../screens/article_detail_screen.dart';
 
 final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
   return ref.read(authRepositoryProvider).getCurrentUserModel();
@@ -387,10 +386,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               return _StoryCard(
                 article: article,
                 colorIndex: i,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ArticleDetailScreen(article: article),
-                  ),
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/article-detail',
+                  arguments: item,
                 ),
               );
             },

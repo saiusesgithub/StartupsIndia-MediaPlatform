@@ -19,31 +19,33 @@ class SearchTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       height: 48,
       decoration: BoxDecoration(
-        color: AppColors.grayscaleInputBackground,
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleInputBackground,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.grayscaleLine),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
       ),
       child: TextField(
         controller: controller,
         focusNode: focusNode,
         autofocus: autofocus,
         style: AppTypography.textSmall.copyWith(
-          color: AppColors.grayscaleTitleActive,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive,
         ),
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppTypography.textSmall.copyWith(
-            color: AppColors.grayscaleButtonText,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 13),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
-            color: AppColors.grayscaleBodyText,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText,
             size: 20,
           ),
           suffixIcon: IconButton(
@@ -57,7 +59,7 @@ class SearchTextField extends StatelessWidget {
               controller.text.isEmpty
                   ? Icons.tune_rounded
                   : Icons.close_rounded,
-              color: AppColors.grayscaleBodyText,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText,
               size: 20,
             ),
           ),
