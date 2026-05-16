@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/style_guide.dart';
-import '../../../../core/repository/firestore_repository.dart';
 
 // ── Interest data ──────────────────────────────────────────────────────────────
 
@@ -74,14 +73,15 @@ class _InterestSelectionScreenState
 
     setState(() => _isLoading = true);
     try {
-      final repo = ref.read(firestoreRepositoryProvider);
-      await repo.saveUserOnboarding(
-        uid: uid,
-        role: role,
-        interests: _selected.toList(),
-      );
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      Navigator.pushNamed(
+        context,
+        '/fill-profile',
+        arguments: {
+          'role': role,
+          'interests': _selected.toList(),
+        },
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

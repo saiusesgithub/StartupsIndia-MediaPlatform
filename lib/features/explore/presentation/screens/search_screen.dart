@@ -50,24 +50,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(),
-            _buildSearchField(),
+            _buildAppBar(isDark),
+            _buildSearchField(isDark),
             const SizedBox(height: 14),
-            _buildTabBar(),
+            _buildTabBar(isDark),
             const SizedBox(height: 8),
-            Expanded(child: _buildBodyList()),
+            Expanded(child: _buildBodyList(isDark)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
@@ -96,12 +99,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.grayscaleInputBackground,
+                    color: isDark
+                        ? AppColors.darkInputBackground
+                        : AppColors.grayscaleInputBackground,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.notifications_none_rounded,
-                    color: AppColors.grayscaleTitleActive,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
                     size: 22,
                   ),
                 ),
@@ -125,13 +132,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildSearchField() {
+  Widget _buildSearchField(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.grayscaleInputBackground,
+          color: isDark
+              ? AppColors.darkInputBackground
+              : AppColors.grayscaleInputBackground,
           borderRadius: BorderRadius.circular(10),
         ),
         child: TextField(
@@ -139,42 +148,51 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           focusNode: _searchFocusNode,
           autofocus: true,
           style: AppTypography.textSmall.copyWith(
-            color: AppColors.grayscaleTitleActive,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.grayscaleTitleActive,
           ),
           onChanged: (value) {
-            // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-            ref.read(searchQueryProvider.notifier).state = value;
+            ref.read(searchQueryProvider.notifier).setQuery(value);
+            setState(() {});
           },
           onTap: () => _searchFocusNode.requestFocus(),
           decoration: InputDecoration(
             hintText: 'Search',
             hintStyle: AppTypography.textSmall.copyWith(
-              color: AppColors.grayscaleButtonText,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleButtonText,
             ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(vertical: 13),
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               Icons.search_rounded,
-              color: AppColors.grayscaleBodyText,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
               size: 20,
             ),
             suffixIcon: _searchController.text.isEmpty
-                ? const Icon(
+                ? Icon(
                     Icons.search_rounded,
-                    color: AppColors.grayscaleBodyText,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleBodyText,
                     size: 20,
                   )
                 : IconButton(
                     tooltip: 'Clear search',
                     onPressed: () {
                       _searchController.clear();
-                      // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-                      ref.read(searchQueryProvider.notifier).state = '';
+                      ref.read(searchQueryProvider.notifier).clear();
                       setState(() {});
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
-                      color: AppColors.grayscaleBodyText,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
                       size: 20,
                     ),
                   ),
@@ -184,20 +202,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          _tabItem('News', SearchTab.news),
-          _tabItem('Topics', SearchTab.topics),
-          _tabItem('Author', SearchTab.author),
+          _tabItem('News', SearchTab.news, isDark),
+          _tabItem('Topics', SearchTab.topics, isDark),
+          _tabItem('Author', SearchTab.author, isDark),
         ],
       ),
     );
   }
 
-  Widget _tabItem(String title, SearchTab tab) {
+  Widget _tabItem(String title, SearchTab tab, bool isDark) {
     final bool isActive = _currentTab == tab;
     return Expanded(
       child: GestureDetector(
@@ -208,8 +226,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               title,
               style: AppTypography.textSmall.copyWith(
                 color: isActive
-                    ? AppColors.grayscaleTitleActive
-                    : AppColors.grayscaleButtonText,
+                    ? (isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive)
+                    : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleButtonText),
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
@@ -229,7 +251,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildBodyList() {
+  Widget _buildBodyList(bool isDark) {
     if (_currentTab == SearchTab.news) {
       final searchAsync = ref.watch(searchResultProvider);
       return searchAsync.when(
@@ -239,7 +261,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Text(
                 'No news found',
                 style: AppTypography.textSmall.copyWith(
-                  color: AppColors.grayscaleButtonText,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.grayscaleButtonText,
                 ),
               ),
             );
@@ -275,7 +299,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, _) => Center(
+          child: Text(
+            'Error: $error',
+            style: TextStyle(
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
+            ),
+          ),
+        ),
       );
     }
 

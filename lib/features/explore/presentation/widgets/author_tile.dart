@@ -18,27 +18,35 @@ class AuthorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.grayscaleWhite,
+          color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.grayscaleLine),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+          ),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: AppColors.grayscaleSecondaryButton,
+              backgroundColor: isDark
+                  ? AppColors.darkInputBackground
+                  : AppColors.grayscaleSecondaryButton,
               backgroundImage: AssetImage(author.avatarAsset),
               onBackgroundImageError: (exception, stackTrace) {},
               child: author.avatarAsset.isEmpty
-                  ? const Icon(
+                  ? Icon(
                       Icons.person,
-                      color: AppColors.grayscaleButtonText,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleButtonText,
                     )
                   : null,
             ),
@@ -50,7 +58,9 @@ class AuthorTile extends StatelessWidget {
                   Text(
                     author.name,
                     style: AppTypography.textMedium.copyWith(
-                      color: AppColors.grayscaleTitleActive,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -58,7 +68,9 @@ class AuthorTile extends StatelessWidget {
                   Text(
                     author.followers,
                     style: AppTypography.textSmall.copyWith(
-                      color: AppColors.grayscaleBodyText,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
                       fontSize: 13,
                     ),
                   ),

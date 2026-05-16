@@ -1,7 +1,9 @@
 import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/repository/firestore_repository.dart';
 import '../../../auth/domain/models/user_model.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
@@ -50,8 +52,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: SafeArea(
         child: Stack(
           children: [
@@ -63,9 +68,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildAppBar(context),
+                    _buildAppBar(context, isDark),
                     const SizedBox(height: 10),
-                    _buildAvatarEditor(),
+                    _buildAvatarEditor(isDark),
                     const SizedBox(height: 18),
                     AppTextField(
                       controller: _usernameController,
@@ -126,7 +131,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -135,9 +140,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             onPressed: _isSubmitting
                 ? null
                 : () => Navigator.of(context).maybePop(),
-            icon: const Icon(
+            icon: Icon(
               Icons.close_rounded,
-              color: AppColors.grayscaleTitleActive,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
             ),
           ),
           Expanded(
@@ -145,16 +152,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               'Edit Profile',
               textAlign: TextAlign.center,
               style: AppTypography.textMedium.copyWith(
-                color: AppColors.grayscaleTitleActive,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.grayscaleTitleActive,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           IconButton(
             onPressed: _isSubmitting ? null : _submit,
-            icon: const Icon(
+            icon: Icon(
               Icons.check_rounded,
-              color: AppColors.grayscaleTitleActive,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
             ),
           ),
         ],
@@ -162,7 +173,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  Widget _buildAvatarEditor() {
+  Widget _buildAvatarEditor(bool isDark) {
+    final currentAvatar = _currentUser?.avatarUrl ?? '';
+
     return Center(
       child: SizedBox(
         width: 126,
@@ -172,15 +185,24 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           children: [
             CircleAvatar(
               radius: 63,
-              backgroundColor: AppColors.grayscaleSecondaryButton,
+              backgroundColor: isDark
+                  ? AppColors.darkSurface
+                  : AppColors.grayscaleSecondaryButton,
               backgroundImage: _pickedAvatarBytes == null
                   ? null
                   : MemoryImage(_pickedAvatarBytes!),
               child: _pickedAvatarBytes == null
-                  ? const Icon(
-                      Icons.person,
-                      size: 58,
-                      color: AppColors.grayscaleButtonText,
+                  ? ClipOval(
+                      child: currentAvatar.startsWith('http')
+                          ? CachedNetworkImage(
+                              imageUrl: currentAvatar,
+                              width: 126,
+                              height: 126,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) =>
+                                  _avatarFallback(isDark),
+                            )
+                          : _avatarFallback(isDark),
                     )
                   : null,
             ),
@@ -298,20 +320,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           newsCount: 0,
         );
 
-    final updatedUser = baseUser.copyWith(
-      username: _usernameController.text.trim(),
-      fullName: _fullNameController.text.trim(),
-      email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
-      displayName: _fullNameController.text.trim().isEmpty
-          ? baseUser.displayName
-          : _fullNameController.text.trim(),
-      bio: _bioController.text.trim(),
-      websiteUrl: _websiteController.text.trim(),
-      avatarUrl: _pickedAvatarPath ?? baseUser.avatarUrl,
-    );
-
     try {
+      String avatarUrl = baseUser.avatarUrl;
+      if (_pickedAvatarPath != null) {
+        avatarUrl = await ref
+            .read(firestoreRepositoryProvider)
+            .uploadImage(_pickedAvatarPath!);
+      }
+
+      final updatedUser = baseUser.copyWith(
+        username: _usernameController.text.trim(),
+        fullName: _fullNameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        displayName: _fullNameController.text.trim().isEmpty
+            ? baseUser.displayName
+            : _fullNameController.text.trim(),
+        bio: _bioController.text.trim(),
+        websiteUrl: _websiteController.text.trim(),
+        avatarUrl: avatarUrl,
+      );
+
       await ref.read(authRepositoryProvider).updateUserData(updatedUser);
 
       if (!mounted) {
@@ -359,5 +388,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return 'Enter a valid phone number';
     }
     return null;
+  }
+
+  Widget _avatarFallback(bool isDark) {
+    return Container(
+      width: 126,
+      height: 126,
+      color: isDark
+          ? AppColors.darkSurface
+          : AppColors.grayscaleSecondaryButton,
+      child: Icon(
+        Icons.person,
+        size: 58,
+        color: isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.grayscaleButtonText,
+      ),
+    );
   }
 }

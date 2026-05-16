@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
+import '../../../../core/repository/firestore_repository.dart';
 import '../../../auth/domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 
@@ -20,10 +21,19 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _bioController = TextEditingController();
+  final _websiteController = TextEditingController();
 
   File? _pickedImage;
   final ImagePicker _picker = ImagePicker();
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final email = ref.read(authRepositoryProvider).currentUser?.email ?? '';
+    _emailController.text = email;
+  }
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(
@@ -54,7 +64,17 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
           return;
         }
 
-        // Create UserModel with the entered data
+        final args = ModalRoute.of(context)?.settings.arguments;
+        final setup = args is Map ? args : const <String, Object?>{};
+        final role = setup['role'] as String? ?? '';
+        final interests = List<String>.from(setup['interests'] as List? ?? []);
+
+        String avatarUrl = currentUser.photoURL ?? '';
+        final firestoreRepo = ref.read(firestoreRepositoryProvider);
+        if (_pickedImage != null) {
+          avatarUrl = await firestoreRepo.uploadImage(_pickedImage!.path);
+        }
+
         final updatedUser = UserModel(
           uid: currentUser.uid,
           username: _usernameController.text.trim(),
@@ -62,25 +82,33 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
           email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
           displayName: _fullNameController.text.trim(),
-          bio: 'Sharing updates and insights from around the world.',
-          avatarUrl: _pickedImage?.path ?? 'assets/images/thumb_politics.png',
-          websiteUrl: 'https://example.com',
+          bio: _bioController.text.trim().isEmpty
+              ? 'Sharing updates and insights from around the world.'
+              : _bioController.text.trim(),
+          avatarUrl: avatarUrl,
+          websiteUrl: _websiteController.text.trim(),
           followersCount: 0,
           followingCount: 0,
           newsCount: 0,
+          role: role,
+          interests: interests,
+          onboardingCompleted: true,
         );
 
         // Save to Firebase
         await authRepo.updateUserData(updatedUser);
+        for (final interest in interests) {
+          await firestoreRepo.followTopic(currentUser.uid, interest);
+        }
 
         if (!mounted) return;
-
-        // Navigate to home and refresh the user data
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile saved successfully!')),
         );
+
+        // Navigate to home and refresh the user data
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -98,13 +126,18 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _bioController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: SafeArea(
         child: Stack(
           children: [
@@ -119,7 +152,11 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                         onTap: _isSubmitting ? null : () => Navigator.pop(context),
                         child: Icon(
                           Icons.arrow_back,
-                          color: _isSubmitting ? Colors.grey : AppColors.grayscaleTitleActive,
+                          color: _isSubmitting
+                              ? Colors.grey
+                              : isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.grayscaleTitleActive,
                         ),
                       ),
                       Expanded(
@@ -127,7 +164,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                           'Fill your Profile',
                           textAlign: TextAlign.center,
                           style: AppTypography.linkMedium.copyWith(
-                            color: AppColors.grayscaleTitleActive,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.grayscaleTitleActive,
                           ),
                         ),
                       ),
@@ -160,15 +199,19 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                                     // Circle avatar
                                     CircleAvatar(
                                       radius: 60,
-                                      backgroundColor: const Color(0xFFEEF1F4),
+                                      backgroundColor: isDark
+                                          ? AppColors.darkSurface
+                                          : const Color(0xFFEEF1F4),
                                       backgroundImage: _pickedImage != null
                                           ? FileImage(_pickedImage!)
                                           : null,
                                       child: _pickedImage == null
-                                          ? const Icon(
+                                          ? Icon(
                                               Icons.person,
                                               size: 60,
-                                              color: Color(0xFFBDBDBD),
+                                              color: isDark
+                                                  ? AppColors.darkTextSecondary
+                                                  : const Color(0xFFBDBDBD),
                                             )
                                           : null,
                                     ),
@@ -195,8 +238,6 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                               ),
                             ),
                           ),
-
-                          const SizedBox(height: 32),
 
                           // ── Username ─────────────────────────────────
                           AppTextField(
@@ -249,6 +290,18 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                               }
                               return null;
                             },
+                          ),
+                          const SizedBox(height: 16),
+                          AppTextField(
+                            controller: _bioController,
+                            label: 'Bio',
+                            hintText: 'Tell people what you are building',
+                          ),
+                          const SizedBox(height: 16),
+                          AppTextField(
+                            controller: _websiteController,
+                            label: 'Website',
+                            hintText: 'https://yourstartup.com',
                           ),
 
                           const SizedBox(height: 32),

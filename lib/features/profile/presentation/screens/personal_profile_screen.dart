@@ -111,7 +111,11 @@ class _PersonalProfileScreenState
               SliverToBoxAdapter(child: _HeaderBar(isDark: isDark)),
               SliverToBoxAdapter(
                   child: _ProfileCard(
-                      user: user, handle: _handle(user), isDark: isDark)),
+                user: user,
+                handle: _handle(user),
+                isDark: isDark,
+                onEditProfile: _openEditProfile,
+              )),
               SliverToBoxAdapter(child: _ProBanner(isDark: isDark)),
               SliverPersistentHeader(
                 pinned: true,
@@ -164,6 +168,14 @@ class _PersonalProfileScreenState
           ),
         ];
     }
+  }
+
+  Future<void> _openEditProfile() async {
+    await Navigator.pushNamed(context, '/edit-profile');
+    if (!mounted) return;
+    setState(() {
+      _userFuture = ref.read(authRepositoryProvider).getCurrentUserModel();
+    });
   }
 }
 
@@ -373,9 +385,14 @@ class _ProfileCard extends StatelessWidget {
   final UserModel user;
   final String handle;
   final bool isDark;
+  final VoidCallback onEditProfile;
 
-  const _ProfileCard(
-      {required this.user, required this.handle, required this.isDark});
+  const _ProfileCard({
+    required this.user,
+    required this.handle,
+    required this.isDark,
+    required this.onEditProfile,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -423,8 +440,7 @@ class _ProfileCard extends StatelessWidget {
                   top: 12,
                   right: 12,
                   child: GestureDetector(
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/edit-profile'),
+                    onTap: onEditProfile,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
@@ -527,6 +543,21 @@ class _ProfileCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                  if (user.interests.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: user.interests
+                          .map(
+                            (interest) => _InterestChip(
+                              label: _fmtRole(interest),
+                              isDark: isDark,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
                   const SizedBox(height: 18),
 
                   // 4 stats
@@ -600,6 +631,35 @@ class _ProfileCard extends StatelessWidget {
 }
 
 // ── Pro upgrade banner ────────────────────────────────────────────────────────
+
+class _InterestChip extends StatelessWidget {
+  final String label;
+  final bool isDark;
+
+  const _InterestChip({required this.label, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.primaryDefault.withValues(alpha: isDark ? 0.18 : 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.primaryDefault.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.textSmall.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.primaryDefault,
+        ),
+      ),
+    );
+  }
+}
 
 class _ProBanner extends StatelessWidget {
   final bool isDark;

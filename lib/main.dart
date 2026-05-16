@@ -220,6 +220,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/home': (context) => const MainAppScaffold(initialIndex: 0),
         '/explore': (context) => const MainAppScaffold(initialIndex: 1),
+        '/profile': (context) => const MainAppScaffold(initialIndex: 4),
         '/search': (context) => const SearchScreen(showBottomNav: false),
         '/trending': (context) => const TrendingScreen(),
         '/notifications': (context) => const NotificationsScreen(),

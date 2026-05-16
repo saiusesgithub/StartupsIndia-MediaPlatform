@@ -16,13 +16,17 @@ class TopicSearchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.grayscaleWhite,
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grayscaleLine),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
       ),
       child: Row(
         children: [
@@ -36,11 +40,15 @@ class TopicSearchTile extends StatelessWidget {
               errorBuilder: (context, error, stackTrace) => Container(
                 width: 56,
                 height: 56,
-                color: AppColors.grayscaleSecondaryButton,
-                child: const Icon(
+                color: isDark
+                    ? AppColors.darkInputBackground
+                    : AppColors.grayscaleSecondaryButton,
+                child: Icon(
                   Icons.image_not_supported_outlined,
                   size: 18,
-                  color: AppColors.grayscaleButtonText,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.grayscaleButtonText,
                 ),
               ),
             ),
@@ -53,7 +61,9 @@ class TopicSearchTile extends StatelessWidget {
                 Text(
                   topic.title,
                   style: AppTypography.textMedium.copyWith(
-                    color: AppColors.grayscaleTitleActive,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -63,7 +73,9 @@ class TopicSearchTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.textSmall.copyWith(
-                    color: AppColors.grayscaleBodyText,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleBodyText,
                     fontSize: 13,
                   ),
                 ),

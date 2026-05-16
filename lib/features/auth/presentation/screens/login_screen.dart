@@ -119,6 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final canPop = Navigator.of(context).canPop();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
@@ -152,25 +153,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Back button
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 8, top: 4),
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    size: 20,
-                                    color: isDark
-                                        ? AppColors.darkTextPrimary
-                                        : AppColors.grayscaleTitleActive,
-                                  ),
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                              ),
+                            SizedBox(
+                              height: 52,
+                              child: canPop
+                                  ? Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: 8,
+                                          top: 4,
+                                        ),
+                                        child: IconButton(
+                                          icon: Icon(
+                                            Icons.arrow_back_ios_new_rounded,
+                                            size: 20,
+                                            color: isDark
+                                                ? AppColors.darkTextPrimary
+                                                : AppColors
+                                                    .grayscaleTitleActive,
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                        ),
+                                      ),
+                                    )
+                                  : null,
                             ),
-
-                            const SizedBox(height: 8),
 
                             // Logo
                             const Center(child: AppLogoMark(scale: 0.72)),

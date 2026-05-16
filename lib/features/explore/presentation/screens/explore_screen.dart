@@ -23,8 +23,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.grayscaleWhite,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -36,7 +39,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 child: Text(
                   'Explore',
                   style: AppTypography.displayMediumBold.copyWith(
-                    color: AppColors.grayscaleTitleActive,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
                     height: 1.15,
                   ),
                 ),
@@ -51,7 +56,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     Text(
                       'Topic',
                       style: AppTypography.displaySmallBold.copyWith(
-                        color: AppColors.grayscaleTitleActive,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.grayscaleTitleActive,
                       ),
                     ),
                     const Spacer(),
@@ -91,6 +98,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 return _ExploreTopicTile(
                   key: ValueKey<String>(topic.id),
                   topic: topic,
+                  isDark: isDark,
                   isSaved: _savedTopics.contains(topic.id),
                   onToggleSave: () {
                     setState(() {
@@ -111,7 +119,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 child: Text(
                   'Popular Topic',
                   style: AppTypography.displaySmallBold.copyWith(
-                    color: AppColors.grayscaleTitleActive,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
                   ),
                 ),
               ),
@@ -142,12 +152,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
 class _ExploreTopicTile extends StatelessWidget {
   final TopicSearchItem topic;
+  final bool isDark;
   final bool isSaved;
   final VoidCallback onToggleSave;
 
   const _ExploreTopicTile({
     super.key,
     required this.topic,
+    required this.isDark,
     required this.isSaved,
     required this.onToggleSave,
   });
@@ -169,11 +181,15 @@ class _ExploreTopicTile extends StatelessWidget {
                 return Container(
                   width: 60,
                   height: 60,
-                  color: AppColors.grayscaleSecondaryButton,
+                  color: isDark
+                      ? AppColors.darkInputBackground
+                      : AppColors.grayscaleSecondaryButton,
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.image_not_supported_outlined,
-                    color: AppColors.grayscaleButtonText,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleButtonText,
                     size: 18,
                   ),
                 );
@@ -188,7 +204,9 @@ class _ExploreTopicTile extends StatelessWidget {
                 Text(
                   topic.title,
                   style: AppTypography.textMedium.copyWith(
-                    color: AppColors.grayscaleTitleActive,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
                     fontWeight: FontWeight.w600,
                     height: 1.25,
                   ),
@@ -199,7 +217,9 @@ class _ExploreTopicTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.textSmall.copyWith(
-                    color: AppColors.grayscaleBodyText,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleBodyText,
                     fontSize: 13,
                     height: 1.3,
                   ),

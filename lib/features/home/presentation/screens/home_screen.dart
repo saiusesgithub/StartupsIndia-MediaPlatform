@@ -7,11 +7,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/time_format_helper.dart';
 import '../../../../core/models/news_article_model.dart';
+import '../../../../core/models/user_model.dart';
 import '../../../../theme/style_guide.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/home_mock_data.dart';
 import '../../domain/models/news_article.dart';
 import '../providers/news_provider.dart';
 import '../screens/article_detail_screen.dart';
+
+final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
+  return ref.read(authRepositoryProvider).getCurrentUserModel();
+});
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -99,7 +105,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildHeader(bool isDark) {
     final user = FirebaseAuth.instance.currentUser;
-    final avatarUrl = user?.photoURL;
+    final userModel = ref.watch(homeCurrentUserProvider).asData?.value;
+    final avatarUrl = (userModel?.avatarUrl.isNotEmpty == true)
+        ? userModel!.avatarUrl
+        : user?.photoURL;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
@@ -164,7 +173,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(width: 10),
           // Profile avatar
           GestureDetector(
-            onTap: () {},
+            onTap: () => Navigator.pushNamed(context, '/profile'),
             child: ClipOval(
               child: Container(
                 width: 36,
