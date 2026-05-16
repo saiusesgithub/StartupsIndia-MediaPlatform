@@ -49,6 +49,9 @@ Supported roles:
 - `college`
 - `startup_enthusiast`
 
+Role selection is locked after signup. Role-specific fields can still be edited
+later, but the role id itself is not presented as a profile setting.
+
 Fill Profile collects shared fields:
 
 - full name

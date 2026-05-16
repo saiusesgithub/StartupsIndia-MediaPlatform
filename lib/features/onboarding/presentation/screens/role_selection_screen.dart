@@ -220,7 +220,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'You can change this later in your profile settings.',
+                      'Choose carefully. Your role cannot be changed after sign-up.',
                       textAlign: TextAlign.center,
                       style: AppTypography.textSmall.copyWith(
                         color: isDark
