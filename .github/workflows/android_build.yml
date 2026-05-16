@@ -34,6 +34,19 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install Android CMake
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Installing CMake 3.22.1 (attempt $attempt)"
+            if yes | sdkmanager "cmake;3.22.1"; then
+              exit 0
+            fi
+            rm -rf "$ANDROID_HOME/cmake/3.22.1" "$ANDROID_SDK_ROOT/cmake/3.22.1"
+            sleep 5
+          done
+          yes | sdkmanager "cmake;3.22.1"
+
       - name: Decode google-services.json from secret
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}

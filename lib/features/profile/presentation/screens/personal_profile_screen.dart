@@ -2,11 +2,40 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/models/news_article_model.dart';
 import '../../../../core/models/user_model.dart';
+import '../../../../core/providers/firebase_providers.dart';
+import '../../../../core/repository/firestore_repository.dart';
+import '../../../../core/utils/time_format_helper.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../home/domain/models/news_article.dart';
+import '../../../home/presentation/screens/article_detail_screen.dart';
+import '../../../home/presentation/widgets/news_tile.dart';
 import '../../../../theme/style_guide.dart';
 
-enum _Tab { posts, saved, liked, courses, events }
+enum _Tab { posts, saved, liked }
+
+final profilePostsProvider = StreamProvider.autoDispose<List<NewsArticleModel>>((
+  ref,
+) {
+  final user = ref.watch(authStateChangesProvider).value;
+  if (user == null) return Stream.value(<NewsArticleModel>[]);
+  return ref.watch(firestoreRepositoryProvider).getArticlesByAuthor(user.uid);
+});
+
+final profileSavedArticlesProvider =
+    StreamProvider.autoDispose<List<NewsArticleModel>>((ref) {
+  final user = ref.watch(authStateChangesProvider).value;
+  if (user == null) return Stream.value(<NewsArticleModel>[]);
+  return ref.watch(firestoreRepositoryProvider).getBookmarkedArticles(user.uid);
+});
+
+final profileLikedArticlesProvider =
+    StreamProvider.autoDispose<List<NewsArticleModel>>((ref) {
+  final user = ref.watch(authStateChangesProvider).value;
+  if (user == null) return Stream.value(<NewsArticleModel>[]);
+  return ref.watch(firestoreRepositoryProvider).getLikedArticles(user.uid);
+});
 
 class PersonalProfileScreen extends ConsumerStatefulWidget {
   const PersonalProfileScreen({super.key});
@@ -106,64 +135,194 @@ class _PersonalProfileScreenState
     switch (tab) {
       case _Tab.posts:
         return [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            sliver: SliverGrid.count(
-              crossAxisCount: 3,
-              mainAxisSpacing: 5,
-              crossAxisSpacing: 5,
-              childAspectRatio: 0.62,
-              children:
-                  List.generate(9, (i) => _PostGridItem(index: i, isDark: isDark)),
-            ),
+          _ArticleGridSliver(
+            articlesAsync: ref.watch(profilePostsProvider),
+            isDark: isDark,
+            emptyIcon: Icons.grid_on_rounded,
+            emptyTitle: 'No posts yet',
+            emptySubtitle: 'Publish your first startup story to see it here.',
           ),
         ];
       case _Tab.saved:
         return [
-          SliverToBoxAdapter(
-            child: _EmptyState(
-              isDark: isDark,
-              icon: Icons.bookmark_border_rounded,
-              title: 'No saved posts',
-              subtitle:
-                  'Tap the bookmark icon on any post\nto save it here.',
-            ),
-          )
+          _ArticleListSliver(
+            articlesAsync: ref.watch(profileSavedArticlesProvider),
+            isDark: isDark,
+            emptyIcon: Icons.bookmark_border_rounded,
+            emptyTitle: 'No saved posts',
+            emptySubtitle: 'Tap the bookmark icon on any post to save it here.',
+          ),
         ];
       case _Tab.liked:
         return [
-          SliverToBoxAdapter(
-            child: _EmptyState(
-              isDark: isDark,
-              icon: Icons.favorite_border_rounded,
-              title: 'No liked posts',
-              subtitle: 'Posts you like will appear here.',
-            ),
-          )
-        ];
-      case _Tab.courses:
-        return [
-          SliverToBoxAdapter(
-            child: _EmptyState(
-              isDark: isDark,
-              icon: Icons.school_outlined,
-              title: 'No courses yet',
-              subtitle: 'Courses you enroll in will appear here.',
-            ),
-          )
-        ];
-      case _Tab.events:
-        return [
-          SliverToBoxAdapter(
-            child: _EmptyState(
-              isDark: isDark,
-              icon: Icons.event_outlined,
-              title: 'No events',
-              subtitle: 'Events you join will appear here.',
-            ),
-          )
+          _ArticleListSliver(
+            articlesAsync: ref.watch(profileLikedArticlesProvider),
+            isDark: isDark,
+            emptyIcon: Icons.favorite_border_rounded,
+            emptyTitle: 'No liked posts',
+            emptySubtitle: 'Posts you like will appear here.',
+          ),
         ];
     }
+  }
+}
+
+class _ArticleGridSliver extends StatelessWidget {
+  final AsyncValue<List<NewsArticleModel>> articlesAsync;
+  final bool isDark;
+  final IconData emptyIcon;
+  final String emptyTitle;
+  final String emptySubtitle;
+
+  const _ArticleGridSliver({
+    required this.articlesAsync,
+    required this.isDark,
+    required this.emptyIcon,
+    required this.emptyTitle,
+    required this.emptySubtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return articlesAsync.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 48),
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.primaryDefault),
+          ),
+        ),
+      ),
+      error: (_, _) => SliverToBoxAdapter(
+        child: _EmptyState(
+          isDark: isDark,
+          icon: Icons.error_outline_rounded,
+          title: 'Could not load posts',
+          subtitle: 'Pull back later or check your connection.',
+        ),
+      ),
+      data: (articles) {
+        if (articles.isEmpty) {
+          return SliverToBoxAdapter(
+            child: _EmptyState(
+              isDark: isDark,
+              icon: emptyIcon,
+              title: emptyTitle,
+              subtitle: emptySubtitle,
+            ),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          sliver: SliverGrid.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 5,
+              crossAxisSpacing: 5,
+              childAspectRatio: 0.62,
+            ),
+            itemCount: articles.length,
+            itemBuilder: (context, index) {
+              return _PostGridItem(article: articles[index], isDark: isDark);
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ArticleListSliver extends StatelessWidget {
+  final AsyncValue<List<NewsArticleModel>> articlesAsync;
+  final bool isDark;
+  final IconData emptyIcon;
+  final String emptyTitle;
+  final String emptySubtitle;
+
+  const _ArticleListSliver({
+    required this.articlesAsync,
+    required this.isDark,
+    required this.emptyIcon,
+    required this.emptyTitle,
+    required this.emptySubtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return articlesAsync.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 48),
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.primaryDefault),
+          ),
+        ),
+      ),
+      error: (_, _) => SliverToBoxAdapter(
+        child: _EmptyState(
+          isDark: isDark,
+          icon: Icons.error_outline_rounded,
+          title: 'Could not load articles',
+          subtitle: 'Pull back later or check your connection.',
+        ),
+      ),
+      data: (articles) {
+        if (articles.isEmpty) {
+          return SliverToBoxAdapter(
+            child: _EmptyState(
+              isDark: isDark,
+              icon: emptyIcon,
+              title: emptyTitle,
+              subtitle: emptySubtitle,
+            ),
+          );
+        }
+
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (index.isOdd) {
+                return Divider(
+                  height: 1,
+                  indent: 24,
+                  endIndent: 24,
+                  color: isDark
+                      ? AppColors.darkBorder
+                      : AppColors.grayscaleLine,
+                );
+              }
+
+              final article = _toNewsArticle(articles[index ~/ 2]);
+              return NewsTile(article: article);
+            },
+            childCount: articles.length * 2 - 1,
+          ),
+        );
+      },
+    );
+  }
+
+  NewsArticle _toNewsArticle(NewsArticleModel model) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return NewsArticle(
+      id: model.id,
+      authorId: model.authorId,
+      category: model.category,
+      headline: model.headline,
+      sourceName: model.sourceName,
+      sourceId: model.sourceId,
+      sourceLogoAsset: model.sourceLogoAsset,
+      thumbnailAsset: model.thumbnailAsset,
+      timeAgo: formatArticleTimestamp(model.createdAt, fallback: model.timeAgo),
+      body: model.body,
+      likesCount: model.likesCount,
+      commentsCount: model.commentsCount,
+      isSourceFollowing: model.isSourceFollowing,
+      isBookmarked:
+          model.isBookmarked || model.bookmarkedBy.contains(currentUserId),
+      isLiked: model.isLiked || model.likedBy.contains(currentUserId),
+    );
   }
 }
 
@@ -542,8 +701,6 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
     (tab: _Tab.posts, icon: Icons.grid_on_rounded, label: 'Posts'),
     (tab: _Tab.saved, icon: Icons.bookmark_border_rounded, label: 'Saved'),
     (tab: _Tab.liked, icon: Icons.favorite_border_rounded, label: 'Liked'),
-    (tab: _Tab.courses, icon: Icons.school_outlined, label: 'Courses'),
-    (tab: _Tab.events, icon: Icons.event_outlined, label: 'Events'),
   ];
 
   @override
@@ -621,10 +778,10 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
 // ── 3-column post grid item ───────────────────────────────────────────────────
 
 class _PostGridItem extends StatelessWidget {
-  final int index;
+  final NewsArticleModel article;
   final bool isDark;
 
-  const _PostGridItem({required this.index, required this.isDark});
+  const _PostGridItem({required this.article, required this.isDark});
 
   static const _gradients = [
     [Color(0xFF1A0A2E), Color(0xFF0D0D0D)],
@@ -637,91 +794,199 @@ class _PostGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = _gradients[index % _gradients.length];
-    final isVideo = index % 3 == 0;
+    final colors = _gradients[article.id.hashCode.abs() % _gradients.length];
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: colors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ArticleDetailScreen(article: _toNewsArticle()),
           ),
-          if (isVideo)
-            const Center(
-              child: Icon(Icons.play_circle_fill_rounded,
-                  color: Colors.white54, size: 28),
-            ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(6, 18, 6, 6),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.transparent, Colors.black87],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _PostThumbnail(article: article, colors: colors, isDark: isDark),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.86),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.45, 1],
+                  ),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isVideo)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDefault,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text('VIDEO',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 7,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      const Icon(Icons.favorite_rounded,
-                          size: 9, color: Colors.white60),
-                      const SizedBox(width: 2),
-                      Text('${(index + 1) * 42}',
-                          style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600)),
-                      const Spacer(),
-                      const Icon(Icons.visibility_outlined,
-                          size: 9, color: Colors.white60),
-                      const SizedBox(width: 2),
-                      Text('${(index + 1) * 310}',
-                          style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600)),
-                    ],
+            ),
+            Positioned(
+              top: 6,
+              left: 6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDefault,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  article.category.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 7,
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(6, 18, 6, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      article.headline,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.favorite_rounded,
+                          size: 9,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          _fmt(article.likesCount),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 9,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          _fmt(article.commentsCount),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  NewsArticle _toNewsArticle() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return NewsArticle(
+      id: article.id,
+      authorId: article.authorId,
+      category: article.category,
+      headline: article.headline,
+      sourceName: article.sourceName,
+      sourceId: article.sourceId,
+      sourceLogoAsset: article.sourceLogoAsset,
+      thumbnailAsset: article.thumbnailAsset,
+      timeAgo: formatArticleTimestamp(
+        article.createdAt,
+        fallback: article.timeAgo,
+      ),
+      body: article.body,
+      likesCount: article.likesCount,
+      commentsCount: article.commentsCount,
+      isSourceFollowing: article.isSourceFollowing,
+      isBookmarked:
+          article.isBookmarked || article.bookmarkedBy.contains(currentUserId),
+      isLiked: article.isLiked || article.likedBy.contains(currentUserId),
+    );
+  }
+
+  static String _fmt(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+    return n.toString();
+  }
+}
+
+class _PostThumbnail extends StatelessWidget {
+  final NewsArticleModel article;
+  final List<Color> colors;
+  final bool isDark;
+
+  const _PostThumbnail({
+    required this.article,
+    required this.colors,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final image = article.thumbnailAsset.trim();
+    if (image.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.cover,
+        errorWidget: (context, url, error) => _fallback(),
+      );
+    }
+
+    if (image.isNotEmpty) {
+      return Image.asset(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _fallback(),
+      );
+    }
+
+    return _fallback();
+  }
+
+  Widget _fallback() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark ? colors : [colors.first, colors.last],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
     );
   }
 }
-
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {

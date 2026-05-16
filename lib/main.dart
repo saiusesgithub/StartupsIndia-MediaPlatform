@@ -27,6 +27,7 @@ import 'features/home/presentation/screens/notifications_screen.dart';
 import 'features/profile/presentation/screens/create_post_screen.dart';
 import 'features/profile/presentation/screens/edit_profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
+import 'features/explore/presentation/screens/search_screen.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -219,6 +220,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/home': (context) => const MainAppScaffold(initialIndex: 0),
         '/explore': (context) => const MainAppScaffold(initialIndex: 1),
+        '/search': (context) => const SearchScreen(showBottomNav: false),
         '/trending': (context) => const TrendingScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/settings': (context) => const SettingsScreen(),

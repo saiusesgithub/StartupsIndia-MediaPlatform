@@ -80,6 +80,38 @@ class FirestoreRepository {
     );
   }
 
+  Stream<List<NewsArticleModel>> getArticlesByAuthor(String authorId) {
+    if (authorId.trim().isEmpty) return Stream.value(<NewsArticleModel>[]);
+
+    return getLatestNews().map(
+      (items) => items
+          .where((article) => article.authorId == authorId)
+          .toList(growable: false),
+    );
+  }
+
+  Stream<List<NewsArticleModel>> getBookmarkedArticles(String userId) {
+    if (userId.trim().isEmpty) return Stream.value(<NewsArticleModel>[]);
+
+    return getLatestNews().map(
+      (items) => items
+          .where((article) => article.bookmarkedBy.contains(userId))
+          .map((article) => article.copyWith(isBookmarked: true))
+          .toList(growable: false),
+    );
+  }
+
+  Stream<List<NewsArticleModel>> getLikedArticles(String userId) {
+    if (userId.trim().isEmpty) return Stream.value(<NewsArticleModel>[]);
+
+    return getLatestNews().map(
+      (items) => items
+          .where((article) => article.likedBy.contains(userId))
+          .map((article) => article.copyWith(isLiked: true))
+          .toList(growable: false),
+    );
+  }
+
   Future<List<NewsArticleModel>> searchArticles(String query) async {
     final normalizedQuery = query.trim().toLowerCase();
     if (normalizedQuery.isEmpty) {
@@ -187,7 +219,8 @@ class FirestoreRepository {
     final doc = await _articles.doc(articleId).get();
     if (!doc.exists) return;
 
-    final bookmarkedBy = List<String>.from(doc['bookmarkedBy'] as List? ?? []);
+    final data = doc.data() ?? <String, dynamic>{};
+    final bookmarkedBy = List<String>.from(data['bookmarkedBy'] as List? ?? []);
     if (bookmarkedBy.contains(userId)) {
       // Remove bookmark
       await _articles.doc(articleId).update({

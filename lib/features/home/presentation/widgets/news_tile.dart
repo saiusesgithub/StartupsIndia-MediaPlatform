@@ -51,8 +51,8 @@ class _NewsTileState extends ConsumerState<NewsTile> {
   @override
   void didUpdateWidget(NewsTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _isBookmarked = widget.article.isBookmarked;
     if (oldWidget.article.id != widget.article.id) {
+      _isBookmarked = widget.article.isBookmarked;
       ref.read(tileLikeStateProvider(widget.article.id).notifier).state =
           widget.article.isLiked;
     }
@@ -243,14 +243,29 @@ class _NewsTileState extends ConsumerState<NewsTile> {
     );
   }
 
-  void _toggleBookmark() {
-    // Optimistic UI update
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-    });
+  Future<void> _toggleBookmark() async {
+    final userId = _currentUserId;
+    if (userId == null || userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to save news')),
+      );
+      return;
+    }
 
-    // In a real app, you'd call the repository here to persist the change
-    // For now, this just shows the optimistic toggle
+    final previous = _isBookmarked;
+    setState(() => _isBookmarked = !previous);
+
+    try {
+      await ref
+          .read(firestoreRepositoryProvider)
+          .toggleBookmark(widget.article.id, userId);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isBookmarked = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update bookmark. Try again.')),
+      );
+    }
   }
 
   Future<void> _toggleLike() async {
