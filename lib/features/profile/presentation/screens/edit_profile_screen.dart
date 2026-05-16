@@ -149,17 +149,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ],
             ),
-            if (_isSubmitting)
-              Positioned.fill(
-                child: ColoredBox(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryDefault,
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
