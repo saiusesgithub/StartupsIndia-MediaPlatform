@@ -103,12 +103,6 @@ class _PersonalProfileScreenState
 
         return Scaffold(
           backgroundColor: bg,
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => Navigator.pushNamed(context, '/create-post'),
-            backgroundColor: AppColors.primaryDefault,
-            elevation: 2,
-            child: const Icon(Icons.add_rounded, color: Colors.white),
-          ),
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [

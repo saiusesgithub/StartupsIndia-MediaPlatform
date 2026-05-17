@@ -26,7 +26,6 @@ import 'features/home/presentation/screens/article_detail_screen.dart';
 import 'features/home/presentation/screens/comments_screen.dart';
 import 'features/home/presentation/screens/trending_screen.dart';
 import 'features/home/presentation/screens/notifications_screen.dart';
-import 'features/profile/presentation/screens/create_post_screen.dart';
 import 'features/profile/presentation/screens/edit_profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
 import 'features/explore/presentation/screens/search_screen.dart';
@@ -251,7 +250,6 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/trending': (context) => const TrendingScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/settings': (context) => const SettingsScreen(),
-        '/create-post': (context) => const CreatePostScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
       },
     );
