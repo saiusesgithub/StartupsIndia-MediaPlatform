@@ -105,8 +105,14 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
       );
 
       await authRepo.updateUserData(updatedUser);
+
+      // Best-effort: follow selected topics. Failure here doesn't block onboarding.
       for (final interest in interests) {
-        await firestoreRepo.followTopic(currentUser.uid, interest);
+        try {
+          await firestoreRepo.followTopic(currentUser.uid, interest);
+        } catch (_) {
+          // Ignore — user can re-follow topics from settings later.
+        }
       }
 
       if (!mounted) return;

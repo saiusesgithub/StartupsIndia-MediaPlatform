@@ -165,15 +165,28 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
       return;
     }
 
-    await user.updateDisplayName(updatedUser.fullName.trim());
+    try {
+      await user.updateDisplayName(updatedUser.fullName.trim());
+    } on FirebaseAuthException {
+      // Non-fatal — display name update may require recent login.
+    }
 
     if (updatedUser.email.trim().isNotEmpty &&
         updatedUser.email.trim() != (user.email ?? '')) {
       try {
         await user.verifyBeforeUpdateEmail(updatedUser.email.trim());
       } on FirebaseAuthException {
-        // Ignore for now if recent login is required; UI remains responsive.
+        // Ignore — email update requires recent login; UI remains responsive.
       }
+    }
+
+    // Force-refresh the ID token so Firestore sees the current auth state.
+    // This is especially important after OAuth sign-in (Google) where the
+    // token may not have propagated to Firestore yet.
+    try {
+      await user.getIdToken(true);
+    } on FirebaseAuthException {
+      // Non-fatal — proceed with the existing token.
     }
 
     final merged = updatedUser.copyWith(
