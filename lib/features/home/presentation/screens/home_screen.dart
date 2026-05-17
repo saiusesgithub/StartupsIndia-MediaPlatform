@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/time_format_helper.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/models/user_model.dart';
+import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/home_mock_data.dart';
@@ -55,6 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final trendingAsync = ref.watch(trendingNewsProvider);
+    final isGuest = FirebaseAuth.instance.currentUser == null;
 
     return Scaffold(
       backgroundColor:
@@ -63,36 +65,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader(isDark)),
-            SliverToBoxAdapter(child: _buildQuickActions(isDark)),
+            SliverToBoxAdapter(child: _buildHeader(isDark, isGuest)),
+            SliverToBoxAdapter(child: _buildQuickActions(isDark, isGuest)),
             SliverToBoxAdapter(child: const SizedBox(height: 20)),
             SliverToBoxAdapter(child: _buildHeroBanner()),
             SliverToBoxAdapter(
               child: _buildSectionHeader('1', 'Trending Startup News', isDark),
             ),
             SliverToBoxAdapter(
-              child: _buildTrendingSection(trendingAsync, isDark),
+              child: _buildTrendingSection(trendingAsync, isDark, isGuest),
             ),
             SliverToBoxAdapter(
               child: _buildSectionHeader('2', 'Funding Opportunities', isDark),
             ),
-            SliverToBoxAdapter(child: _buildFundingSection(isDark)),
+            SliverToBoxAdapter(
+              child: _gated(isGuest, _buildFundingSection(isDark)),
+            ),
             SliverToBoxAdapter(
               child: _buildSectionHeader('3', 'Upcoming Events', isDark),
             ),
-            SliverToBoxAdapter(child: _buildEventsSection(isDark)),
+            SliverToBoxAdapter(
+              child: _gated(isGuest, _buildEventsSection(isDark)),
+            ),
             SliverToBoxAdapter(
               child: _buildSectionHeader('4', 'Recommended Courses', isDark),
             ),
-            SliverToBoxAdapter(child: _buildCoursesSection(isDark)),
+            SliverToBoxAdapter(
+              child: _gated(isGuest, _buildCoursesSection(isDark)),
+            ),
             SliverToBoxAdapter(
               child: _buildSectionHeader('5', 'Top Communities', isDark),
             ),
-            SliverToBoxAdapter(child: _buildCommunitiesSection(isDark)),
+            SliverToBoxAdapter(
+              child: _gated(isGuest, _buildCommunitiesSection(isDark)),
+            ),
             SliverToBoxAdapter(
               child: _buildSectionHeader('6', 'Startup Leaderboard', isDark),
             ),
-            SliverToBoxAdapter(child: _buildLeaderboard(isDark)),
+            SliverToBoxAdapter(
+              child: _gated(isGuest, _buildLeaderboard(isDark)),
+            ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
@@ -100,9 +112,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Widget _gated(bool isGuest, Widget child) {
+    if (!isGuest) return child;
+    return GuestBlur(child: child);
+  }
+
   // ── Header ─────────────────────────────────────────────────────────────────
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(bool isDark, bool isGuest) {
     final user = FirebaseAuth.instance.currentUser;
     final userModel = ref.watch(homeCurrentUserProvider).asData?.value;
     final avatarUrl = (userModel?.avatarUrl.isNotEmpty == true)
@@ -146,33 +163,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onTap: () => Navigator.pushNamed(context, '/search'),
           ),
           const SizedBox(width: 10),
-          // Notification bell with badge
+          // Notification bell with badge (no dot for guests)
           Stack(
             clipBehavior: Clip.none,
             children: [
               _HeaderIcon(
                 icon: Icons.notifications_none_rounded,
                 isDark: isDark,
-                onTap: () => Navigator.pushNamed(context, '/notifications'),
+                onTap: () => isGuest
+                    ? Navigator.pushNamed(context, '/signup')
+                    : Navigator.pushNamed(context, '/notifications'),
               ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryDefault,
-                    shape: BoxShape.circle,
+              if (!isGuest)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryDefault,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(width: 10),
           // Profile avatar
           GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/profile'),
+            onTap: () => Navigator.pushNamed(
+                context, isGuest ? '/signup' : '/profile'),
             child: ClipOval(
               child: Container(
                 width: 36,
@@ -205,7 +226,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── Quick Actions ───────────────────────────────────────────────────────────
 
-  Widget _buildQuickActions(bool isDark) {
+  Widget _buildQuickActions(bool isDark, bool isGuest) {
     const actions = [
       (Icons.event_rounded, 'Join Event'),
       (Icons.school_rounded, 'Start Learning'),
@@ -225,7 +246,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: icon,
             label: label,
             isDark: isDark,
-            onTap: () => _onQuickAction(label),
+            onTap: () => isGuest
+                ? Navigator.pushNamed(context, '/signup')
+                : _onQuickAction(label),
           );
         },
       ),
@@ -358,6 +381,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildTrendingSection(
     AsyncValue<List<NewsArticleModel>> trendingAsync,
     bool isDark,
+    bool isGuest,
   ) {
     return SizedBox(
       height: 200,
@@ -376,22 +400,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (items.isEmpty) {
             return _buildEmptyHScroll('No trending stories yet.', isDark);
           }
+          // Guests see first 2 real cards + 1 locked teaser
+          final visible = isGuest ? items.take(2).toList() : items;
+          final extraCount = isGuest ? 1 : 0;
           return ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: items.length,
+            itemCount: visible.length + extraCount,
             itemBuilder: (context, i) {
-              final item = items[i];
-              final article = _toNewsArticle(item);
-              return _StoryCard(
-                article: article,
-                colorIndex: i,
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  '/article-detail',
-                  arguments: item,
-                ),
-              );
+              if (i < visible.length) {
+                final item = visible[i];
+                final article = _toNewsArticle(item);
+                return _StoryCard(
+                  article: article,
+                  colorIndex: i,
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    '/article-detail',
+                    arguments: item,
+                  ),
+                );
+              }
+              return _LockedStoryCard(isDark: isDark);
             },
           );
         },
@@ -844,6 +874,78 @@ class _StoryCard extends StatelessWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Locked teaser card (guest mode, trailing trending card) ───────────────────
+
+class _LockedStoryCard extends StatelessWidget {
+  final bool isDark;
+
+  const _LockedStoryCard({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/signup'),
+      child: Container(
+        width: 155,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1A0A2E), Color(0xFF0D0D0D)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(
+            color: AppColors.primaryDefault.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.primaryDefault.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.lock_outline_rounded,
+                  color: AppColors.primaryDefault, size: 18),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Sign up to\nread more',
+              textAlign: TextAlign.center,
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white70,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primaryDefault,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Join Free →',
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
             ),

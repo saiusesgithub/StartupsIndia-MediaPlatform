@@ -10,6 +10,7 @@ import '../../../../core/utils/time_format_helper.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../home/domain/models/news_article.dart';
 import '../../../home/presentation/widgets/news_tile.dart';
+import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 
 enum _Tab { posts, saved, liked }
@@ -71,6 +72,10 @@ class _PersonalProfileScreenState
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.darkBackground : const Color(0xFFF5F5F7);
+
+    if (FirebaseAuth.instance.currentUser == null) {
+      return GuestProfileScreen(isDark: isDark);
+    }
 
     return FutureBuilder<UserModel?>(
       future: _userFuture,

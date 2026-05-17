@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/providers/user_topics_provider.dart';
 import '../../../../core/repository/firestore_repository.dart';
+import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../domain/models/media_post.dart';
 import '../../../home/presentation/providers/news_provider.dart';
@@ -118,6 +119,9 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
     final followedTopics = topicsAsync.asData?.value ?? [];
 
     final posts = _buildFeed(all, trending, followedTopics);
+    final isGuest = FirebaseAuth.instance.currentUser == null;
+    // Guests can swipe through 2 cards; 3rd slot is the sign-up gate.
+    final guestLimit = 2;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -133,8 +137,13 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
             PageView.builder(
               controller: _pageController,
               scrollDirection: Axis.vertical,
-              itemCount: posts.length,
-              itemBuilder: (context, i) => _MediaCard(post: posts[i]),
+              itemCount: isGuest ? guestLimit + 1 : posts.length,
+              itemBuilder: (context, i) {
+                if (isGuest && i >= guestLimit) {
+                  return const GuestFeedGate();
+                }
+                return _MediaCard(post: posts[i]);
+              },
             ),
 
           // ── Header overlay (logo + search + tabs) ───────────────────
