@@ -341,7 +341,7 @@ class _CustomBottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 56,
+          height: 64,
           child: Row(
             children: [
               _NavItem(
