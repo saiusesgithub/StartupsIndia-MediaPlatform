@@ -650,102 +650,123 @@ class _HeroSlide extends StatelessWidget {
 
   const _HeroSlide({required this.story});
 
+  void _openStory(BuildContext context) {
+    if (story.articleId != null && story.articleId!.isNotEmpty) {
+      Navigator.pushNamed(
+        context,
+        '/article-detail',
+        arguments: story.articleId,
+      );
+    } else {
+      // Mock/placeholder stories fall back to the trending article list.
+      Navigator.pushNamed(context, '/trending');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [story.gradientStart, story.gradientEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () => _openStory(context),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [story.gradientStart, story.gradientEnd],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primaryDefault,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                story.badge,
-                style: AppTypography.textSmall.copyWith(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDefault,
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            // Headline
-            Text(
-              story.headline,
-              style: AppTypography.displaySmallBold.copyWith(
-                fontSize: 22,
-                color: Colors.white,
-                height: 1.25,
-              ),
-            ),
-            const SizedBox(height: 4),
-            // Highlighted line
-            Text(
-              story.highlightLine,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 14,
-                color: AppColors.primaryDefault,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            // Subtitle
-            Text(
-              story.subtitle,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.7),
-                height: 1.4,
-              ),
-            ),
-            const Spacer(),
-            // Read Full Story button
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                  decoration: BoxDecoration(
+                child: Text(
+                  story.badge,
+                  style: AppTypography.textSmall.copyWith(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(40),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Read Full Story',
-                        style: AppTypography.textSmall.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.grayscaleTitleActive,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 11,
-                        color: AppColors.grayscaleTitleActive,
-                      ),
-                    ],
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 14),
+              // Headline
+              Text(
+                story.headline,
+                style: AppTypography.displaySmallBold.copyWith(
+                  fontSize: 22,
+                  color: Colors.white,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Highlighted line
+              Text(
+                story.highlightLine,
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 14,
+                  color: AppColors.primaryDefault,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Subtitle
+              Text(
+                story.subtitle,
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.7),
+                  height: 1.4,
+                ),
+              ),
+              const Spacer(),
+              // Read Full Story button
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _openStory(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(40),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Read Full Story',
+                            style: AppTypography.textSmall.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.grayscaleTitleActive,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 11,
+                            color: AppColors.grayscaleTitleActive,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

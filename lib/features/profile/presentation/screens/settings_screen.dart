@@ -70,7 +70,7 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.lock_outline_rounded,
                     iconColor: const Color(0xFF5C6BC0),
                     label: 'Change Password',
-                    onTap: () {},
+                    onTap: () => Navigator.pushNamed(context, '/change-password'),
                   ),
                 ],
               ),
@@ -97,7 +97,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.notifications_none_rounded,
                     iconColor: const Color(0xFFF57C00),
                     label: 'Notifications',
-                    onTap: () {},
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/notification-settings'),
                   ),
                 ],
               ),
@@ -114,7 +115,7 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.help_outline_rounded,
                     iconColor: const Color(0xFF2196F3),
                     label: 'Help & Support',
-                    onTap: () {},
+                    onTap: () => Navigator.pushNamed(context, '/help-support'),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -122,7 +123,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.policy_outlined,
                     iconColor: const Color(0xFF4CAF50),
                     label: 'Privacy Policy',
-                    onTap: () {},
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/privacy-policy'),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -130,7 +132,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.description_outlined,
                     iconColor: const Color(0xFF00BCD4),
                     label: 'Terms of Service',
-                    onTap: () {},
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/terms-of-service'),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -150,7 +153,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     showChevron: false,
-                    onTap: () {},
+                    onTap: () => Navigator.pushNamed(context, '/about'),
                   ),
                 ],
               ),
@@ -569,7 +572,7 @@ class _SwitchRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.primaryDefault,
+            activeThumbColor: AppColors.primaryDefault,
             activeTrackColor: AppColors.primaryDefault.withValues(alpha: 0.3),
             inactiveThumbColor: isDark
                 ? AppColors.darkTextSecondary

@@ -28,6 +28,11 @@ import 'features/home/presentation/screens/trending_screen.dart';
 import 'features/home/presentation/screens/notifications_screen.dart';
 import 'features/profile/presentation/screens/edit_profile_screen.dart';
 import 'features/profile/presentation/screens/settings_screen.dart';
+import 'features/profile/presentation/screens/change_password_screen.dart';
+import 'features/profile/presentation/screens/notification_settings_screen.dart';
+import 'features/profile/presentation/screens/help_support_screen.dart';
+import 'features/profile/presentation/screens/legal_screen.dart';
+import 'features/profile/presentation/screens/about_screen.dart';
 import 'features/explore/presentation/screens/search_screen.dart';
 import 'features/explore/presentation/screens/source_profile_screen.dart';
 import 'features/explore/domain/models/source_profile_model.dart';
@@ -251,6 +256,15 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/notifications': (context) => const NotificationsScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
+        '/change-password': (context) => const ChangePasswordScreen(),
+        '/notification-settings': (context) =>
+            const NotificationSettingsScreen(),
+        '/help-support': (context) => const HelpSupportScreen(),
+        '/privacy-policy': (context) =>
+            const LegalScreen(type: LegalType.privacyPolicy),
+        '/terms-of-service': (context) =>
+            const LegalScreen(type: LegalType.termsOfService),
+        '/about': (context) => const AboutScreen(),
       },
     );
   }
