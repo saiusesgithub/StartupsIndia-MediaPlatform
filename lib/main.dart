@@ -33,6 +33,7 @@ import 'features/profile/presentation/screens/notification_settings_screen.dart'
 import 'features/profile/presentation/screens/help_support_screen.dart';
 import 'features/profile/presentation/screens/legal_screen.dart';
 import 'features/profile/presentation/screens/about_screen.dart';
+import 'features/community/presentation/screens/community_detail_screen.dart';
 import 'features/explore/presentation/screens/search_screen.dart';
 import 'features/explore/presentation/screens/source_profile_screen.dart';
 import 'features/explore/domain/models/source_profile_model.dart';
@@ -251,6 +252,10 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/comments': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           return CommentsScreen(article: args as NewsArticleModel);
+        },
+        '/community-detail': (context) {
+          final id = ModalRoute.of(context)?.settings.arguments as String? ?? '';
+          return CommunityDetailScreen(communityId: id);
         },
         '/trending': (context) => const TrendingScreen(),
         '/notifications': (context) => const NotificationsScreen(),
