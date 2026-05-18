@@ -54,10 +54,17 @@ service cloud.firestore {
 
     // ── Communities ───────────────────────────────────────────────────────────
     // Public read so guests can see community list.
-    // Only admin can create/update/delete main community docs.
+    // Only admin can create/delete community docs.
+    // Authenticated users can update only memberCount + lastPost (join/leave).
     match /communities/{communityId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+                    (
+                      isSignedIn() &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['memberCount', 'lastPost'])
+                    );
 
       // Member subcollection — users can join/leave their own slot.
       match /members/{userId} {
@@ -65,10 +72,18 @@ service cloud.firestore {
         allow write: if isOwner(userId) || isAdmin();
       }
 
-      // Announcements — only admin can post/edit/delete.
+      // Announcements — admin can do anything.
+      // Authenticated users can create system messages (join/leave events)
+      // only for themselves — authorId must match their own uid.
       match /announcements/{postId} {
         allow read: if isSignedIn();
-        allow create, update, delete: if isAdmin();
+        allow create: if isAdmin() ||
+                      (
+                        isSignedIn() &&
+                        request.resource.data.type == 'system' &&
+                        request.resource.data.authorId == request.auth.uid
+                      );
+        allow update, delete: if isAdmin();
       }
     }
 
