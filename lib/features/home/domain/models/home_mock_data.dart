@@ -7,6 +7,8 @@ class HomeFeaturedStory {
   final String subtitle;
   final Color gradientStart;
   final Color gradientEnd;
+  // Firestore article ID — null for mock/placeholder stories (falls back to /trending)
+  final String? articleId;
 
   const HomeFeaturedStory({
     required this.badge,
@@ -15,6 +17,7 @@ class HomeFeaturedStory {
     required this.subtitle,
     required this.gradientStart,
     required this.gradientEnd,
+    this.articleId,
   });
 }
 
