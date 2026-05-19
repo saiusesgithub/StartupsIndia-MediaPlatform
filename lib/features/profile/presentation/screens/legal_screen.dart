@@ -59,7 +59,7 @@ class LegalScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Last updated: May 2025',
+                            'Last updated: May 19, 2026',
                             style: AppTypography.textSmall.copyWith(
                               fontSize: 12,
                               color: isDark
@@ -186,32 +186,48 @@ class _LegalSection extends StatelessWidget {
 
 const _privacySections = [
   (
-    '1. Information We Collect',
-    'We collect information you provide directly, such as your name, email address, phone number, and profile photo when you create an account. We also collect usage data including articles you read, sources you follow, and interactions within the app.',
+    'Privacy Policy',
+    'Last Updated: November 10, 2025\n\n1. Introduction\nWelcome to Startup India Incubation ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.',
   ),
   (
-    '2. How We Use Your Information',
-    'We use your information to personalise your news feed, send notifications you have opted into, improve our services, and ensure platform security. We do not sell your personal data to third parties.',
+    '2. Information We Collect',
+    '2.1 Personal Information\nWe may collect personal information that you voluntarily provide to us when you: register for an account; apply for incubation programs; subscribe to our newsletter; contact us for support; or participate in surveys or promotions. This information may include name and contact information (email, phone number), business information (company name, industry, stage), educational background, professional experience, and payment information.\n\n2.2 Automatically Collected Information\nWhen you visit our website, we automatically collect certain information about your device, including IP address, browser type, operating system, access times, pages viewed, and referring website addresses.',
   ),
   (
-    '3. Data Sharing',
-    'We may share anonymised, aggregated data with analytics partners to understand usage trends. Individual user data is never shared without your explicit consent, except as required by law.',
+    '3. How We Use Your Information',
+    'We use the information we collect or receive to: process your applications and registrations; provide and maintain our services; send you administrative information; send you marketing and promotional communications; respond to your inquiries and provide customer support; monitor and analyze usage and trends; detect, prevent, and address technical issues; and improve our website and services.',
   ),
   (
-    '4. Data Retention',
-    'We retain your data for as long as your account is active. You may request deletion of your account and associated data by contacting support@startupsindia.app.',
+    '4. Information Sharing and Disclosure',
+    'We may share your information in the following situations: with service providers who perform services on our behalf; in connection with any merger, sale of company assets, financing, or acquisition; with your consent for any other purpose; or when required by law or to protect our rights.',
   ),
   (
-    '5. Security',
-    'We use industry-standard encryption and security practices to protect your data. Firebase Authentication and Cloud Firestore are used with strict security rules to prevent unauthorised access.',
+    '5. Data Security',
+    'We implement appropriate technical and organizational security measures to protect your personal information. However, no electronic transmission or storage method is 100% secure, and we cannot guarantee absolute security.',
   ),
   (
-    '6. Your Rights',
-    'You have the right to access, correct, or delete your personal data. You may also opt out of marketing communications at any time through the app settings.',
+    '6. Your Privacy Rights',
+    'Depending on your location, you may have the right to access your personal information; correct inaccurate or incomplete information; request deletion of your information; object to or restrict processing; request data portability; or withdraw consent.',
   ),
   (
-    '7. Contact Us',
-    'If you have questions about this Privacy Policy, please contact us at privacy@startupsindia.app or through the Help & Support section in the app.',
+    '7. Cookies and Tracking Technologies',
+    'We use cookies and similar tracking technologies to track activity on our website and hold certain information. You can instruct your browser to refuse all cookies or indicate when a cookie is being sent. For more information, please see our Cookie Policy.',
+  ),
+  (
+    '8. Third-Party Links',
+    'Our website may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. We encourage you to read their privacy policies.',
+  ),
+  (
+    '9. Children\'s Privacy',
+    'Our services are not directed to individuals under 18 years of age. We do not knowingly collect personal information from children under 18.',
+  ),
+  (
+    '10. Changes to This Privacy Policy',
+    'We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.',
+  ),
+  (
+    '11. Contact Us',
+    'If you have questions about this Privacy Policy, please contact us at: Email: startupsindiaofficial@gmail.com\nPhone: +91 9599033080\nAddress: 3rd Floor, United Arcade, Pillar No. 143, Shop.No.8, Attapur, Hyderabad, Telangana 500048',
   ),
 ];
 
