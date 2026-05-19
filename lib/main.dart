@@ -234,8 +234,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/search': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           return SearchScreen(
-            showBottomNav: false,
-            initialTab: args is SearchTab ? args : SearchTab.news,
+            initialTab: args is SearchTab ? args : SearchTab.articles,
           );
         },
         '/source-profile': (context) {
