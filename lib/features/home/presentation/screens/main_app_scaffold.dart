@@ -430,6 +430,8 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.textSmall.copyWith(
                 fontSize: 10,
                 fontWeight:
