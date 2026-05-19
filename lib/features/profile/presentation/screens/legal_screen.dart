@@ -59,7 +59,7 @@ class LegalScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Last updated: November 10, 2025',
+                            'Last updated: May 19, 2026',
                             style: AppTypography.textSmall.copyWith(
                               fontSize: 12,
                               color: isDark
