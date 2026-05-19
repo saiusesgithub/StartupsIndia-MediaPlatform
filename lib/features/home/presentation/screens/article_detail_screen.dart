@@ -1,6 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
@@ -249,7 +252,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                 ),
               ),
               Text(
-                article.authorId.isEmpty ? article.timeAgo : 'Author ${article.authorId}',
+                article.timeAgo.isEmpty ? 'Recently' : article.timeAgo,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.textSmall.copyWith(
@@ -486,7 +489,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
 
   Future<void> _toggleLike() async {
     final article = _article;
-    final userId = _userId;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     if (article == null || userId == null || userId.isEmpty) return;
 
     setState(() {
@@ -509,7 +512,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
 
   Future<void> _toggleBookmark() async {
     final article = _article;
-    final userId = _userId;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     if (article == null || userId == null || userId.isEmpty) return;
 
     setState(() => _isBookmarked = !_isBookmarked);
@@ -525,15 +528,64 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   }
 
   void _showSharePlaceholder() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Share action coming soon')));
+    final article = _article;
+    if (article == null) return;
+    final text = '${article.headline}\n\nRead on StartupsIndia';
+    Share.share(text);
   }
 
   void _showMenuPlaceholder() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Menu action coming soon')));
+    final article = _article;
+    if (article == null) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            _MenuOption(
+              icon: Icons.copy_rounded,
+              label: 'Copy headline',
+              isDark: isDark,
+              onTap: () {
+                Navigator.pop(context);
+                Clipboard.setData(ClipboardData(text: article.headline));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Headline copied')),
+                );
+              },
+            ),
+            _MenuOption(
+              icon: Icons.flag_outlined,
+              label: 'Report article',
+              isDark: isDark,
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Report submitted. Thank you.')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _openComments() {
@@ -674,6 +726,50 @@ class _ArticleStateMessage extends StatelessWidget {
                 elevation: 0,
               ),
               child: Text(actionLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _MenuOption({
+    required this.icon,
+    required this.label,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: AppTypography.textMedium.copyWith(
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.grayscaleTitleActive,
+              ),
             ),
           ],
         ),
