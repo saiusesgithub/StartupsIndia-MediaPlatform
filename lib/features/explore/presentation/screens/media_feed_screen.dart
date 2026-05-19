@@ -307,10 +307,12 @@ class _Header extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.only(left: 20, right: 12),
                 itemCount: _tabs.length,
-                itemBuilder: (context, i) => _TabPill(
-                  label: _tabs[i],
-                  active: tabIndex == i,
-                  onTap: () => onTabChanged(i),
+                itemBuilder: (context, i) => Center(
+                  child: _TabPill(
+                    label: _tabs[i],
+                    active: tabIndex == i,
+                    onTap: () => onTabChanged(i),
+                  ),
                 ),
               ),
             ),
@@ -506,7 +508,7 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
           // Right sidebar
           Positioned(
             right: 12,
-            bottom: bottomPad + 90,
+            bottom: bottomPad + 16,
             child: _SidebarActions(
               likeCount: _likeCount,
               commentCount: _commentCount,
@@ -825,7 +827,7 @@ class _BottomContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 80),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

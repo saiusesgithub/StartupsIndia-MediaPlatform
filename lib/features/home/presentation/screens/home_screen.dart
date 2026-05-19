@@ -11,6 +11,8 @@ import '../../../../core/models/user_model.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../community/domain/models/community_model.dart';
+import '../../../community/presentation/providers/community_providers.dart';
 import '../../domain/models/home_mock_data.dart';
 import '../../domain/models/news_article.dart';
 import '../providers/news_provider.dart';
@@ -479,14 +481,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ── 5. Top Communities ───────────────────────────────────────────────────────
 
   Widget _buildCommunitiesSection(bool isDark) {
+    final communitiesAsync = ref.watch(communitiesProvider);
+    final communities = communitiesAsync.asData?.value ?? [];
+    if (communities.isEmpty) {
+      return const SizedBox(height: 80);
+    }
     return SizedBox(
       height: 80,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: HomeMockData.communities.length,
+        itemCount: communities.length,
         itemBuilder: (_, i) => _CommunityCard(
-          community: HomeMockData.communities[i],
+          community: communities[i],
           isDark: isDark,
         ),
       ),
@@ -1328,10 +1335,15 @@ class _CourseCard extends StatelessWidget {
 // ── Community card ─────────────────────────────────────────────────────────────
 
 class _CommunityCard extends StatelessWidget {
-  final HomeCommunity community;
+  final CommunityModel community;
   final bool isDark;
 
   const _CommunityCard({required this.community, required this.isDark});
+
+  String _fmtMembers(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K members';
+    return '$n members';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1357,12 +1369,8 @@ class _CommunityCard extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                community.initial,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: community.color,
-                ),
+                community.emoji,
+                style: const TextStyle(fontSize: 18),
               ),
             ),
           ),
@@ -1385,7 +1393,7 @@ class _CommunityCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  community.memberCount,
+                  _fmtMembers(community.memberCount),
                   style: AppTypography.textSmall.copyWith(
                     fontSize: 10,
                     color: isDark
