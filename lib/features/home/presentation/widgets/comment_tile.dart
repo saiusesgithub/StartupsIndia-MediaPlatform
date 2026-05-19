@@ -53,6 +53,7 @@ class CommentTile extends StatelessWidget {
   final ValueChanged<String> onReplyTap;
   final ValueChanged<String> onToggleLike;
   final ValueChanged<String> onToggleExpand;
+  final ValueChanged<String>? onReport;
 
   const CommentTile({
     super.key,
@@ -62,6 +63,7 @@ class CommentTile extends StatelessWidget {
     required this.onReplyTap,
     required this.onToggleLike,
     required this.onToggleExpand,
+    this.onReport,
   });
 
   @override
@@ -70,7 +72,9 @@ class CommentTile extends StatelessWidget {
     final bool hasHiddenReplies =
         !isExpanded && comment.replies.length > visibleReplies.length;
 
-    return Padding(
+    return GestureDetector(
+      onLongPress: onReport != null ? () => onReport!(comment.id) : null,
+      child: Padding(
       padding: EdgeInsets.fromLTRB(18 + (depth * 18), 10, 18, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,6 +200,7 @@ class CommentTile extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
     );
   }
