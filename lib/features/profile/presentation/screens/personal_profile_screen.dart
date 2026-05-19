@@ -12,16 +12,9 @@ import '../../../home/domain/models/news_article.dart';
 import '../../../home/presentation/widgets/news_tile.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
+import '../../../community/presentation/providers/community_providers.dart';
 
-enum _Tab { posts, saved, liked }
-
-final profilePostsProvider = StreamProvider.autoDispose<List<NewsArticleModel>>((
-  ref,
-) {
-  final user = ref.watch(authStateChangesProvider).value;
-  if (user == null) return Stream.value(<NewsArticleModel>[]);
-  return ref.watch(firestoreRepositoryProvider).getArticlesByAuthor(user.uid);
-});
+enum _Tab { communities, saved, liked }
 
 final profileSavedArticlesProvider =
     StreamProvider.autoDispose<List<NewsArticleModel>>((ref) {
@@ -48,7 +41,7 @@ class PersonalProfileScreen extends ConsumerStatefulWidget {
 class _PersonalProfileScreenState
     extends ConsumerState<PersonalProfileScreen> {
   late Future<UserModel?> _userFuture;
-  _Tab _activeTab = _Tab.posts;
+  _Tab _activeTab = _Tab.communities;
 
   @override
   void initState() {
@@ -135,16 +128,8 @@ class _PersonalProfileScreenState
 
   List<Widget> _tabContent(_Tab tab, bool isDark) {
     switch (tab) {
-      case _Tab.posts:
-        return [
-          _ArticleGridSliver(
-            articlesAsync: ref.watch(profilePostsProvider),
-            isDark: isDark,
-            emptyIcon: Icons.grid_on_rounded,
-            emptyTitle: 'No posts yet',
-            emptySubtitle: 'Publish your first startup story to see it here.',
-          ),
-        ];
+      case _Tab.communities:
+        return [_ProfileCommunitiesSliver(isDark: isDark)];
       case _Tab.saved:
         return [
           _ArticleListSliver(
@@ -177,70 +162,132 @@ class _PersonalProfileScreenState
   }
 }
 
-class _ArticleGridSliver extends StatelessWidget {
-  final AsyncValue<List<NewsArticleModel>> articlesAsync;
-  final bool isDark;
-  final IconData emptyIcon;
-  final String emptyTitle;
-  final String emptySubtitle;
+// ── Communities tab ───────────────────────────────────────────────────────────
 
-  const _ArticleGridSliver({
-    required this.articlesAsync,
-    required this.isDark,
-    required this.emptyIcon,
-    required this.emptyTitle,
-    required this.emptySubtitle,
-  });
+class _ProfileCommunitiesSliver extends ConsumerWidget {
+  final bool isDark;
+  const _ProfileCommunitiesSliver({required this.isDark});
 
   @override
-  Widget build(BuildContext context) {
-    return articlesAsync.when(
-      loading: () => const SliverToBoxAdapter(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final communitiesAsync = ref.watch(communitiesProvider);
+    final membershipsAsync = ref.watch(myMembershipsProvider);
+
+    final all = communitiesAsync.asData?.value ?? [];
+    final memberships = membershipsAsync.asData?.value ?? {};
+    final joined = all.where((c) => memberships.contains(c.id)).toList();
+
+    if (communitiesAsync.isLoading) {
+      return const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 48),
           child: Center(
             child: CircularProgressIndicator(color: AppColors.primaryDefault),
           ),
         ),
-      ),
-      error: (_, _) => SliverToBoxAdapter(
+      );
+    }
+
+    if (joined.isEmpty) {
+      return SliverToBoxAdapter(
         child: _EmptyState(
           isDark: isDark,
-          icon: Icons.error_outline_rounded,
-          title: 'Could not load posts',
-          subtitle: 'Pull back later or check your connection.',
+          icon: Icons.people_outline_rounded,
+          title: 'No communities yet',
+          subtitle: 'Join a community to see it here.',
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, i) {
+            final c = joined[i];
+            return GestureDetector(
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/community-detail',
+                arguments: c.id,
+              ),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkSurface
+                      : AppColors.grayscaleWhite,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.grayscaleLine,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: c.color.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          c.emoji,
+                          style: const TextStyle(fontSize: 22),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            c.name,
+                            style: AppTypography.textSmall.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.grayscaleTitleActive,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_fmtCount(c.memberCount)} members',
+                            style: AppTypography.textSmall.copyWith(
+                              fontSize: 12,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.grayscaleBodyText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleButtonText,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          childCount: joined.length,
         ),
       ),
-      data: (articles) {
-        if (articles.isEmpty) {
-          return SliverToBoxAdapter(
-            child: _EmptyState(
-              isDark: isDark,
-              icon: emptyIcon,
-              title: emptyTitle,
-              subtitle: emptySubtitle,
-            ),
-          );
-        }
-
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-          sliver: SliverGrid.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 5,
-              crossAxisSpacing: 5,
-              childAspectRatio: 0.62,
-            ),
-            itemCount: articles.length,
-            itemBuilder: (context, index) {
-              return _PostGridItem(article: articles[index], isDark: isDark);
-            },
-          ),
-        );
-      },
     );
   }
+
+  String _fmtCount(int n) =>
+      n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
 }
 
 class _ArticleListSliver extends StatelessWidget {
@@ -756,7 +803,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   });
 
   static const _items = [
-    (tab: _Tab.posts, icon: Icons.grid_on_rounded, label: 'Posts'),
+    (tab: _Tab.communities, icon: Icons.people_outline_rounded, label: 'Communities'),
     (tab: _Tab.saved, icon: Icons.bookmark_border_rounded, label: 'Saved'),
     (tab: _Tab.liked, icon: Icons.favorite_border_rounded, label: 'Liked'),
   ];
@@ -833,193 +880,6 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
       old.activeTab != activeTab || old.isDark != isDark;
 }
 
-// ── 3-column post grid item ───────────────────────────────────────────────────
-
-class _PostGridItem extends StatelessWidget {
-  final NewsArticleModel article;
-  final bool isDark;
-
-  const _PostGridItem({required this.article, required this.isDark});
-
-  static const _gradients = [
-    [Color(0xFF1A0A2E), Color(0xFF0D0D0D)],
-    [Color(0xFF0A1628), Color(0xFF0D1A2E)],
-    [Color(0xFF1C0A0A), Color(0xFF2E1010)],
-    [Color(0xFF0A1C0A), Color(0xFF102E10)],
-    [Color(0xFF1A1A0A), Color(0xFF2E2E10)],
-    [Color(0xFF12151A), Color(0xFF1A1F28)],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = _gradients[article.id.hashCode.abs() % _gradients.length];
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          '/article-detail',
-          arguments: article,
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _PostThumbnail(article: article, colors: colors, isDark: isDark),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.86),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.45, 1],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 6,
-              left: 6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryDefault,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  article.category.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 7,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(6, 18, 6, 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      article.headline,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.favorite_rounded,
-                          size: 9,
-                          color: Colors.white70,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          _fmt(article.likesCount),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        const Icon(
-                          Icons.chat_bubble_outline_rounded,
-                          size: 9,
-                          color: Colors.white70,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          _fmt(article.commentsCount),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _fmt(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
-  }
-}
-
-class _PostThumbnail extends StatelessWidget {
-  final NewsArticleModel article;
-  final List<Color> colors;
-  final bool isDark;
-
-  const _PostThumbnail({
-    required this.article,
-    required this.colors,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final image = article.thumbnailAsset.trim();
-    if (image.startsWith('http')) {
-      return CachedNetworkImage(
-        imageUrl: image,
-        fit: BoxFit.cover,
-        errorWidget: (context, url, error) => _fallback(),
-      );
-    }
-
-    if (image.isNotEmpty) {
-      return Image.asset(
-        image,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _fallback(),
-      );
-    }
-
-    return _fallback();
-  }
-
-  Widget _fallback() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark ? colors : [colors.first, colors.last],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-    );
-  }
-}
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {

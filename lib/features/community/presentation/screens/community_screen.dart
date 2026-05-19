@@ -316,13 +316,18 @@ class _DiscoverSliver extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SectionHeader(isDark: isDark, label: 'Discover Groups'),
-          SizedBox(
-            height: 164,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.85,
+              ),
               itemCount: communities.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, i) => _DiscoverCard(
                 isDark: isDark,
                 community: communities[i],
@@ -330,7 +335,7 @@ class _DiscoverSliver extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -388,7 +393,6 @@ class _DiscoverCardState extends State<_DiscoverCard> {
         arguments: c.id,
       ),
       child: Container(
-        width: 140,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,

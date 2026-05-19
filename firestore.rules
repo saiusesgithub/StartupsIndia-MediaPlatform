@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Articles ─────────────────────────────────────────────────────────────
+    // Public read; writes come from the admin panel via admin SDK.
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    // Authenticated users can read any profile; only the owner can write theirs.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // Community membership index — each user manages their own list.
+      match /communities/{communityId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create, delete: if request.auth != null
+                              && request.auth.uid == userId;
+        allow update: if false;
+      }
+    }
+
+    // ── User topics ────────────────────────────────────────────────────────────
+    match /user_topics/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── Communities ────────────────────────────────────────────────────────────
+    // Public read so guests can see the community list.
+    // Authenticated users can create/update community docs (seeding + memberCount
+    // increments on join/leave). TODO: lock to admin claim in production.
+    match /communities/{communityId} {
+      allow read: if true;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+
+      // Member subcollection — each user joins/leaves their own slot.
+      // Full profile captured here for marketing segmentation.
+      match /members/{userId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if false;
+      }
+
+      // Announcement channel — authenticated users can create system join
+      // messages; only admin SDK posts announcements/events.
+      match /announcements/{postId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
+    }
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+    match /notifications/{userId}/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+  }
+}

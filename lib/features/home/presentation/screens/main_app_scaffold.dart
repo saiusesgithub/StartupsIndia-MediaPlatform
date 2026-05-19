@@ -430,6 +430,8 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.textSmall.copyWith(
                 fontSize: 10,
                 fontWeight:
@@ -468,13 +470,6 @@ class _BuildNavButton extends StatelessWidget {
                     ? AppColors.primaryDefault.withValues(alpha: 0.85)
                     : AppColors.primaryDefault,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryDefault.withValues(alpha: 0.4),
-                    blurRadius: isOpen ? 8 : 12,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
               ),
               child: AnimatedRotation(
                 turns: isOpen ? 0.125 : 0, // 45° when open → becomes ×
