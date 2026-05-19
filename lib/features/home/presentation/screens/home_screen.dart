@@ -11,8 +11,13 @@ import '../../../../core/models/user_model.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../community/domain/models/community_model.dart';
+import '../../../community/presentation/providers/community_providers.dart';
 import '../../domain/models/home_mock_data.dart';
 import '../../domain/models/news_article.dart';
+import '../../domain/models/startup_leader_entry.dart';
+import '../providers/leaderboard_provider.dart';
+import '../providers/nav_index_provider.dart';
 import '../providers/news_provider.dart';
 
 final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
@@ -70,31 +75,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(child: const SizedBox(height: 20)),
             SliverToBoxAdapter(child: _buildHeroBanner()),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('1', 'Trending Startup News', isDark),
+              child: _buildSectionHeader(
+                '1', 'Trending Startup News', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/trending'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _buildTrendingSection(trendingAsync, isDark, isGuest),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('2', 'Funding Opportunities', isDark),
+              child: _buildSectionHeader(
+                '2', 'Funding Opportunities', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/funding-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildFundingSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('3', 'Upcoming Events', isDark),
+              child: _buildSectionHeader(
+                '3', 'Upcoming Events', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/events-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildEventsSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('4', 'Recommended Courses', isDark),
+              child: _buildSectionHeader(
+                '4', 'Recommended Courses', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/courses-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCoursesSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('5', 'Top Communities', isDark),
+              child: _buildSectionHeader(
+                '5', 'Top Communities', isDark,
+                onViewAll: () =>
+                    ref.read(navIndexProvider.notifier).setIndex(3),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCommunitiesSection(isDark)),
@@ -327,7 +348,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── Section header with left red accent bar ─────────────────────────────────
 
-  Widget _buildSectionHeader(String number, String title, bool isDark) {
+  Widget _buildSectionHeader(
+    String number,
+    String title,
+    bool isDark, {
+    VoidCallback? onViewAll,
+  }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
       child: Row(
@@ -345,32 +371,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             '$number. $title',
             style: AppTypography.displaySmallBold.copyWith(
               fontSize: 16,
-              color:
-                  isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
             ),
           ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () {},
-            child: Row(
-              children: [
-                Text(
-                  'View all',
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 12,
-                    color: AppColors.primaryDefault,
-                    fontWeight: FontWeight.w600,
+          if (onViewAll != null) ...[
+            const Spacer(),
+            GestureDetector(
+              onTap: onViewAll,
+              child: Row(
+                children: [
+                  Text(
+                    'View all',
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 12,
+                      color: AppColors.primaryDefault,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 2),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 10,
-                  color: AppColors.primaryDefault,
-                ),
-              ],
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 10,
+                    color: AppColors.primaryDefault,
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -479,14 +508,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ── 5. Top Communities ───────────────────────────────────────────────────────
 
   Widget _buildCommunitiesSection(bool isDark) {
+    final communitiesAsync = ref.watch(communitiesProvider);
+    final communities = communitiesAsync.asData?.value ?? [];
+    if (communities.isEmpty) {
+      return const SizedBox(height: 80);
+    }
     return SizedBox(
       height: 80,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: HomeMockData.communities.length,
+        itemCount: communities.length,
         itemBuilder: (_, i) => _CommunityCard(
-          community: HomeMockData.communities[i],
+          community: communities[i],
           isDark: isDark,
         ),
       ),
@@ -496,26 +530,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ── 6. Startup Leaderboard ───────────────────────────────────────────────────
 
   Widget _buildLeaderboard(bool isDark) {
+    final asyncData = ref.watch(leaderboardProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+      child: asyncData.when(
+        loading: () => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryDefault,
+              strokeWidth: 2,
+            ),
           ),
         ),
-        child: Column(
-          children: List.generate(HomeMockData.leaderboard.length, (i) {
-            final entry = HomeMockData.leaderboard[i];
-            final isLast = i == HomeMockData.leaderboard.length - 1;
-            return _LeaderboardRow(
-              entry: entry,
-              isDark: isDark,
-              showDivider: !isLast,
-            );
-          }),
+        error: (_, s) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Text(
+              'Could not load leaderboard',
+              style: AppTypography.textSmall.copyWith(
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.grayscaleBodyText,
+              ),
+            ),
+          ),
+        ),
+        data: (entries) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          child: Column(
+            children: List.generate(entries.length, (i) {
+              return _LeaderboardRow(
+                entry: entries[i],
+                isDark: isDark,
+                showDivider: i < entries.length - 1,
+              );
+            }),
+          ),
         ),
       ),
     );
@@ -650,102 +721,123 @@ class _HeroSlide extends StatelessWidget {
 
   const _HeroSlide({required this.story});
 
+  void _openStory(BuildContext context) {
+    if (story.articleId != null && story.articleId!.isNotEmpty) {
+      Navigator.pushNamed(
+        context,
+        '/article-detail',
+        arguments: story.articleId,
+      );
+    } else {
+      // Mock/placeholder stories fall back to the trending article list.
+      Navigator.pushNamed(context, '/trending');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [story.gradientStart, story.gradientEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () => _openStory(context),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [story.gradientStart, story.gradientEnd],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primaryDefault,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                story.badge,
-                style: AppTypography.textSmall.copyWith(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDefault,
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            // Headline
-            Text(
-              story.headline,
-              style: AppTypography.displaySmallBold.copyWith(
-                fontSize: 22,
-                color: Colors.white,
-                height: 1.25,
-              ),
-            ),
-            const SizedBox(height: 4),
-            // Highlighted line
-            Text(
-              story.highlightLine,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 14,
-                color: AppColors.primaryDefault,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            // Subtitle
-            Text(
-              story.subtitle,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.7),
-                height: 1.4,
-              ),
-            ),
-            const Spacer(),
-            // Read Full Story button
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-                  decoration: BoxDecoration(
+                child: Text(
+                  story.badge,
+                  style: AppTypography.textSmall.copyWith(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(40),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Read Full Story',
-                        style: AppTypography.textSmall.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.grayscaleTitleActive,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 11,
-                        color: AppColors.grayscaleTitleActive,
-                      ),
-                    ],
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 14),
+              // Headline
+              Text(
+                story.headline,
+                style: AppTypography.displaySmallBold.copyWith(
+                  fontSize: 22,
+                  color: Colors.white,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Highlighted line
+              Text(
+                story.highlightLine,
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 14,
+                  color: AppColors.primaryDefault,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Subtitle
+              Text(
+                story.subtitle,
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.7),
+                  height: 1.4,
+                ),
+              ),
+              const Spacer(),
+              // Read Full Story button
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _openStory(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(40),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Read Full Story',
+                            style: AppTypography.textSmall.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.grayscaleTitleActive,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 11,
+                            color: AppColors.grayscaleTitleActive,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1307,10 +1399,15 @@ class _CourseCard extends StatelessWidget {
 // ── Community card ─────────────────────────────────────────────────────────────
 
 class _CommunityCard extends StatelessWidget {
-  final HomeCommunity community;
+  final CommunityModel community;
   final bool isDark;
 
   const _CommunityCard({required this.community, required this.isDark});
+
+  String _fmtMembers(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K members';
+    return '$n members';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1336,12 +1433,8 @@ class _CommunityCard extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                community.initial,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: community.color,
-                ),
+                community.emoji,
+                style: const TextStyle(fontSize: 18),
               ),
             ),
           ),
@@ -1364,7 +1457,7 @@ class _CommunityCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  community.memberCount,
+                  _fmtMembers(community.memberCount),
                   style: AppTypography.textSmall.copyWith(
                     fontSize: 10,
                     color: isDark
@@ -1400,7 +1493,7 @@ class _CommunityCard extends StatelessWidget {
 // ── Leaderboard row ────────────────────────────────────────────────────────────
 
 class _LeaderboardRow extends StatelessWidget {
-  final HomeLeaderEntry entry;
+  final StartupLeaderEntry entry;
   final bool isDark;
   final bool showDivider;
 
@@ -1413,6 +1506,8 @@ class _LeaderboardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTop3 = entry.rank <= 3;
+    final changeColor =
+        entry.isPositive ? AppColors.successDefault : AppColors.errorDark;
 
     return Column(
       children: [
@@ -1420,7 +1515,6 @@ class _LeaderboardRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              // Rank
               SizedBox(
                 width: 24,
                 child: Text(
@@ -1437,7 +1531,6 @@ class _LeaderboardRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Logo circle
               Container(
                 width: 36,
                 height: 36,
@@ -1457,7 +1550,6 @@ class _LeaderboardRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Name + sector
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1484,34 +1576,37 @@ class _LeaderboardRow extends StatelessWidget {
                   ],
                 ),
               ),
-              // Valuation
-              Text(
-                entry.valuation,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.grayscaleTitleActive,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Growth badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.successDefault.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  entry.growth,
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.successDefault,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    entry.formattedMarketCap,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: changeColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      entry.formattedChange,
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: changeColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1527,3 +1622,4 @@ class _LeaderboardRow extends StatelessWidget {
     );
   }
 }
+

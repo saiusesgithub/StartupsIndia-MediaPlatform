@@ -102,24 +102,7 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
   @override
   Future<UserModel?> getCurrentUserModel() async {
     final user = _auth.currentUser;
-
-    if (user == null) {
-      return const UserModel(
-        uid: 'demo_user',
-        username: 'wilsonfranci',
-        fullName: 'Wilson Franci',
-        email: 'wilson@example.com',
-        phone: '+62-8421-4512-2531',
-        displayName: 'Wilson Franci',
-        bio:
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-        avatarUrl: 'assets/images/thumb_politics.png',
-        websiteUrl: 'https://example.com',
-        followersCount: 2156,
-        followingCount: 567,
-        newsCount: 23,
-      );
-    }
+    if (user == null) return null;
 
     final doc = await _firestore.collection('users').doc(user.uid).get();
     if (doc.exists) {

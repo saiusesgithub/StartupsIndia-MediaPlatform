@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../../../community/presentation/screens/community_screen.dart';
+import '../providers/nav_index_provider.dart';
 import '../../../explore/presentation/screens/media_feed_screen.dart';
 import '../../../profile/presentation/screens/personal_profile_screen.dart';
 import 'home_screen.dart';
@@ -81,6 +82,7 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
   @override
   Widget build(BuildContext context) {
     ref.watch(fcmTokenSyncProvider);
+    ref.listen<int>(navIndexProvider, (_, next) => _onNavTap(next));
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -430,6 +432,8 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.textSmall.copyWith(
                 fontSize: 10,
                 fontWeight:
@@ -468,13 +472,6 @@ class _BuildNavButton extends StatelessWidget {
                     ? AppColors.primaryDefault.withValues(alpha: 0.85)
                     : AppColors.primaryDefault,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryDefault.withValues(alpha: 0.4),
-                    blurRadius: isOpen ? 8 : 12,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
               ),
               child: AnimatedRotation(
                 turns: isOpen ? 0.125 : 0, // 45° when open → becomes ×

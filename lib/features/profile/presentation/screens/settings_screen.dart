@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../../../../core/models/news_article_model.dart';
-import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/providers/theme_service_provider.dart';
 import '../../../../theme/style_guide.dart';
 
@@ -70,7 +68,7 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.lock_outline_rounded,
                     iconColor: const Color(0xFF5C6BC0),
                     label: 'Change Password',
-                    onTap: () {},
+                    onTap: () => Navigator.pushNamed(context, '/change-password'),
                   ),
                 ],
               ),
@@ -97,7 +95,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.notifications_none_rounded,
                     iconColor: const Color(0xFFF57C00),
                     label: 'Notifications',
-                    onTap: () {},
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/notification-settings'),
                   ),
                 ],
               ),
@@ -114,7 +113,7 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.help_outline_rounded,
                     iconColor: const Color(0xFF2196F3),
                     label: 'Help & Support',
-                    onTap: () {},
+                    onTap: () => Navigator.pushNamed(context, '/help-support'),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -122,7 +121,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.policy_outlined,
                     iconColor: const Color(0xFF4CAF50),
                     label: 'Privacy Policy',
-                    onTap: () {},
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/privacy-policy'),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -130,7 +130,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.description_outlined,
                     iconColor: const Color(0xFF00BCD4),
                     label: 'Terms of Service',
-                    onTap: () {},
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/terms-of-service'),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -150,24 +151,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     showChevron: false,
-                    onTap: () {},
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Developer ─────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: _Section(
-                isDark: isDark,
-                label: 'Developer',
-                children: [
-                  _SettingsRow(
-                    isDark: isDark,
-                    icon: Icons.cloud_upload_outlined,
-                    iconColor: const Color(0xFF607D8B),
-                    label: 'Seed Sample Articles',
-                    onTap: () => _seedSampleArticles(context, ref),
+                    onTap: () => Navigator.pushNamed(context, '/about'),
                   ),
                 ],
               ),
@@ -330,72 +314,6 @@ class SettingsScreen extends ConsumerWidget {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
 
-  Future<void> _seedSampleArticles(BuildContext context, WidgetRef ref) async {
-    try {
-      final repo = ref.read(firestoreRepositoryProvider);
-      final now = DateTime.now();
-      final samples = <NewsArticleModel>[
-        NewsArticleModel(
-          id: 'dev_${now.millisecondsSinceEpoch}_1',
-          createdAt: now.subtract(const Duration(minutes: 3)),
-          authorId: 'demo_user',
-          category: 'Technology',
-          headline: 'AI funding in India startups jumps 38% in Q1',
-          sourceName: 'TechCrunch',
-          sourceId: 'techcrunch',
-          sourceLogoAsset: 'assets/images/thumb_tech.png',
-          thumbnailAsset: 'assets/images/thumb_tech.png',
-          timeAgo: '3m ago',
-          body: 'Seed article body for Firestore smoke test.',
-          likesCount: 42,
-          commentsCount: 8,
-          isTrending: true,
-        ),
-        NewsArticleModel(
-          id: 'dev_${now.millisecondsSinceEpoch}_2',
-          createdAt: now.subtract(const Duration(minutes: 12)),
-          authorId: 'demo_user',
-          category: 'Business',
-          headline: 'Karnataka unveils new startup policy incentives',
-          sourceName: 'Bloomberg',
-          sourceId: 'bloomberg',
-          sourceLogoAsset: 'assets/images/thumb_business.png',
-          thumbnailAsset: 'assets/images/thumb_business.png',
-          timeAgo: '12m ago',
-          body: 'Seed article body for Firestore smoke test.',
-          likesCount: 16,
-          commentsCount: 3,
-          isTrending: true,
-        ),
-        NewsArticleModel(
-          id: 'dev_${now.millisecondsSinceEpoch}_3',
-          createdAt: now.subtract(const Duration(minutes: 29)),
-          authorId: 'external_001',
-          category: 'Politics',
-          headline: 'State-backed innovation grants open for applications',
-          sourceName: 'Reuters',
-          sourceId: 'reuters',
-          sourceLogoAsset: 'assets/images/thumb_politics.png',
-          thumbnailAsset: 'assets/images/thumb_politics.png',
-          timeAgo: '29m ago',
-          body: 'Seed article body for Firestore smoke test.',
-          likesCount: 11,
-          commentsCount: 2,
-          isTrending: false,
-        ),
-      ];
-      for (final article in samples) {
-        await repo.saveArticle(article);
-      }
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Sample articles uploaded to Firestore.')));
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Upload failed: $e')));
-    }
-  }
 }
 
 // ── Section card ──────────────────────────────────────────────────────────────
@@ -569,7 +487,7 @@ class _SwitchRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.primaryDefault,
+            activeThumbColor: AppColors.primaryDefault,
             activeTrackColor: AppColors.primaryDefault.withValues(alpha: 0.3),
             inactiveThumbColor: isDark
                 ? AppColors.darkTextSecondary
