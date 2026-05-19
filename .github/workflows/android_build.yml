@@ -102,6 +102,29 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
+      - name: Write Firebase service account file
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase-service-account.json
+
+      - name: Install Firebase CLI
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm install -g firebase-tools
+
+      - name: Distribute APK to Firebase App Distribution
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: firebase-service-account.json
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          FIREBASE_TESTERS: ${{ secrets.FIREBASE_TESTERS }}
+        run: |
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app "$FIREBASE_ANDROID_APP_ID" \
+            --testers "$FIREBASE_TESTERS" \
+            --release-notes "Preview APK from commit ${{ github.sha }} | Run #${{ github.run_number }}"
+
       - name: Publish preview APK release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
