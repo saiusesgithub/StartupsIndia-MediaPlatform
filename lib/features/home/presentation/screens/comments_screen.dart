@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../theme/style_guide.dart';
 import '../widgets/comment_tile.dart';
+import '../widgets/report_sheet.dart';
+import '../../data/repositories/report_repository.dart';
 
 class CommentsScreen extends StatefulWidget {
   final NewsArticleModel article;
@@ -91,6 +93,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 onReplyTap: _handleReplyTap,
                 onToggleLike: _toggleLikeById,
                 onToggleExpand: _toggleThreadExpansion,
+                onReport: _reportComment,
               ),
             ),
           );
@@ -236,6 +239,18 @@ class _CommentsScreenState extends State<CommentsScreen> {
         _expandedThreads.add(commentId);
       }
     });
+  }
+
+  void _reportComment(String commentId) {
+    ReportSheet.show(
+      context,
+      title: 'Report comment',
+      onSubmit: (reason) => ReportRepository().reportComment(
+        commentId: commentId,
+        articleId: widget.article.id,
+        reason: reason,
+      ),
+    );
   }
 
   void _toggleLikeById(String commentId) {
