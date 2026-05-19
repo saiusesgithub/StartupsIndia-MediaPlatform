@@ -158,7 +158,7 @@ class AboutScreen extends StatelessWidget {
           icon: Icons.language_rounded,
           iconColor: const Color(0xFF2196F3),
           label: 'Official Website',
-          url: 'https://startupindia.gov.in',
+          url: 'https://www.startupsindia.in',
         ),
         _Divider(isDark: isDark),
         _LinkRow(
@@ -275,7 +275,7 @@ class _LinkRow extends StatelessWidget {
     return InkWell(
       onTap: () async {
         final uri = Uri.parse(url);
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        await launchUrl(uri, mode: LaunchMode.inAppWebView);
       },
       borderRadius: BorderRadius.circular(16),
       child: Padding(

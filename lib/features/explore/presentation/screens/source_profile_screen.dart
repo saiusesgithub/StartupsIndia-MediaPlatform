@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../theme/style_guide.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../home/domain/models/news_article.dart';
 import '../../../home/presentation/widgets/news_tile.dart';
 import '../../data/repositories/mock_source_repository.dart';
@@ -198,18 +199,15 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+                  Expanded(
                 child: SizedBox(
                   height: 42,
                   child: OutlinedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Open website: ${widget.source.websiteUrl}',
-                          ),
-                        ),
-                      );
+                    onPressed: () async {
+                      final url = widget.source.websiteUrl;
+                      if (url.isEmpty) return;
+                      final uri = Uri.parse(url);
+                      await launchUrl(uri, mode: LaunchMode.inAppWebView);
                     },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.primaryDefault),
