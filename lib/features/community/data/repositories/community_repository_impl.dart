@@ -142,6 +142,7 @@ class CommunityRepositoryImpl implements CommunityRepository {
           .collection('communities')
           .doc(communityId),
       {'joinedAt': FieldValue.serverTimestamp()},
+      SetOptions(merge: true),
     );
 
     await batch.commit();
