@@ -15,6 +15,8 @@ import '../../../community/domain/models/community_model.dart';
 import '../../../community/presentation/providers/community_providers.dart';
 import '../../domain/models/home_mock_data.dart';
 import '../../domain/models/news_article.dart';
+import '../../domain/models/startup_leader_entry.dart';
+import '../providers/leaderboard_provider.dart';
 import '../providers/news_provider.dart';
 
 final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
@@ -105,6 +107,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCommunitiesSection(isDark)),
+            ),
+            SliverToBoxAdapter(
+              child: _buildSectionHeader('6', 'Startup Leaderboard', isDark),
+            ),
+            SliverToBoxAdapter(
+              child: _gated(isGuest, _buildLeaderboard(isDark)),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
@@ -502,6 +510,71 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         itemBuilder: (_, i) => _CommunityCard(
           community: communities[i],
           isDark: isDark,
+        ),
+      ),
+    );
+  }
+
+  // ── 6. Startup Leaderboard ───────────────────────────────────────────────────
+
+  Widget _buildLeaderboard(bool isDark) {
+    final asyncData = ref.watch(leaderboardProvider);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: asyncData.when(
+        loading: () => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryDefault,
+              strokeWidth: 2,
+            ),
+          ),
+        ),
+        error: (_, s) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Text(
+              'Could not load leaderboard',
+              style: AppTypography.textSmall.copyWith(
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.grayscaleBodyText,
+              ),
+            ),
+          ),
+        ),
+        data: (entries) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          child: Column(
+            children: List.generate(entries.length, (i) {
+              return _LeaderboardRow(
+                entry: entries[i],
+                isDark: isDark,
+                showDivider: i < entries.length - 1,
+              );
+            }),
+          ),
         ),
       ),
     );
@@ -1401,6 +1474,139 @@ class _CommunityCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Leaderboard row ────────────────────────────────────────────────────────────
+
+class _LeaderboardRow extends StatelessWidget {
+  final StartupLeaderEntry entry;
+  final bool isDark;
+  final bool showDivider;
+
+  const _LeaderboardRow({
+    required this.entry,
+    required this.isDark,
+    required this.showDivider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isTop3 = entry.rank <= 3;
+    final changeColor =
+        entry.isPositive ? AppColors.successDefault : AppColors.errorDark;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 24,
+                child: Text(
+                  '#${entry.rank}',
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: isTop3
+                        ? AppColors.primaryDefault
+                        : isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleBodyText,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: entry.color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    entry.name[0],
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: entry.color,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.name,
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.grayscaleTitleActive,
+                      ),
+                    ),
+                    Text(
+                      entry.sector,
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleBodyText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    entry.formattedMarketCap,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: changeColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      entry.formattedChange,
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: changeColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            indent: 16,
+            endIndent: 16,
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+          ),
+      ],
     );
   }
 }
