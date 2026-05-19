@@ -17,6 +17,7 @@ import '../../domain/models/home_mock_data.dart';
 import '../../domain/models/news_article.dart';
 import '../../domain/models/startup_leader_entry.dart';
 import '../providers/leaderboard_provider.dart';
+import '../providers/nav_index_provider.dart';
 import '../providers/news_provider.dart';
 
 final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
@@ -74,35 +75,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(child: const SizedBox(height: 20)),
             SliverToBoxAdapter(child: _buildHeroBanner()),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('1', 'Trending Startup News', isDark),
+              child: _buildSectionHeader(
+                '1', 'Trending Startup News', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/trending'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _buildTrendingSection(trendingAsync, isDark, isGuest),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('2', 'Funding Opportunities', isDark),
+              child: _buildSectionHeader(
+                '2', 'Funding Opportunities', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/funding-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildFundingSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('3', 'Upcoming Events', isDark),
+              child: _buildSectionHeader(
+                '3', 'Upcoming Events', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/events-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildEventsSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('4', 'Recommended Courses', isDark),
+              child: _buildSectionHeader(
+                '4', 'Recommended Courses', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/courses-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCoursesSection(isDark)),
             ),
             SliverToBoxAdapter(
               child: _buildSectionHeader(
-                '5',
-                'Top Communities',
-                isDark,
-                onViewAll: () => Navigator.pushNamed(context, '/community-list'),
+                '5', 'Top Communities', isDark,
+                onViewAll: () =>
+                    ref.read(navIndexProvider.notifier).setIndex(3),
               ),
             ),
             SliverToBoxAdapter(
