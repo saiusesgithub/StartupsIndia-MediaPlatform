@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/providers/user_topics_provider.dart';
@@ -9,7 +11,10 @@ import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../domain/models/media_post.dart';
+import '../../domain/models/post_model.dart';
+import '../providers/post_providers.dart';
 import '../../../home/presentation/providers/news_provider.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
 
@@ -34,8 +39,6 @@ const _tabCategoryMap = {
   'Women': 'women',
   'Business': 'business',
 };
-
-// ── Gradient fallbacks (one per card colour index) ────────────────────────────
 
 const _cardColors = [
   Color(0xFF1A0A2E),
@@ -68,11 +71,19 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
   }
 
   List<MediaPost> _buildFeed(
+    List<PostModel> posts,
     List<NewsArticleModel> all,
     List<NewsArticleModel> trending,
     List<String> followedTopics,
   ) {
     final tab = _tabs[_tabIndex];
+
+    // Admin posts come first (actual videos)
+    final postItems = posts
+        .asMap()
+        .entries
+        .map((e) => _postToMediaPost(e.value, e.key))
+        .toList();
 
     List<NewsArticleModel> source;
     if (tab == 'Trending') {
@@ -81,72 +92,70 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
       source = all;
     }
 
-    final posts = source
+    final articleItems = source
         .asMap()
         .entries
-        .map((e) => _toMediaPost(e.value, e.key))
+        .map((e) => _articleToMediaPost(e.value, postItems.length + e.key))
         .toList();
 
+    final combined = [...postItems, ...articleItems];
+
     if (tab == 'For You') {
-      if (followedTopics.isEmpty) return posts;
-      final followed = posts
-          .where((p) =>
-              followedTopics.contains(p.category.toLowerCase()))
+      if (followedTopics.isEmpty) return combined;
+      final followed = combined
+          .where((p) => followedTopics.contains(p.category.toLowerCase()))
           .toList();
-      final rest = posts
-          .where((p) =>
-              !followedTopics.contains(p.category.toLowerCase()))
+      final rest = combined
+          .where((p) => !followedTopics.contains(p.category.toLowerCase()))
           .toList();
       return [...followed, ...rest];
     }
 
     final filter = _tabCategoryMap[tab] ?? '';
-    if (filter.isEmpty) return posts;
-    final filtered = posts
-        .where((p) => p.category.toLowerCase().contains(filter))
-        .toList();
-    return filtered.isNotEmpty ? filtered : posts;
+    if (filter.isEmpty) return combined;
+    final filtered =
+        combined.where((p) => p.category.toLowerCase().contains(filter)).toList();
+    return filtered.isNotEmpty ? filtered : combined;
   }
 
   @override
   Widget build(BuildContext context) {
+    final postsAsync = ref.watch(postsProvider);
     final allAsync = ref.watch(latestNewsProvider);
     final trendingAsync = ref.watch(trendingNewsProvider);
     final topicsAsync = ref.watch(userTopicsProvider);
 
+    final posts = postsAsync.asData?.value ?? [];
     final all = allAsync.asData?.value ?? [];
     final trending = trendingAsync.asData?.value ?? [];
     final followedTopics = topicsAsync.asData?.value ?? [];
 
-    final posts = _buildFeed(all, trending, followedTopics);
+    final feedItems = _buildFeed(posts, all, trending, followedTopics);
     final isGuest = FirebaseAuth.instance.currentUser == null;
-    // Guests can swipe through 2 cards; 3rd slot is the sign-up gate.
-    final guestLimit = 2;
+    const guestLimit = 2;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // ── Swipe feed ──────────────────────────────────────────────
-          if (posts.isEmpty)
+          if (feedItems.isEmpty)
             const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.primaryDefault),
+              child:
+                  CircularProgressIndicator(color: AppColors.primaryDefault),
             )
           else
             PageView.builder(
               controller: _pageController,
               scrollDirection: Axis.vertical,
-              itemCount: isGuest ? guestLimit + 1 : posts.length,
+              itemCount: isGuest ? guestLimit + 1 : feedItems.length,
               itemBuilder: (context, i) {
                 if (isGuest && i >= guestLimit) {
                   return const GuestFeedGate();
                 }
-                return _MediaCard(post: posts[i]);
+                return _MediaCard(post: feedItems[i]);
               },
             ),
 
-          // ── Header overlay (logo + search + tabs) ───────────────────
           Positioned(
             top: 0,
             left: 0,
@@ -164,9 +173,39 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
     );
   }
 
-  static MediaPost _toMediaPost(NewsArticleModel article, int index) {
+  static MediaPost _postToMediaPost(PostModel post, int index) {
+    return MediaPost(
+      id: post.id,
+      authorId: post.authorId,
+      authorName: post.authorName,
+      authorRole: post.authorRole,
+      authorAvatarUrl: post.authorAvatarUrl,
+      isVerified: true,
+      thumbnailUrl: post.thumbnailUrl,
+      mediaUrl: post.videoUrl.isNotEmpty ? post.videoUrl : null,
+      mediaType:
+          post.mediaType == 'video' ? MediaType.video : MediaType.image,
+      sourceType: MediaSource.post,
+      headline: post.headline,
+      excerpt: post.excerpt,
+      category: post.category,
+      readTimeMinutes: 0,
+      likeCount: post.likesCount,
+      commentCount: post.commentsCount,
+      saveCount: post.bookmarkedBy.length,
+      shareCount: post.shareCount,
+      isLiked: post.likedBy
+          .contains(FirebaseAuth.instance.currentUser?.uid ?? ''),
+      isSaved: post.bookmarkedBy
+          .contains(FirebaseAuth.instance.currentUser?.uid ?? ''),
+      colorIndex: index,
+    );
+  }
+
+  static MediaPost _articleToMediaPost(NewsArticleModel article, int index) {
     final words = article.body.trim().split(RegExp(r'\s+'));
     final readTime = (words.length / 200).ceil().clamp(1, 30);
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     return MediaPost(
       id: article.id,
       authorId: article.authorId,
@@ -176,6 +215,7 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
       isVerified: true,
       thumbnailUrl: article.thumbnailAsset,
       mediaType: MediaType.image,
+      sourceType: MediaSource.article,
       headline: article.headline,
       excerpt: article.body.length > 120
           ? '${article.body.substring(0, 120)}...'
@@ -186,14 +226,14 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
       commentCount: article.commentsCount,
       saveCount: 0,
       shareCount: 0,
-      isLiked: article.isLiked,
-      isSaved: article.isBookmarked,
+      isLiked: article.likedBy.contains(uid),
+      isSaved: article.bookmarkedBy.contains(uid),
       colorIndex: index,
     );
   }
 }
 
-// ── Header (logo + search + scrollable tab pills) ─────────────────────────────
+// ── Header ─────────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   final int tabIndex;
@@ -209,7 +249,6 @@ class _Header extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [Colors.black, Colors.transparent],
-          stops: [0.0, 1.0],
         ),
       ),
       child: SafeArea(
@@ -217,7 +256,6 @@ class _Header extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Logo + search row
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -263,8 +301,6 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Tab pills
             SizedBox(
               height: 38,
               child: ListView.builder(
@@ -323,47 +359,24 @@ class _TabPill extends StatelessWidget {
 
 // ── Full-screen card ───────────────────────────────────────────────────────────
 
-class _MediaCard extends StatefulWidget {
+class _MediaCard extends ConsumerStatefulWidget {
   final MediaPost post;
 
   const _MediaCard({required this.post});
 
   @override
-  State<_MediaCard> createState() => _MediaCardState();
+  ConsumerState<_MediaCard> createState() => _MediaCardState();
 }
 
-class _MediaCardState extends State<_MediaCard> {
+class _MediaCardState extends ConsumerState<_MediaCard> {
   late bool _isLiked;
   late bool _isSaved;
   late int _likeCount;
+  late int _commentCount;
+  late int _shareCount;
 
-  // ── VIDEO PLAYBACK — Add support in 4 steps ──────────────────────────────
-  // 1. pubspec.yaml: video_player: ^2.x.x
-  //
-  // 2. Add to this class:
-  //      VideoPlayerController? _videoController;
-  //    In initState (after super.initState):
-  //      if (widget.post.mediaType == MediaType.video &&
-  //          widget.post.mediaUrl != null) {
-  //        _videoController = VideoPlayerController.networkUrl(
-  //            Uri.parse(widget.post.mediaUrl!))
-  //          ..initialize().then((_) {
-  //            setState(() {});
-  //            _videoController!.play();
-  //            _videoController!.setLooping(true);
-  //          });
-  //      }
-  //    In dispose (before super.dispose):
-  //      _videoController?.dispose();
-  //
-  // 3. Pass _videoController to _MediaLayer below.
-  //
-  // 4. In _MediaLayer.build(), the MediaType.video branch is already there —
-  //    remove the _GradientFallback placeholder and add:
-  //      VideoPlayer(_videoController!)
-  //    wrapped in a FittedBox(fit: BoxFit.cover).
-  //    All overlays (sidebar, bottom content) need zero changes.
-  // ────────────────────────────────────────────────────────────────────────
+  VideoPlayerController? _videoController;
+  bool _videoInitialized = false;
 
   @override
   void initState() {
@@ -371,99 +384,212 @@ class _MediaCardState extends State<_MediaCard> {
     _isLiked = widget.post.isLiked;
     _isSaved = widget.post.isSaved;
     _likeCount = widget.post.likeCount;
+    _commentCount = widget.post.commentCount;
+    _shareCount = widget.post.shareCount;
+
+    if (widget.post.mediaType == MediaType.video &&
+        widget.post.mediaUrl != null) {
+      _initVideo(widget.post.mediaUrl!);
+    }
   }
 
-  void _toggleLike() {
+  Future<void> _initVideo(String url) async {
+    _videoController =
+        VideoPlayerController.networkUrl(Uri.parse(url));
+    await _videoController!.initialize();
+    if (mounted) {
+      setState(() => _videoInitialized = true);
+      _videoController!.play();
+      _videoController!.setLooping(true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+
+  Future<void> _toggleLike() async {
+    final uid = _uid;
+    if (uid == null) return;
     setState(() {
       _isLiked = !_isLiked;
       _likeCount += _isLiked ? 1 : -1;
     });
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    // Firestore write — same pattern as news_tile.dart
+    try {
+      if (widget.post.sourceType == MediaSource.post) {
+        await ref
+            .read(postRepositoryProvider)
+            .togglePostLike(widget.post.id, uid);
+      } else {
+        await ref
+            .read(firestoreRepositoryProvider)
+            .toggleLike(widget.post.id, uid);
+      }
+    } catch (_) {
+      // Revert optimistic update on failure
+      if (mounted) {
+        setState(() {
+          _isLiked = !_isLiked;
+          _likeCount += _isLiked ? 1 : -1;
+        });
+      }
+    }
   }
 
-  void _toggleSave() {
+  Future<void> _toggleSave() async {
+    final uid = _uid;
+    if (uid == null) return;
     setState(() => _isSaved = !_isSaved);
+    try {
+      if (widget.post.sourceType == MediaSource.post) {
+        await ref
+            .read(postRepositoryProvider)
+            .togglePostBookmark(widget.post.id, uid);
+      } else {
+        await ref
+            .read(firestoreRepositoryProvider)
+            .toggleBookmark(widget.post.id, uid);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isSaved = !_isSaved);
+    }
+  }
+
+  Future<void> _share() async {
+    final text = widget.post.headline;
+    await Share.share(text);
+    // Increment share count in Firestore (best-effort)
+    final uid = _uid;
+    if (uid != null && widget.post.sourceType == MediaSource.post) {
+      setState(() => _shareCount++);
+      try {
+        await ref
+            .read(postRepositoryProvider)
+            .incrementPostShareCount(widget.post.id);
+      } catch (_) {}
+    }
+  }
+
+  void _showComments() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CommentSheet(post: widget.post),
+    ).then((_) {
+      // Refresh comment count if visible
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // ── Layer 1: Media ─────────────────────────────────────────────
-        _MediaLayer(post: widget.post),
-
-        // ── Layer 2: Gradient scrims ───────────────────────────────────
-        const _Scrim(),
-
-        // ── Layer 3: Right sidebar ─────────────────────────────────────
-        Positioned(
-          right: 12,
-          bottom: bottomPad + 100,
-          child: _SidebarActions(
-            likeCount: _likeCount,
-            commentCount: widget.post.commentCount,
-            saveCount: widget.post.saveCount,
-            shareCount: widget.post.shareCount,
-            isLiked: _isLiked,
-            isSaved: _isSaved,
-            authorAvatarUrl: widget.post.authorAvatarUrl,
-            onLike: _toggleLike,
-            onSave: _toggleSave,
-            onComment: () {},
-            onShare: () {},
-          ),
-        ),
-
-        // ── Layer 4: Bottom content ────────────────────────────────────
-        Positioned(
-          left: 0,
-          right: 80,
-          bottom: 0,
-          child: _BottomContent(
+    return GestureDetector(
+      onDoubleTap: () {
+        if (!_isLiked) _toggleLike();
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _MediaLayer(
             post: widget.post,
-            bottomPad: bottomPad,
+            videoController: _videoController,
+            videoInitialized: _videoInitialized,
           ),
-        ),
-      ],
+          const _Scrim(),
+
+          // Right sidebar
+          Positioned(
+            right: 12,
+            bottom: bottomPad + 90,
+            child: _SidebarActions(
+              likeCount: _likeCount,
+              commentCount: _commentCount,
+              saveCount: widget.post.saveCount,
+              shareCount: _shareCount,
+              isLiked: _isLiked,
+              isSaved: _isSaved,
+              authorAvatarUrl: widget.post.authorAvatarUrl,
+              onLike: _toggleLike,
+              onSave: _toggleSave,
+              onComment: _showComments,
+              onShare: _share,
+            ),
+          ),
+
+          // Bottom content
+          Positioned(
+            left: 0,
+            right: 72,
+            bottom: 0,
+            child: _BottomContent(
+              post: widget.post,
+              bottomPad: bottomPad,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ── Media layer (image now; video-ready slot) ──────────────────────────────────
+// ── Media layer ────────────────────────────────────────────────────────────────
 
 class _MediaLayer extends StatelessWidget {
   final MediaPost post;
-  // VIDEO: add `final VideoPlayerController? videoController;` here
+  final VideoPlayerController? videoController;
+  final bool videoInitialized;
 
-  const _MediaLayer({required this.post});
+  const _MediaLayer({
+    required this.post,
+    this.videoController,
+    this.videoInitialized = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     switch (post.mediaType) {
       case MediaType.video:
-        // VIDEO: Replace _GradientFallback with:
-        //   videoController!.value.isInitialized
-        //     ? FittedBox(
-        //         fit: BoxFit.cover,
-        //         child: SizedBox(
-        //           width: videoController!.value.size.width,
-        //           height: videoController!.value.size.height,
-        //           child: VideoPlayer(videoController!),
-        //         ))
-        //     : const Center(child: CircularProgressIndicator())
-        return _GradientFallback(index: post.colorIndex);
+        if (videoInitialized && videoController != null) {
+          return FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: videoController!.value.size.width,
+              height: videoController!.value.size.height,
+              child: VideoPlayer(videoController!),
+            ),
+          );
+        }
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            if (post.thumbnailUrl.startsWith('http'))
+              CachedNetworkImage(
+                imageUrl: post.thumbnailUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) =>
+                    _GradientFallback(index: post.colorIndex),
+              )
+            else
+              _GradientFallback(index: post.colorIndex),
+            const Center(
+              child: CircularProgressIndicator(
+                  color: Colors.white54, strokeWidth: 2),
+            ),
+          ],
+        );
 
       case MediaType.image:
         if (post.thumbnailUrl.startsWith('http')) {
           return CachedNetworkImage(
             imageUrl: post.thumbnailUrl,
             fit: BoxFit.cover,
-            errorWidget: (context, url, error) =>
+            errorWidget: (_, __, ___) =>
                 _GradientFallback(index: post.colorIndex),
           );
         }
@@ -492,7 +618,7 @@ class _GradientFallback extends StatelessWidget {
   }
 }
 
-// ── Gradient scrims ───────────────────────────────────────────────────────────
+// ── Gradient scrims ────────────────────────────────────────────────────────────
 
 class _Scrim extends StatelessWidget {
   const _Scrim();
@@ -501,7 +627,6 @@ class _Scrim extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Top scrim (for header readability)
         Positioned(
           top: 0,
           left: 0,
@@ -517,12 +642,11 @@ class _Scrim extends StatelessWidget {
             ),
           ),
         ),
-        // Bottom scrim (for content readability)
         Positioned(
           bottom: 0,
           left: 0,
           right: 0,
-          height: 380,
+          height: 420,
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -538,7 +662,7 @@ class _Scrim extends StatelessWidget {
   }
 }
 
-// ── Right sidebar actions ─────────────────────────────────────────────────────
+// ── Right sidebar ──────────────────────────────────────────────────────────────
 
 class _SidebarActions extends StatelessWidget {
   final int likeCount;
@@ -572,6 +696,9 @@ class _SidebarActions extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Author avatar at top of sidebar (TikTok-style)
+        _AuthorAvatar(avatarUrl: authorAvatarUrl),
+        const SizedBox(height: 20),
         _SidebarBtn(
           icon: isLiked
               ? Icons.favorite_rounded
@@ -580,14 +707,14 @@ class _SidebarActions extends StatelessWidget {
           color: isLiked ? Colors.redAccent : Colors.white,
           onTap: onLike,
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         _SidebarBtn(
           icon: Icons.chat_bubble_outline_rounded,
           label: _fmt(commentCount),
           color: Colors.white,
           onTap: onComment,
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         _SidebarBtn(
           icon: isSaved
               ? Icons.bookmark_rounded
@@ -596,37 +723,13 @@ class _SidebarActions extends StatelessWidget {
           color: isSaved ? AppColors.primaryDefault : Colors.white,
           onTap: onSave,
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 20),
         _SidebarBtn(
           icon: Icons.reply_rounded,
           label: _fmt(shareCount),
           color: Colors.white,
           onTap: onShare,
           mirrorHorizontal: true,
-        ),
-        const SizedBox(height: 22),
-        // Author avatar
-        ClipOval(
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 1.5),
-              color: AppColors.darkSurface,
-            ),
-            child: authorAvatarUrl.startsWith('http')
-                ? CachedNetworkImage(
-                    imageUrl: authorAvatarUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) => const Icon(
-                        Icons.person_rounded,
-                        color: Colors.white,
-                        size: 20),
-                  )
-                : const Icon(Icons.person_rounded,
-                    color: Colors.white, size: 20),
-          ),
         ),
       ],
     );
@@ -635,6 +738,38 @@ class _SidebarActions extends StatelessWidget {
   static String _fmt(int n) {
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
     return n.toString();
+  }
+}
+
+class _AuthorAvatar extends StatelessWidget {
+  final String avatarUrl;
+
+  const _AuthorAvatar({required this.avatarUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        color: AppColors.darkSurface,
+      ),
+      child: ClipOval(
+        child: avatarUrl.startsWith('http')
+            ? CachedNetworkImage(
+                imageUrl: avatarUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => const Icon(
+                    Icons.person_rounded,
+                    color: Colors.white,
+                    size: 22),
+              )
+            : const Icon(Icons.person_rounded,
+                color: Colors.white, size: 22),
+      ),
+    );
   }
 }
 
@@ -662,7 +797,7 @@ class _SidebarBtn extends StatelessWidget {
         children: [
           Transform.scale(
             scaleX: mirrorHorizontal ? -1.0 : 1.0,
-            child: Icon(icon, color: color, size: 30),
+            child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 4),
           Text(
@@ -679,7 +814,7 @@ class _SidebarBtn extends StatelessWidget {
   }
 }
 
-// ── Bottom content overlay ────────────────────────────────────────────────────
+// ── Bottom content ─────────────────────────────────────────────────────────────
 
 class _BottomContent extends StatelessWidget {
   final MediaPost post;
@@ -695,28 +830,9 @@ class _BottomContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Author row ──────────────────────────────────────────────
+          // Author row — no duplicate avatar; sidebar already shows it
           Row(
             children: [
-              ClipOval(
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  color: AppColors.darkSurface,
-                  child: post.authorAvatarUrl.startsWith('http')
-                      ? CachedNetworkImage(
-                          imageUrl: post.authorAvatarUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) => const Icon(
-                              Icons.person_rounded,
-                              color: Colors.white,
-                              size: 16),
-                        )
-                      : const Icon(Icons.person_rounded,
-                          color: Colors.white, size: 16),
-                ),
-              ),
-              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -729,7 +845,7 @@ class _BottomContent extends StatelessWidget {
                             post.authorName,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.textSmall.copyWith(
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
@@ -737,7 +853,7 @@ class _BottomContent extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         const Icon(Icons.verified_rounded,
-                            size: 13,
+                            size: 14,
                             color: AppColors.primaryDefault),
                       ],
                     ),
@@ -751,13 +867,12 @@ class _BottomContent extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               _FollowButton(),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // ── Headline ────────────────────────────────────────────────
           Text(
             post.headline,
             maxLines: 2,
@@ -768,10 +883,8 @@ class _BottomContent extends StatelessWidget {
               height: 1.25,
             ),
           ),
-          const SizedBox(height: 6),
-
-          // ── Excerpt ─────────────────────────────────────────────────
-          if (post.excerpt.isNotEmpty)
+          if (post.excerpt.isNotEmpty) ...[
+            const SizedBox(height: 5),
             Text(
               post.excerpt,
               maxLines: 2,
@@ -782,14 +895,14 @@ class _BottomContent extends StatelessWidget {
                 height: 1.4,
               ),
             ),
-          const SizedBox(height: 12),
+          ],
+          const SizedBox(height: 10),
 
-          // ── Category tag + read time + follow topic ─────────────────
           Row(
             children: [
               const Icon(Icons.bar_chart_rounded,
-                  size: 14, color: Colors.white70),
-              const SizedBox(width: 5),
+                  size: 13, color: Colors.white70),
+              const SizedBox(width: 4),
               Text(
                 post.category,
                 style: AppTypography.textSmall.copyWith(
@@ -798,22 +911,22 @@ class _BottomContent extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Icon(Icons.access_time_rounded,
-                  size: 13, color: Colors.white54),
-              const SizedBox(width: 4),
-              Text(
-                '${post.readTimeMinutes} min read',
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 12,
-                  color: Colors.white54,
+              if (post.readTimeMinutes > 0) ...[
+                const SizedBox(width: 12),
+                const Icon(Icons.access_time_rounded,
+                    size: 12, color: Colors.white54),
+                const SizedBox(width: 4),
+                Text(
+                  '${post.readTimeMinutes} min read',
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 12,
+                    color: Colors.white54,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 10),
-
-          // ── Follow Topic button ──────────────────────────────────────
           _FollowTopicBtn(topic: post.category),
         ],
       ),
@@ -821,7 +934,6 @@ class _BottomContent extends StatelessWidget {
   }
 }
 
-// Simple Follow (author) button — stateless for now
 class _FollowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -842,8 +954,6 @@ class _FollowButton extends StatelessWidget {
     );
   }
 }
-
-// ── Follow Topic button — wired to Firestore via userTopicsProvider ────────────
 
 class _FollowTopicBtn extends ConsumerWidget {
   final String topic;
@@ -903,6 +1013,275 @@ class _FollowTopicBtn extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Comment bottom sheet ───────────────────────────────────────────────────────
+
+class _CommentSheet extends ConsumerStatefulWidget {
+  final MediaPost post;
+
+  const _CommentSheet({required this.post});
+
+  @override
+  ConsumerState<_CommentSheet> createState() => _CommentSheetState();
+}
+
+class _CommentSheetState extends ConsumerState<_CommentSheet> {
+  final _controller = TextEditingController();
+  bool _posting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final text = _controller.text.trim();
+    if (uid == null || text.isEmpty || _posting) return;
+
+    setState(() => _posting = true);
+    try {
+      final userModel = await ref
+          .read(authRepositoryProvider)
+          .getCurrentUserModel();
+      final authorName = userModel?.displayName.isNotEmpty == true
+          ? userModel!.displayName
+          : userModel?.fullName ?? 'User';
+      final avatarUrl = userModel?.avatarUrl ?? '';
+
+      final repo = ref.read(postRepositoryProvider);
+      if (widget.post.sourceType == MediaSource.post) {
+        await repo.addPostComment(
+          postId: widget.post.id,
+          userId: uid,
+          authorName: authorName,
+          avatarUrl: avatarUrl,
+          content: text,
+        );
+      } else {
+        await repo.addArticleComment(
+          articleId: widget.post.id,
+          userId: uid,
+          authorName: authorName,
+          avatarUrl: avatarUrl,
+          content: text,
+        );
+      }
+      _controller.clear();
+    } finally {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final repo = ref.read(postRepositoryProvider);
+    final commentsStream = widget.post.sourceType == MediaSource.post
+        ? repo.watchPostComments(widget.post.id)
+        : repo.watchArticleComments(widget.post.id);
+
+    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(bottom: bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Comments',
+              style: AppTypography.textSmall.copyWith(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Comment list
+          SizedBox(
+            height: 320,
+            child: StreamBuilder<List<CommentModel>>(
+              stream: commentsStream,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primaryDefault, strokeWidth: 2),
+                  );
+                }
+                final comments = snap.data ?? [];
+                if (comments.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No comments yet. Be the first!',
+                      style: AppTypography.textSmall.copyWith(
+                        color: Colors.white54,
+                        fontSize: 14,
+                      ),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: comments.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: 14),
+                  itemBuilder: (_, i) =>
+                      _CommentTile(comment: comments[i]),
+                );
+              },
+            ),
+          ),
+
+          // Input bar
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            decoration: const BoxDecoration(
+              border: Border(
+                  top: BorderSide(color: Colors.white12)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    style: AppTypography.textSmall.copyWith(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Add a comment...',
+                      hintStyle: AppTypography.textSmall.copyWith(
+                        color: Colors.white38,
+                        fontSize: 14,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white10,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onSubmitted: (_) => _submit(),
+                    textInputAction: TextInputAction.send,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _submit,
+                  child: _posting
+                      ? const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                              color: AppColors.primaryDefault,
+                              strokeWidth: 2),
+                        )
+                      : Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryDefault,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommentTile extends StatelessWidget {
+  final CommentModel comment;
+
+  const _CommentTile({required this.comment});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.darkSurface,
+          ),
+          child: ClipOval(
+            child: comment.avatarUrl.startsWith('http')
+                ? CachedNetworkImage(
+                    imageUrl: comment.avatarUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => const Icon(
+                        Icons.person_rounded,
+                        color: Colors.white54,
+                        size: 16),
+                  )
+                : const Icon(Icons.person_rounded,
+                    color: Colors.white54, size: 16),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                comment.authorName,
+                style: AppTypography.textSmall.copyWith(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                comment.content,
+                style: AppTypography.textSmall.copyWith(
+                  color: Colors.white70,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
