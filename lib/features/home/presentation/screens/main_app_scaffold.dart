@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../../../community/presentation/screens/community_screen.dart';
+import '../providers/nav_index_provider.dart';
 import '../../../explore/presentation/screens/media_feed_screen.dart';
 import '../../../profile/presentation/screens/personal_profile_screen.dart';
 import 'home_screen.dart';
@@ -81,6 +82,7 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
   @override
   Widget build(BuildContext context) {
     ref.watch(fcmTokenSyncProvider);
+    ref.listen<int>(navIndexProvider, (_, next) => _onNavTap(next));
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

@@ -33,6 +33,10 @@ import 'features/profile/presentation/screens/notification_settings_screen.dart'
 import 'features/profile/presentation/screens/help_support_screen.dart';
 import 'features/profile/presentation/screens/legal_screen.dart';
 import 'features/profile/presentation/screens/about_screen.dart';
+import 'features/profile/presentation/screens/pro_screen.dart';
+import 'features/home/presentation/screens/funding_all_screen.dart';
+import 'features/home/presentation/screens/events_all_screen.dart';
+import 'features/home/presentation/screens/courses_all_screen.dart';
 import 'features/community/presentation/screens/community_detail_screen.dart';
 import 'features/explore/presentation/screens/search_screen.dart';
 import 'features/explore/presentation/screens/source_profile_screen.dart';
@@ -269,6 +273,10 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/terms-of-service': (context) =>
             const LegalScreen(type: LegalType.termsOfService),
         '/about': (context) => const AboutScreen(),
+        '/pro': (context) => const ProScreen(),
+        '/funding-all': (context) => const FundingAllScreen(),
+        '/events-all': (context) => const EventsAllScreen(),
+        '/courses-all': (context) => const CoursesAllScreen(),
       },
     );
   }

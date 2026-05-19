@@ -750,7 +750,7 @@ class _ProBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Startup India Pro',
+                    'StartupsIndia Pro',
                     style: AppTypography.displaySmallBold.copyWith(
                       fontSize: 13,
                       color: isDark
@@ -772,7 +772,7 @@ class _ProBanner extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             GestureDetector(
-              onTap: () {},
+              onTap: () => Navigator.pushNamed(context, '/pro'),
               child: Text(
                 'Upgrade Now →',
                 style: AppTypography.textSmall.copyWith(

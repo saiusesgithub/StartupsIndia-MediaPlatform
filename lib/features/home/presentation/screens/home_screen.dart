@@ -15,6 +15,9 @@ import '../../../community/domain/models/community_model.dart';
 import '../../../community/presentation/providers/community_providers.dart';
 import '../../domain/models/home_mock_data.dart';
 import '../../domain/models/news_article.dart';
+import '../../domain/models/startup_leader_entry.dart';
+import '../providers/leaderboard_provider.dart';
+import '../providers/nav_index_provider.dart';
 import '../providers/news_provider.dart';
 
 final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
@@ -72,31 +75,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(child: const SizedBox(height: 20)),
             SliverToBoxAdapter(child: _buildHeroBanner()),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('1', 'Trending Startup News', isDark),
+              child: _buildSectionHeader(
+                '1', 'Trending Startup News', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/trending'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _buildTrendingSection(trendingAsync, isDark, isGuest),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('2', 'Funding Opportunities', isDark),
+              child: _buildSectionHeader(
+                '2', 'Funding Opportunities', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/funding-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildFundingSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('3', 'Upcoming Events', isDark),
+              child: _buildSectionHeader(
+                '3', 'Upcoming Events', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/events-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildEventsSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('4', 'Recommended Courses', isDark),
+              child: _buildSectionHeader(
+                '4', 'Recommended Courses', isDark,
+                onViewAll: () => Navigator.pushNamed(context, '/courses-all'),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCoursesSection(isDark)),
             ),
             SliverToBoxAdapter(
-              child: _buildSectionHeader('5', 'Top Communities', isDark),
+              child: _buildSectionHeader(
+                '5', 'Top Communities', isDark,
+                onViewAll: () =>
+                    ref.read(navIndexProvider.notifier).setIndex(3),
+              ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCommunitiesSection(isDark)),
@@ -329,7 +348,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── Section header with left red accent bar ─────────────────────────────────
 
-  Widget _buildSectionHeader(String number, String title, bool isDark) {
+  Widget _buildSectionHeader(
+    String number,
+    String title,
+    bool isDark, {
+    VoidCallback? onViewAll,
+  }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
       child: Row(
@@ -347,32 +371,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             '$number. $title',
             style: AppTypography.displaySmallBold.copyWith(
               fontSize: 16,
-              color:
-                  isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
             ),
           ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () {},
-            child: Row(
-              children: [
-                Text(
-                  'View all',
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 12,
-                    color: AppColors.primaryDefault,
-                    fontWeight: FontWeight.w600,
+          if (onViewAll != null) ...[
+            const Spacer(),
+            GestureDetector(
+              onTap: onViewAll,
+              child: Row(
+                children: [
+                  Text(
+                    'View all',
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 12,
+                      color: AppColors.primaryDefault,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 2),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 10,
-                  color: AppColors.primaryDefault,
-                ),
-              ],
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 10,
+                    color: AppColors.primaryDefault,
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -503,26 +530,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ── 6. Startup Leaderboard ───────────────────────────────────────────────────
 
   Widget _buildLeaderboard(bool isDark) {
+    final asyncData = ref.watch(leaderboardProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+      child: asyncData.when(
+        loading: () => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryDefault,
+              strokeWidth: 2,
+            ),
           ),
         ),
-        child: Column(
-          children: List.generate(HomeMockData.leaderboard.length, (i) {
-            final entry = HomeMockData.leaderboard[i];
-            final isLast = i == HomeMockData.leaderboard.length - 1;
-            return _LeaderboardRow(
-              entry: entry,
-              isDark: isDark,
-              showDivider: !isLast,
-            );
-          }),
+        error: (_, s) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Text(
+              'Could not load leaderboard',
+              style: AppTypography.textSmall.copyWith(
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.grayscaleBodyText,
+              ),
+            ),
+          ),
+        ),
+        data: (entries) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          child: Column(
+            children: List.generate(entries.length, (i) {
+              return _LeaderboardRow(
+                entry: entries[i],
+                isDark: isDark,
+                showDivider: i < entries.length - 1,
+              );
+            }),
+          ),
         ),
       ),
     );
@@ -1429,7 +1493,7 @@ class _CommunityCard extends StatelessWidget {
 // ── Leaderboard row ────────────────────────────────────────────────────────────
 
 class _LeaderboardRow extends StatelessWidget {
-  final HomeLeaderEntry entry;
+  final StartupLeaderEntry entry;
   final bool isDark;
   final bool showDivider;
 
@@ -1442,6 +1506,8 @@ class _LeaderboardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTop3 = entry.rank <= 3;
+    final changeColor =
+        entry.isPositive ? AppColors.successDefault : AppColors.errorDark;
 
     return Column(
       children: [
@@ -1449,7 +1515,6 @@ class _LeaderboardRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              // Rank
               SizedBox(
                 width: 24,
                 child: Text(
@@ -1466,7 +1531,6 @@ class _LeaderboardRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Logo circle
               Container(
                 width: 36,
                 height: 36,
@@ -1486,7 +1550,6 @@ class _LeaderboardRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Name + sector
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1513,34 +1576,37 @@ class _LeaderboardRow extends StatelessWidget {
                   ],
                 ),
               ),
-              // Valuation
-              Text(
-                entry.valuation,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.grayscaleTitleActive,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Growth badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.successDefault.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  entry.growth,
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.successDefault,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    entry.formattedMarketCap,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: changeColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      entry.formattedChange,
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: changeColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1556,3 +1622,4 @@ class _LeaderboardRow extends StatelessWidget {
     );
   }
 }
+
