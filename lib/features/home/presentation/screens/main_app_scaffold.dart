@@ -18,25 +18,25 @@ const _kBuildItems = [
     icon: Icons.rocket_launch_rounded,
     color: Color(0xFFE8341C),
     label: 'Startup Ecosystem',
-    url: 'https://startupindia.gov.in',
+    url: 'https://www.startupsindia.in',
   ),
   (
     icon: Icons.event_rounded,
     color: Color(0xFF5C6BC0),
     label: 'Events',
-    url: 'https://startupindia.gov.in/content/sipp/en/events.html',
+    url: 'https://www.startupsindia.in/events',
   ),
   (
     icon: Icons.people_rounded,
     color: Color(0xFF2196F3),
     label: 'Mentorship',
-    url: 'https://startupindia.gov.in/content/sipp/en/mentors.html',
+    url: 'https://www.startupsindia.in/mentors',
   ),
   (
     icon: Icons.account_balance_wallet_rounded,
     color: Color(0xFF4CAF50),
     label: 'Funding',
-    url: 'https://startupindia.gov.in/content/sipp/en/startup-funding.html',
+    url: 'https://www.startupsindia.in/investors',
   ),
 ];
 
@@ -74,7 +74,7 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await launchUrl(uri, mode: LaunchMode.inAppWebView);
     if (mounted) setState(() => _showBuildMenu = false);
   }
 

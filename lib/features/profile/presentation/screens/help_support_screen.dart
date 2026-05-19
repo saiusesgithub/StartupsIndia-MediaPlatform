@@ -299,10 +299,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         children: [
           _ResourceRow(
             isDark: isDark,
-            icon: Icons.language_rounded,
+            icon: Icons.public_rounded,
             iconColor: const Color(0xFF2196F3),
-            label: 'Visit Website',
-            onTap: () => _launch('https://startupindia.gov.in'),
+            label: 'Startup Ecosystem',
+            onTap: () => _launch('https://www.startupsindia.in'),
           ),
           Divider(
             height: 1,
@@ -311,10 +311,34 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           ),
           _ResourceRow(
             isDark: isDark,
-            icon: Icons.chat_bubble_outline_rounded,
+            icon: Icons.event_rounded,
+            iconColor: const Color(0xFF4CAF50),
+            label: 'Events',
+            onTap: () => _launch('https://www.startupsindia.in/events'),
+          ),
+          Divider(
+            height: 1,
+            indent: 66,
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+          ),
+          _ResourceRow(
+            isDark: isDark,
+            icon: Icons.support_agent_rounded,
             iconColor: const Color(0xFF9C27B0),
-            label: 'Community Forum',
-            onTap: () => _launch('https://startupindia.gov.in'),
+            label: 'Mentorship',
+            onTap: () => _launch('https://www.startupsindia.in/mentors'),
+          ),
+          Divider(
+            height: 1,
+            indent: 66,
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+          ),
+          _ResourceRow(
+            isDark: isDark,
+            icon: Icons.account_balance_wallet_rounded,
+            iconColor: const Color(0xFFFF9800),
+            label: 'Funding',
+            onTap: () => _launch('https://www.startupsindia.in/investors'),
           ),
         ],
       ),
@@ -340,7 +364,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await launchUrl(uri, mode: LaunchMode.inAppWebView);
   }
 }
 
