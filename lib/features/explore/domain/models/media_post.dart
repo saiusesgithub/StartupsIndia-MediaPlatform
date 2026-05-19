@@ -1,13 +1,6 @@
-/// Represents a single card in the vertical swipe media feed.
-///
-/// VIDEO READINESS — when the client adds video support:
-/// 1. Set [mediaType] to [MediaType.video] and populate [mediaUrl].
-/// 2. In _MediaCardState (media_feed_screen.dart) uncomment the
-///    VideoPlayerController block in initState/dispose.
-/// 3. In _MediaLayer.build(), the switch already has the video branch
-///    — just remove the placeholder and plug in VideoPlayer(controller).
-/// Nothing in the overlay layers (author, actions, text) changes.
 enum MediaType { image, video }
+
+enum MediaSource { post, article }
 
 class MediaPost {
   final String id;
@@ -16,15 +9,10 @@ class MediaPost {
   final String authorRole;
   final String authorAvatarUrl;
   final bool isVerified;
-
-  /// Always present — thumbnail image for both images and videos.
   final String thumbnailUrl;
-
-  /// Video stream URL. Null for image posts.
-  /// Populate this when [mediaType] == [MediaType.video].
-  final String? mediaUrl;
-
+  final String? mediaUrl; // video stream URL; null for images
   final MediaType mediaType;
+  final MediaSource sourceType;
   final String headline;
   final String excerpt;
   final String category;
@@ -35,8 +23,6 @@ class MediaPost {
   final int shareCount;
   final bool isLiked;
   final bool isSaved;
-
-  /// Used for gradient fallback when [thumbnailUrl] is empty.
   final int colorIndex;
 
   const MediaPost({
@@ -49,6 +35,7 @@ class MediaPost {
     required this.thumbnailUrl,
     this.mediaUrl,
     required this.mediaType,
+    this.sourceType = MediaSource.article,
     required this.headline,
     required this.excerpt,
     required this.category,
@@ -78,6 +65,7 @@ class MediaPost {
       thumbnailUrl: thumbnailUrl,
       mediaUrl: mediaUrl,
       mediaType: mediaType,
+      sourceType: sourceType,
       headline: headline,
       excerpt: excerpt,
       category: category,

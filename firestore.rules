@@ -7,6 +7,13 @@ service cloud.firestore {
     match /articles/{articleId} {
       allow read: if true;
       allow write: if false;
+
+      // Comments — authenticated users can read and post.
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────
@@ -16,11 +23,10 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
 
       // Community membership index — each user manages their own list.
+      // allow write (not just create/delete) so set() merge works on rejoin.
       match /communities/{communityId} {
         allow read: if request.auth != null && request.auth.uid == userId;
-        allow create, delete: if request.auth != null
-                              && request.auth.uid == userId;
-        allow update: if false;
+        allow write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
@@ -43,14 +49,28 @@ service cloud.firestore {
       // Full profile captured here for marketing segmentation.
       match /members/{userId} {
         allow read: if request.auth != null;
-        allow create: if request.auth != null && request.auth.uid == userId;
-        allow delete: if request.auth != null && request.auth.uid == userId;
-        allow update: if false;
+        allow write: if request.auth != null && request.auth.uid == userId;
       }
 
       // Announcement channel — authenticated users can create system join
       // messages; only admin SDK posts announcements/events.
       match /announcements/{postId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if false;
+      }
+    }
+
+    // ── Media Posts (admin-posted videos/images in the Explore feed) ──────────
+    // Admin creates via admin SDK (bypasses rules). Authenticated users can
+    // read and update interaction fields (likes, bookmarks, share count).
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if false; // admin SDK only
+      allow update: if request.auth != null;
+      allow delete: if false;
+
+      match /comments/{commentId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
         allow update, delete: if false;
