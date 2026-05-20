@@ -13,8 +13,10 @@ import '../../../home/presentation/widgets/news_tile.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../community/presentation/providers/community_providers.dart';
+import '../../../explore/data/repositories/post_repository.dart';
+import '../../../explore/domain/models/post_model.dart';
 
-enum _Tab { communities, saved, liked }
+enum _Tab { communities, saved, videos, liked }
 
 final profileSavedArticlesProvider =
     StreamProvider.autoDispose<List<NewsArticleModel>>((ref) {
@@ -28,6 +30,13 @@ final profileLikedArticlesProvider =
   final user = ref.watch(authStateChangesProvider).value;
   if (user == null) return Stream.value(<NewsArticleModel>[]);
   return ref.watch(firestoreRepositoryProvider).getLikedArticles(user.uid);
+});
+
+final profileSavedVideosProvider =
+    StreamProvider.autoDispose<List<PostModel>>((ref) {
+  final user = ref.watch(authStateChangesProvider).value;
+  if (user == null) return Stream.value(<PostModel>[]);
+  return PostRepository().getBookmarkedPosts(user.uid);
 });
 
 class PersonalProfileScreen extends ConsumerStatefulWidget {
@@ -140,6 +149,8 @@ class _PersonalProfileScreenState
             emptySubtitle: 'Tap the bookmark icon on any post to save it here.',
           ),
         ];
+      case _Tab.videos:
+        return [_SavedVideosSliver(isDark: isDark)];
       case _Tab.liked:
         return [
           _ArticleListSliver(
@@ -288,6 +299,133 @@ class _ProfileCommunitiesSliver extends ConsumerWidget {
 
   String _fmtCount(int n) =>
       n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
+}
+
+// ── Saved Videos tab ──────────────────────────────────────────────────────────
+
+class _SavedVideosSliver extends ConsumerWidget {
+  final bool isDark;
+
+  const _SavedVideosSliver({required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final videosAsync = ref.watch(profileSavedVideosProvider);
+
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: videosAsync.when(
+        loading: () => const SliverToBoxAdapter(
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (_, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+        data: (videos) {
+          if (videos.isEmpty) {
+            return SliverToBoxAdapter(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 48),
+                  Icon(Icons.play_circle_outline_rounded,
+                      size: 48,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleButtonText),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No saved videos',
+                    style: AppTypography.textMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Bookmark videos in the Explore feed to find them here.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.textSmall.copyWith(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => _VideoThumb(post: videos[i]),
+              childCount: videos.length,
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 9 / 16,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _VideoThumb extends StatelessWidget {
+  final PostModel post;
+
+  const _VideoThumb({required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          post.thumbnailUrl.startsWith('http')
+              ? Image.network(post.thumbnailUrl, fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(color: AppColors.darkSurface))
+              : Container(color: AppColors.darkSurface),
+          const Positioned(
+            bottom: 6,
+            left: 6,
+            child: Icon(Icons.play_circle_filled_rounded,
+                color: Colors.white70, size: 28),
+          ),
+          if (post.headline.isNotEmpty)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black87, Colors.transparent],
+                  ),
+                ),
+                child: Text(
+                  post.headline,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ArticleListSliver extends StatelessWidget {
@@ -805,6 +943,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   static const _items = [
     (tab: _Tab.communities, icon: Icons.people_outline_rounded, label: 'Communities'),
     (tab: _Tab.saved, icon: Icons.bookmark_border_rounded, label: 'Saved'),
+    (tab: _Tab.videos, icon: Icons.play_circle_outline_rounded, label: 'Videos'),
     (tab: _Tab.liked, icon: Icons.favorite_border_rounded, label: 'Liked'),
   ];
 
