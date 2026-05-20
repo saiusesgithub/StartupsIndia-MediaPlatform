@@ -443,16 +443,28 @@ class _MediaCardState extends ConsumerState<_MediaCard>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _CommentSheet(post: widget.post),
-    ).then((_) {
-      // Refresh comment count if visible
+    );
+  }
+
+  void _toggleVideoPlayback() {
+    final ctrl = _videoController;
+    if (ctrl == null || !_videoInitialized) return;
+    setState(() {
+      if (ctrl.value.isPlaying) {
+        ctrl.pause();
+      } else {
+        ctrl.play();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final isPlaying = _videoController?.value.isPlaying ?? false;
 
     return GestureDetector(
+      onTap: _toggleVideoPlayback,
       onDoubleTap: () {
         if (!_isLiked) _toggleLike();
         setState(() => _showHeartOverlay = true);
@@ -480,6 +492,13 @@ class _MediaCardState extends ConsumerState<_MediaCard>
                   shadows: [Shadow(color: Colors.black54, blurRadius: 20)],
                 ),
               ),
+            ),
+
+          // Pause indicator
+          if (_videoInitialized && !isPlaying)
+            const Center(
+              child: Icon(Icons.pause_circle_filled_rounded,
+                  color: Colors.white54, size: 64),
             ),
 
           // Right sidebar
@@ -624,7 +643,7 @@ class _Scrim extends StatelessWidget {
           bottom: 0,
           left: 0,
           right: 0,
-          height: 420,
+          height: 320,
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -870,10 +889,11 @@ class _BottomContentState extends State<_BottomContent> {
             const SizedBox(height: 10),
           ],
 
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               _CategoryPill(label: post.category),
-              const SizedBox(width: 10),
               _FollowTopicBtn(topic: post.category),
             ],
           ),
