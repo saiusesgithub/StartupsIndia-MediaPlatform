@@ -758,140 +758,82 @@ class _SidebarBtnState extends State<_SidebarBtn>
 
 // ── Bottom content ─────────────────────────────────────────────────────────────
 
-class _BottomContent extends StatelessWidget {
+class _BottomContent extends StatefulWidget {
   final MediaPost post;
   final double bottomPad;
 
   const _BottomContent({required this.post, required this.bottomPad});
 
   @override
+  State<_BottomContent> createState() => _BottomContentState();
+}
+
+class _BottomContentState extends State<_BottomContent> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final post = widget.post;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 12),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, widget.bottomPad + 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Author row — no duplicate avatar; sidebar already shows it
+          // Author branding row
           Row(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              Text(
+                'StartupsIndia',
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.verified_rounded,
+                  size: 13, color: AppColors.primaryDefault),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          if (post.excerpt.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: RichText(
+                text: TextSpan(
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            post.authorName,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded,
-                            size: 14,
-                            color: AppColors.primaryDefault),
-                      ],
-                    ),
-                    Text(
-                      post.authorRole,
+                    TextSpan(
+                      text: _expanded
+                          ? post.excerpt
+                          : (post.excerpt.length > 90
+                              ? '${post.excerpt.substring(0, 90)}... '
+                              : post.excerpt),
                       style: AppTypography.textSmall.copyWith(
-                        fontSize: 11,
+                        fontSize: 13,
                         color: Colors.white70,
+                        height: 1.4,
                       ),
                     ),
+                    if (post.excerpt.length > 90)
+                      TextSpan(
+                        text: _expanded ? ' see less' : 'see more',
+                        style: AppTypography.textSmall.copyWith(
+                          fontSize: 13,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              _FollowButton(),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          Text(
-            post.headline,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.displaySmallBold.copyWith(
-              fontSize: 18,
-              color: Colors.white,
-              height: 1.25,
             ),
-          ),
-          if (post.excerpt.isNotEmpty) ...[
-            const SizedBox(height: 5),
-            Text(
-              post.excerpt,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 13,
-                color: Colors.white70,
-                height: 1.4,
-              ),
-            ),
+            const SizedBox(height: 10),
           ],
-          const SizedBox(height: 10),
 
-          Row(
-            children: [
-              const Icon(Icons.bar_chart_rounded,
-                  size: 13, color: Colors.white70),
-              const SizedBox(width: 4),
-              Text(
-                post.category,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 12,
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (post.readTimeMinutes > 0) ...[
-                const SizedBox(width: 12),
-                const Icon(Icons.access_time_rounded,
-                    size: 12, color: Colors.white54),
-                const SizedBox(width: 4),
-                Text(
-                  '${post.readTimeMinutes} min read',
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 12,
-                    color: Colors.white54,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 10),
           _FollowTopicBtn(topic: post.category),
         ],
-      ),
-    );
-  }
-}
-
-class _FollowButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.white70, width: 1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        'Follow',
-        style: AppTypography.textSmall.copyWith(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
       ),
     );
   }
