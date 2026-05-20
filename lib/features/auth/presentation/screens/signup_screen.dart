@@ -507,7 +507,7 @@ class _ThemePreferenceCard extends ConsumerWidget {
           ),
           Switch.adaptive(
             value: isDarkMode,
-            activeColor: AppColors.primaryDefault,
+            activeThumbColor: AppColors.primaryDefault,
             onChanged: (value) =>
                 ref.read(themeServiceProvider.notifier).setDarkMode(value),
           ),
