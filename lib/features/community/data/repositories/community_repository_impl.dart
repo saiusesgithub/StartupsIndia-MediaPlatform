@@ -1,31 +1,32 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../../core/models/user_model.dart';
 import '../../domain/models/community_model.dart';
 import '../../domain/models/community_post_model.dart';
 import '../../domain/repositories/community_repository.dart';
-import '../../../../core/models/user_model.dart';
 
 const _kDefaultCommunities = [
   {
-    'id': 'student-founders',
+    'id': 'founders-network-india',
     'data': {
-      'name': 'Student Founders',
+      'name': 'Founders Network India',
       'description':
-          'For college students and young entrepreneurs taking their first steps into the startup world.',
-      'emoji': '🎓',
-      'colorHex': '#6C5CE7',
-      'memberCount': 0,
+          'A community for founders to connect, share challenges and grow together.',
+      'emoji': '🚀',
+      'colorHex': '#E8341C',
+      'memberCount': 12100,
       'isDefault': true,
     },
   },
   {
-    'id': 'entrepreneurs',
+    'id': 'ai-founders-club',
     'data': {
-      'name': 'Entrepreneurs',
+      'name': 'AI Founders Club',
       'description':
-          'For active founders and business owners building their next big thing.',
-      'emoji': '🚀',
-      'colorHex': '#E8341C',
-      'memberCount': 0,
+          'Building the future with AI. Learn, share and collaborate.',
+      'emoji': '💡',
+      'colorHex': '#00BA88',
+      'memberCount': 856,
       'isDefault': true,
     },
   },
@@ -35,21 +36,20 @@ const _kDefaultCommunities = [
       'name': 'Investors & Mentors',
       'description':
           'For angels, VCs, and seasoned advisors shaping the next generation of Indian startups.',
-      'emoji': '💼',
-      'colorHex': '#0984E3',
-      'memberCount': 0,
+      'emoji': '💰',
+      'colorHex': '#9B51E0',
+      'memberCount': 732,
       'isDefault': true,
     },
   },
   {
-    'id': 'tech-builders',
+    'id': 'mentorship-hub',
     'data': {
-      'name': 'Tech Builders',
-      'description':
-          'For developers and technical co-founders building products that scale.',
-      'emoji': '⚡',
-      'colorHex': '#00BA88',
-      'memberCount': 0,
+      'name': 'Mentorship Hub',
+      'description': 'Learn from experienced founders and industry experts.',
+      'emoji': '🎓',
+      'colorHex': '#F2994A',
+      'memberCount': 1100,
       'isDefault': true,
     },
   },
@@ -95,6 +95,21 @@ class CommunityRepositoryImpl implements CommunityRepository {
   }
 
   @override
+  Stream<Map<String, CommunityMembershipModel>> watchMyMembershipDetails(
+    String userId,
+  ) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('communities')
+        .snapshots()
+        .map((snap) => {
+              for (final doc in snap.docs)
+                doc.id: CommunityMembershipModel.fromFirestore(doc),
+            });
+  }
+
+  @override
   Stream<List<CommunityPostModel>> watchPosts(String communityId) {
     return _communities
         .doc(communityId)
@@ -106,18 +121,42 @@ class CommunityRepositoryImpl implements CommunityRepository {
   }
 
   @override
+  Stream<List<CommunityCommentModel>> watchComments(
+    String communityId,
+    String postId,
+  ) {
+    return _communities
+        .doc(communityId)
+        .collection('announcements')
+        .doc(postId)
+        .collection('comments')
+        .orderBy('createdAt')
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map(CommunityCommentModel.fromFirestore).toList());
+  }
+
+  @override
+  Stream<List<CommunityCommentModel>> watchMyCommentActivity(String userId) {
+    return _firestore
+        .collectionGroup('comments')
+        .where('authorId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(30)
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map(CommunityCommentModel.fromFirestore).toList());
+  }
+
+  @override
   Future<void> joinCommunity(String communityId, UserModel user) async {
     final displayName =
         user.displayName.isNotEmpty ? user.displayName : user.fullName;
 
     final batch = _firestore.batch();
 
-    // Track member in community subcollection (data collection for marketing)
     batch.set(
-      _communities
-          .doc(communityId)
-          .collection('members')
-          .doc(user.uid),
+      _communities.doc(communityId).collection('members').doc(user.uid),
       {
         'userId': user.uid,
         'displayName': displayName,
@@ -129,44 +168,33 @@ class CommunityRepositoryImpl implements CommunityRepository {
       },
     );
 
-    // Increment community member count
     batch.update(_communities.doc(communityId), {
       'memberCount': FieldValue.increment(1),
     });
 
-    // Track membership on user's side for fast "my communities" query
     batch.set(
       _firestore
           .collection('users')
           .doc(user.uid)
           .collection('communities')
           .doc(communityId),
-      {'joinedAt': FieldValue.serverTimestamp()},
+      {
+        'joinedAt': FieldValue.serverTimestamp(),
+        'lastReadAnnouncementAt': FieldValue.serverTimestamp(),
+      },
       SetOptions(merge: true),
     );
 
     await batch.commit();
 
-    // Post system message and update lastPost denormalized field
-    final systemContent = '$displayName joined the community';
     await _communities.doc(communityId).collection('announcements').add({
       'type': 'system',
-      'content': systemContent,
+      'content': '$displayName joined the community',
       'authorId': user.uid,
       'authorName': displayName,
       'authorAvatarUrl': user.avatarUrl,
       'authorRole': user.role,
       'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    await _communities.doc(communityId).update({
-      'lastPost': {
-        'content': systemContent,
-        'authorName': displayName,
-        'authorAvatarUrl': user.avatarUrl,
-        'type': 'system',
-        'createdAt': FieldValue.serverTimestamp(),
-      },
     });
   }
 
@@ -175,7 +203,8 @@ class CommunityRepositoryImpl implements CommunityRepository {
     final batch = _firestore.batch();
 
     batch.delete(
-        _communities.doc(communityId).collection('members').doc(userId));
+      _communities.doc(communityId).collection('members').doc(userId),
+    );
 
     batch.update(_communities.doc(communityId), {
       'memberCount': FieldValue.increment(-1),
@@ -190,5 +219,77 @@ class CommunityRepositoryImpl implements CommunityRepository {
     );
 
     await batch.commit();
+  }
+
+  @override
+  Future<void> markCommunityRead(String communityId, String userId) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('communities')
+        .doc(communityId)
+        .set(
+      {'lastReadAnnouncementAt': FieldValue.serverTimestamp()},
+      SetOptions(merge: true),
+    );
+  }
+
+  @override
+  Future<void> addComment({
+    required String communityId,
+    required String postId,
+    required String content,
+    required UserModel user,
+    String? replyToCommentId,
+    String? replyToAuthorName,
+  }) async {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
+    final displayName =
+        user.displayName.isNotEmpty ? user.displayName : user.fullName;
+    final postRef =
+        _communities.doc(communityId).collection('announcements').doc(postId);
+    final commentRef = postRef.collection('comments').doc();
+    final batch = _firestore.batch();
+
+    batch.set(commentRef, {
+      'postId': postId,
+      'communityId': communityId,
+      'content': trimmed,
+      'authorId': user.uid,
+      'authorName': displayName,
+      'authorAvatarUrl': user.avatarUrl,
+      'authorRole': user.role,
+      'replyToCommentId': replyToCommentId,
+      'replyToAuthorName': replyToAuthorName,
+      'mentionedUserIds': <String>[],
+      'reportCount': 0,
+      'status': 'visible',
+      'isAdminReply': false,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    batch.update(postRef, {'commentCount': FieldValue.increment(1)});
+    await batch.commit();
+  }
+
+  @override
+  Future<void> reportComment({
+    required String communityId,
+    required String postId,
+    required String commentId,
+    required String userId,
+  }) async {
+    final ref = _communities
+        .doc(communityId)
+        .collection('announcements')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId);
+
+    await ref.set({
+      'reportCount': FieldValue.increment(1),
+      'reportedBy': FieldValue.arrayUnion([userId]),
+      'status': 'reported',
+    }, SetOptions(merge: true));
   }
 }

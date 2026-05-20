@@ -10,6 +10,7 @@ class CommunityModel {
   final int memberCount;
   final DateTime? createdAt;
   final Map<String, dynamic>? lastPost;
+  final DateTime? lastAnnouncementAt;
 
   const CommunityModel({
     required this.id,
@@ -20,6 +21,7 @@ class CommunityModel {
     required this.memberCount,
     this.createdAt,
     this.lastPost,
+    this.lastAnnouncementAt,
   });
 
   Color get color {
@@ -39,6 +41,30 @@ class CommunityModel {
       memberCount: (data['memberCount'] as num?)?.toInt() ?? 0,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       lastPost: data['lastPost'] as Map<String, dynamic>?,
+      lastAnnouncementAt: (data['lastAnnouncementAt'] as Timestamp?)?.toDate(),
+    );
+  }
+}
+
+class CommunityMembershipModel {
+  final String communityId;
+  final DateTime? joinedAt;
+  final DateTime? lastReadAnnouncementAt;
+
+  const CommunityMembershipModel({
+    required this.communityId,
+    this.joinedAt,
+    this.lastReadAnnouncementAt,
+  });
+
+  factory CommunityMembershipModel.fromFirestore(
+      QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    return CommunityMembershipModel(
+      communityId: doc.id,
+      joinedAt: (data['joinedAt'] as Timestamp?)?.toDate(),
+      lastReadAnnouncementAt:
+          (data['lastReadAnnouncementAt'] as Timestamp?)?.toDate(),
     );
   }
 }
