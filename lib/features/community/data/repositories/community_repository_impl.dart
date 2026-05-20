@@ -141,11 +141,18 @@ class CommunityRepositoryImpl implements CommunityRepository {
     return _firestore
         .collectionGroup('comments')
         .where('authorId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .limit(30)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map(CommunityCommentModel.fromFirestore).toList());
+        .map((snap) {
+      final comments =
+          snap.docs.map(CommunityCommentModel.fromFirestore).toList();
+      comments.sort((a, b) {
+        final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+      return comments;
+    });
   }
 
   @override

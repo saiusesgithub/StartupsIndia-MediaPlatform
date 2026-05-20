@@ -9,7 +9,7 @@ import '../../domain/models/community_model.dart';
 import '../../domain/models/community_post_model.dart';
 import '../providers/community_providers.dart';
 
-enum _CommunityView { overview, myGroups, discover, activity }
+enum CommunityCollectionKind { myGroups, discover, activity }
 
 class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
@@ -20,7 +20,6 @@ class CommunityScreen extends ConsumerStatefulWidget {
 
 class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   bool _seeded = false;
-  _CommunityView _view = _CommunityView.overview;
 
   @override
   void initState() {
@@ -61,23 +60,35 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                   final discover = communities
                       .where((c) => !memberships.containsKey(c.id))
                       .toList();
-                  final activityCount =
-                      ref.watch(myCommunityActivityProvider).asData?.value.length ?? 0;
-
                   return [
                     _QuickActionsSliver(
                       isDark: isDark,
                       joinedCount: joined.length,
                       discoverCount: discover.length,
-                      activityCount: activityCount,
-                      activeView: _view,
-                      onViewChanged: (view) => setState(() => _view = view),
+                      activityCount: 0,
                     ),
-                    ..._buildContentSlivers(
+                    _MyGroupsSliver(
                       isDark: isDark,
-                      joined: joined,
-                      discover: discover,
+                      communities: joined,
                       memberships: memberships,
+                      showAll: false,
+                      onViewAll: () => _openCollection(
+                        CommunityCollectionKind.myGroups,
+                      ),
+                    ),
+                    _DiscoverSliver(
+                      isDark: isDark,
+                      communities: discover,
+                      showAll: false,
+                      onViewAll: () => _openCollection(
+                        CommunityCollectionKind.discover,
+                      ),
+                    ),
+                    _ActivityPreviewSliver(
+                      isDark: isDark,
+                      onViewAll: () => _openCollection(
+                        CommunityCollectionKind.activity,
+                      ),
                     ),
                     const SliverToBoxAdapter(child: SizedBox(height: 32)),
                   ];
@@ -115,53 +126,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     );
   }
 
-  List<Widget> _buildContentSlivers({
-    required bool isDark,
-    required List<CommunityModel> joined,
-    required List<CommunityModel> discover,
-    required Map<String, CommunityMembershipModel> memberships,
-  }) {
-    switch (_view) {
-      case _CommunityView.myGroups:
-        return [
-          _MyGroupsSliver(
-            isDark: isDark,
-            communities: joined,
-            memberships: memberships,
-            showAll: true,
-          ),
-        ];
-      case _CommunityView.discover:
-        return [
-          _DiscoverSliver(
-            isDark: isDark,
-            communities: discover,
-            showAll: true,
-          ),
-        ];
-      case _CommunityView.activity:
-        return [_ActivitySliver(isDark: isDark)];
-      case _CommunityView.overview:
-        return [
-          _MyGroupsSliver(
-            isDark: isDark,
-            communities: joined,
-            memberships: memberships,
-            showAll: false,
-            onViewAll: () => setState(() => _view = _CommunityView.myGroups),
-          ),
-          _DiscoverSliver(
-            isDark: isDark,
-            communities: discover,
-            showAll: false,
-            onViewAll: () => setState(() => _view = _CommunityView.discover),
-          ),
-          _ActivityPreviewSliver(
-            isDark: isDark,
-            onViewAll: () => setState(() => _view = _CommunityView.activity),
-          ),
-        ];
-    }
+  void _openCollection(CommunityCollectionKind kind) {
+    Navigator.pushNamed(context, '/community-collection', arguments: kind);
   }
 
   SliverToBoxAdapter _buildHeader(bool isDark) {
@@ -203,16 +169,12 @@ class _QuickActionsSliver extends StatelessWidget {
   final int joinedCount;
   final int discoverCount;
   final int activityCount;
-  final _CommunityView activeView;
-  final ValueChanged<_CommunityView> onViewChanged;
 
   const _QuickActionsSliver({
     required this.isDark,
     required this.joinedCount,
     required this.discoverCount,
     required this.activityCount,
-    required this.activeView,
-    required this.onViewChanged,
   });
 
   @override
@@ -228,8 +190,11 @@ class _QuickActionsSliver extends StatelessWidget {
               color: const Color(0xFFE8341C),
               label: 'My Groups',
               count: '$joinedCount Groups',
-              isActive: activeView == _CommunityView.myGroups,
-              onTap: () => onViewChanged(_CommunityView.myGroups),
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/community-collection',
+                arguments: CommunityCollectionKind.myGroups,
+              ),
             ),
             const SizedBox(width: 10),
             _ActionChip(
@@ -238,8 +203,11 @@ class _QuickActionsSliver extends StatelessWidget {
               color: const Color(0xFF9B51E0),
               label: 'Discover',
               count: discoverCount == 0 ? 'All joined' : 'Explore Groups',
-              isActive: activeView == _CommunityView.discover,
-              onTap: () => onViewChanged(_CommunityView.discover),
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/community-collection',
+                arguments: CommunityCollectionKind.discover,
+              ),
             ),
             const SizedBox(width: 10),
             _ActionChip(
@@ -248,11 +216,138 @@ class _QuickActionsSliver extends StatelessWidget {
               color: const Color(0xFF0984E3),
               label: 'My Activity',
               count: '$activityCount New',
-              isActive: activeView == _CommunityView.activity,
-              onTap: () => onViewChanged(_CommunityView.activity),
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/community-collection',
+                arguments: CommunityCollectionKind.activity,
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class CommunityCollectionScreen extends ConsumerWidget {
+  final CommunityCollectionKind kind;
+
+  const CommunityCollectionScreen({super.key, required this.kind});
+
+  String get _title => switch (kind) {
+        CommunityCollectionKind.myGroups => 'My Groups',
+        CommunityCollectionKind.discover => 'Discover Groups',
+        CommunityCollectionKind.activity => 'My Activity',
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final communitiesAsync = ref.watch(communitiesProvider);
+    final membershipsAsync = ref.watch(myMembershipDetailsProvider);
+
+    return Scaffold(
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.grayscaleSecondaryButton,
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: _CollectionHeader(isDark: isDark, title: _title),
+            ),
+            if (kind == CommunityCollectionKind.activity)
+              _ActivitySliver(isDark: isDark)
+            else
+              ...communitiesAsync.when(
+                data: (communities) {
+                  final memberships = membershipsAsync.asData?.value ?? {};
+                  final joined = communities
+                      .where((c) => memberships.containsKey(c.id))
+                      .toList();
+                  final discover = communities
+                      .where((c) => !memberships.containsKey(c.id))
+                      .toList();
+                  if (kind == CommunityCollectionKind.myGroups) {
+                    return [
+                      _MyGroupsSliver(
+                        isDark: isDark,
+                        communities: joined,
+                        memberships: memberships,
+                        showAll: true,
+                      ),
+                    ];
+                  }
+                  return [
+                    _DiscoverSliver(
+                      isDark: isDark,
+                      communities: discover,
+                      showAll: true,
+                    ),
+                  ];
+                },
+                loading: () => [
+                  const SliverFillRemaining(
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryDefault,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ),
+                ],
+                error: (_, _) => [
+                  SliverToBoxAdapter(
+                    child: _EmptyState(
+                      isDark: isDark,
+                      icon: Icons.error_outline_rounded,
+                      title: 'Could not load communities',
+                      body: 'Please try again in a moment.',
+                    ),
+                  ),
+                ],
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionHeader extends StatelessWidget {
+  final bool isDark;
+  final String title;
+
+  const _CollectionHeader({required this.isDark, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 20, 16),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: Icon(
+              Icons.arrow_back_rounded,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              style: AppTypography.displaySmallBold.copyWith(
+                fontSize: 22,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.grayscaleTitleActive,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -264,7 +359,6 @@ class _ActionChip extends StatelessWidget {
   final Color color;
   final String label;
   final String count;
-  final bool isActive;
   final VoidCallback onTap;
 
   const _ActionChip({
@@ -273,7 +367,6 @@ class _ActionChip extends StatelessWidget {
     required this.color,
     required this.label,
     required this.count,
-    required this.isActive,
     required this.onTap,
   });
 
@@ -288,9 +381,7 @@ class _ActionChip extends StatelessWidget {
             color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isActive
-                  ? color.withValues(alpha: 0.85)
-                  : (isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
             ),
           ),
           child: Column(

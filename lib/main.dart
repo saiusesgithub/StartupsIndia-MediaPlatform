@@ -38,6 +38,7 @@ import 'features/home/presentation/screens/funding_all_screen.dart';
 import 'features/home/presentation/screens/events_all_screen.dart';
 import 'features/home/presentation/screens/courses_all_screen.dart';
 import 'features/community/presentation/screens/community_detail_screen.dart';
+import 'features/community/presentation/screens/community_screen.dart';
 import 'features/explore/presentation/screens/search_screen.dart';
 import 'features/explore/presentation/screens/source_profile_screen.dart';
 import 'features/explore/domain/models/source_profile_model.dart';
@@ -259,6 +260,14 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/community-detail': (context) {
           final id = ModalRoute.of(context)?.settings.arguments as String? ?? '';
           return CommunityDetailScreen(communityId: id);
+        },
+        '/community-collection': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return CommunityCollectionScreen(
+            kind: args is CommunityCollectionKind
+                ? args
+                : CommunityCollectionKind.myGroups,
+          );
         },
         '/trending': (context) => const TrendingScreen(),
         '/notifications': (context) => const NotificationsScreen(),
