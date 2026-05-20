@@ -185,14 +185,15 @@ class CommunityRepositoryImpl implements CommunityRepository {
     }
 
     controller.onListen = () {
+      emit();
       mineSub = authored.listen((next) {
         mine = next;
         emit();
-      }, onError: controller.addError);
+      }, onError: (_) => emit());
       mentionSub = mentionedById.listen((next) {
         mentions = next;
         emit();
-      }, onError: controller.addError);
+      }, onError: (_) => emit());
     };
     controller.onCancel = () async {
       await mineSub.cancel();

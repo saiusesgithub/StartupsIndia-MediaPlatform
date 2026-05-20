@@ -108,22 +108,8 @@ class _CommunityDetailScreenState
                 data: (posts) => posts.isEmpty
                     ? _buildEmptyFeed(isDark)
                     : _buildFeed(isDark, posts),
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryDefault,
-                    strokeWidth: 2,
-                  ),
-                ),
-                error: (_, _) => Center(
-                  child: Text(
-                    'Failed to load announcements.',
-                    style: AppTypography.textSmall.copyWith(
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.grayscaleBodyText,
-                    ),
-                  ),
-                ),
+                loading: () => _buildEmptyFeed(isDark),
+                error: (_, _) => _buildEmptyFeed(isDark),
               ),
             ),
             _buildReadOnlyBar(isDark),
