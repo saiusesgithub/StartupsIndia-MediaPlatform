@@ -569,7 +569,7 @@ class _MediaLayer extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: post.thumbnailUrl,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, _) =>
+                errorWidget: (_, _, _) =>
                     _GradientFallback(index: post.colorIndex),
               )
             else
@@ -586,7 +586,7 @@ class _MediaLayer extends StatelessWidget {
           return CachedNetworkImage(
             imageUrl: post.thumbnailUrl,
             fit: BoxFit.cover,
-            errorWidget: (_, __, _) =>
+            errorWidget: (_, _, _) =>
                 _GradientFallback(index: post.colorIndex),
           );
         }
@@ -1250,7 +1250,7 @@ class _CommentTile extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: comment.avatarUrl,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, _) => const Icon(
+                    errorWidget: (_, _, _) => const Icon(
                         Icons.person_rounded,
                         color: Colors.white54,
                         size: 16),
