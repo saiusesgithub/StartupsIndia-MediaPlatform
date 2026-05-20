@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../../core/models/user_model.dart';
 import '../../domain/models/community_model.dart';
@@ -252,18 +253,18 @@ class CommunityRepositoryImpl implements CommunityRepository {
   }) async {
     final trimmed = content.trim();
     if (trimmed.isEmpty) return;
+    final authUid = FirebaseAuth.instance.currentUser?.uid ?? user.uid;
     final displayName =
         user.displayName.isNotEmpty ? user.displayName : user.fullName;
     final postRef =
         _communities.doc(communityId).collection('announcements').doc(postId);
     final commentRef = postRef.collection('comments').doc();
-    final batch = _firestore.batch();
 
-    batch.set(commentRef, {
+    await commentRef.set({
       'postId': postId,
       'communityId': communityId,
       'content': trimmed,
-      'authorId': user.uid,
+      'authorId': authUid,
       'authorName': displayName,
       'authorAvatarUrl': user.avatarUrl,
       'authorRole': user.role,
@@ -275,8 +276,13 @@ class CommunityRepositoryImpl implements CommunityRepository {
       'isAdminReply': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
-    batch.update(postRef, {'commentCount': FieldValue.increment(1)});
-    await batch.commit();
+
+    try {
+      await postRef.update({'commentCount': FieldValue.increment(1)});
+    } on FirebaseException {
+      // Non-blocking: comments should still work even if the demo post
+      // counter is missing or rules have not been deployed yet.
+    }
   }
 
   @override

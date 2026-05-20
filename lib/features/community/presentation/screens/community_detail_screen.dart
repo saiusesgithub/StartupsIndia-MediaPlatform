@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/providers/firebase_providers.dart';
 import '../../../../theme/style_guide.dart';
@@ -729,60 +730,87 @@ class _LinkPreview extends StatelessWidget {
 
   const _LinkPreview({required this.isDark, required this.post});
 
+  Future<void> _openLink(BuildContext context) async {
+    final rawUrl = post.linkUrl;
+    if (rawUrl == null || rawUrl.trim().isEmpty) return;
+    final normalized =
+        rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+        ? rawUrl
+        : 'https://$rawUrl';
+    final uri = Uri.tryParse(normalized);
+    if (uri == null) return;
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open link.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkInputBackground : const Color(0xFFF5F5F7),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.link_rounded,
-            color: AppColors.primaryDefault,
-            size: 18,
+    return GestureDetector(
+      onTap: () => _openLink(context),
+      child: Container(
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color:
+              isDark ? AppColors.darkInputBackground : const Color(0xFFF5F5F7),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  post.linkTitle?.isNotEmpty == true
-                      ? post.linkTitle!
-                      : post.linkUrl!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.grayscaleTitleActive,
-                  ),
-                ),
-                if (post.linkDescription?.isNotEmpty == true)
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.link_rounded,
+              color: AppColors.primaryDefault,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    post.linkDescription!,
+                    post.linkTitle?.isNotEmpty == true
+                        ? post.linkTitle!
+                        : post.linkUrl!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.textSmall.copyWith(
-                      fontSize: 11,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                       color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.grayscaleBodyText,
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
                     ),
                   ),
-              ],
+                  if (post.linkDescription?.isNotEmpty == true)
+                    Text(
+                      post.linkDescription!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleBodyText,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            const Icon(
+              Icons.open_in_new_rounded,
+              color: AppColors.primaryDefault,
+              size: 15,
+            ),
+          ],
+        ),
       ),
     );
   }
