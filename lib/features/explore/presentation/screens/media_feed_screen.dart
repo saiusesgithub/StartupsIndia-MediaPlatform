@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../../../core/models/news_article_model.dart';
 import '../../../../core/providers/user_topics_provider.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/widgets/guest_gate.dart';
@@ -13,8 +12,9 @@ import '../../../../theme/style_guide.dart';
 import '../../domain/models/media_post.dart';
 import '../../domain/models/post_model.dart';
 import '../providers/post_providers.dart';
-import '../../../home/presentation/providers/news_provider.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../home/data/repositories/report_repository.dart';
+import '../../../home/presentation/widgets/report_sheet.dart';
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
 
@@ -72,65 +72,50 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
 
   List<MediaPost> _buildFeed(
     List<PostModel> posts,
-    List<NewsArticleModel> all,
-    List<NewsArticleModel> trending,
     List<String> followedTopics,
   ) {
     final tab = _tabs[_tabIndex];
 
-    // Admin posts come first (actual videos)
-    final postItems = posts
+    final items = posts
         .asMap()
         .entries
         .map((e) => _postToMediaPost(e.value, e.key))
         .toList();
 
-    List<NewsArticleModel> source;
-    if (tab == 'Trending') {
-      source = trending.isNotEmpty ? trending : all;
-    } else {
-      source = all;
-    }
-
-    final articleItems = source
-        .asMap()
-        .entries
-        .map((e) => _articleToMediaPost(e.value, postItems.length + e.key))
-        .toList();
-
-    final combined = [...postItems, ...articleItems];
-
     if (tab == 'For You') {
-      if (followedTopics.isEmpty) return combined;
-      final followed = combined
+      if (followedTopics.isEmpty) return items;
+      final followed = items
           .where((p) => followedTopics.contains(p.category.toLowerCase()))
           .toList();
-      final rest = combined
+      final rest = items
           .where((p) => !followedTopics.contains(p.category.toLowerCase()))
           .toList();
       return [...followed, ...rest];
     }
 
+    if (tab == 'Trending') {
+      final sorted = List<MediaPost>.from(items)
+        ..sort((a, b) =>
+            (b.likeCount + b.commentCount).compareTo(a.likeCount + a.commentCount));
+      return sorted;
+    }
+
     final filter = _tabCategoryMap[tab] ?? '';
-    if (filter.isEmpty) return combined;
+    if (filter.isEmpty) return items;
     final filtered =
-        combined.where((p) => p.category.toLowerCase().contains(filter)).toList();
-    return filtered.isNotEmpty ? filtered : combined;
+        items.where((p) => p.category.toLowerCase().contains(filter)).toList();
+    return filtered.isNotEmpty ? filtered : items;
   }
 
   @override
   Widget build(BuildContext context) {
     final postsAsync = ref.watch(postsProvider);
-    final allAsync = ref.watch(latestNewsProvider);
-    final trendingAsync = ref.watch(trendingNewsProvider);
     final topicsAsync = ref.watch(userTopicsProvider);
 
     final posts = postsAsync.asData?.value ?? [];
-    final all = allAsync.asData?.value ?? [];
-    final trending = trendingAsync.asData?.value ?? [];
     final followedTopics = topicsAsync.asData?.value ?? [];
 
-    final feedItems = _buildFeed(posts, all, trending, followedTopics);
+    final feedItems = _buildFeed(posts, followedTopics);
     final isGuest = FirebaseAuth.instance.currentUser == null;
     const guestLimit = 2;
 
@@ -202,35 +187,6 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
     );
   }
 
-  static MediaPost _articleToMediaPost(NewsArticleModel article, int index) {
-    final words = article.body.trim().split(RegExp(r'\s+'));
-    final readTime = (words.length / 200).ceil().clamp(1, 30);
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    return MediaPost(
-      id: article.id,
-      authorId: article.authorId,
-      authorName: article.sourceName,
-      authorRole: article.category,
-      authorAvatarUrl: article.sourceLogoAsset,
-      isVerified: true,
-      thumbnailUrl: article.thumbnailAsset,
-      mediaType: MediaType.image,
-      sourceType: MediaSource.article,
-      headline: article.headline,
-      excerpt: article.body.length > 120
-          ? '${article.body.substring(0, 120)}...'
-          : article.body,
-      category: article.category,
-      readTimeMinutes: readTime,
-      likeCount: article.likesCount,
-      commentCount: article.commentsCount,
-      saveCount: 0,
-      shareCount: 0,
-      isLiked: article.likedBy.contains(uid),
-      isSaved: article.bookmarkedBy.contains(uid),
-      colorIndex: index,
-    );
-  }
 }
 
 // ── Header ─────────────────────────────────────────────────────────────────────
@@ -281,21 +237,6 @@ class _Header extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/search'),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.search_rounded,
-                          size: 20, color: Colors.white),
                     ),
                   ),
                 ],
@@ -370,7 +311,8 @@ class _MediaCard extends ConsumerStatefulWidget {
   ConsumerState<_MediaCard> createState() => _MediaCardState();
 }
 
-class _MediaCardState extends ConsumerState<_MediaCard> {
+class _MediaCardState extends ConsumerState<_MediaCard>
+    with SingleTickerProviderStateMixin {
   late bool _isLiked;
   late bool _isSaved;
   late int _likeCount;
@@ -380,6 +322,10 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
   VideoPlayerController? _videoController;
   bool _videoInitialized = false;
 
+  bool _showHeartOverlay = false;
+  late final AnimationController _heartCtrl;
+  late final Animation<double> _heartAnim;
+
   @override
   void initState() {
     super.initState();
@@ -388,6 +334,20 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.commentCount;
     _shareCount = widget.post.shareCount;
+
+    _heartCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..addStatusListener((s) {
+        if (s == AnimationStatus.completed) {
+          if (mounted) setState(() => _showHeartOverlay = false);
+        }
+      });
+    _heartAnim = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 40),
+    ]).animate(CurvedAnimation(parent: _heartCtrl, curve: Curves.easeOut));
 
     if (widget.post.mediaType == MediaType.video &&
         widget.post.mediaUrl != null) {
@@ -408,6 +368,7 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
 
   @override
   void dispose() {
+    _heartCtrl.dispose();
     _videoController?.dispose();
     super.dispose();
   }
@@ -482,18 +443,32 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _CommentSheet(post: widget.post),
-    ).then((_) {
-      // Refresh comment count if visible
+    );
+  }
+
+  void _toggleVideoPlayback() {
+    final ctrl = _videoController;
+    if (ctrl == null || !_videoInitialized) return;
+    setState(() {
+      if (ctrl.value.isPlaying) {
+        ctrl.pause();
+      } else {
+        ctrl.play();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final isPlaying = _videoController?.value.isPlaying ?? false;
 
     return GestureDetector(
+      onTap: _toggleVideoPlayback,
       onDoubleTap: () {
         if (!_isLiked) _toggleLike();
+        setState(() => _showHeartOverlay = true);
+        _heartCtrl.forward(from: 0);
       },
       child: Stack(
         fit: StackFit.expand,
@@ -504,6 +479,27 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
             videoInitialized: _videoInitialized,
           ),
           const _Scrim(),
+
+          // Double-tap heart overlay
+          if (_showHeartOverlay)
+            Center(
+              child: ScaleTransition(
+                scale: _heartAnim,
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: Colors.white,
+                  size: 90,
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 20)],
+                ),
+              ),
+            ),
+
+          // Pause indicator
+          if (_videoInitialized && !isPlaying)
+            const Center(
+              child: Icon(Icons.pause_circle_filled_rounded,
+                  color: Colors.white54, size: 64),
+            ),
 
           // Right sidebar
           Positioned(
@@ -516,7 +512,6 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
               shareCount: _shareCount,
               isLiked: _isLiked,
               isSaved: _isSaved,
-              authorAvatarUrl: widget.post.authorAvatarUrl,
               onLike: _toggleLike,
               onSave: _toggleSave,
               onComment: _showComments,
@@ -574,7 +569,7 @@ class _MediaLayer extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: post.thumbnailUrl,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) =>
+                errorWidget: (_, _, _) =>
                     _GradientFallback(index: post.colorIndex),
               )
             else
@@ -591,7 +586,7 @@ class _MediaLayer extends StatelessWidget {
           return CachedNetworkImage(
             imageUrl: post.thumbnailUrl,
             fit: BoxFit.cover,
-            errorWidget: (_, __, ___) =>
+            errorWidget: (_, _, _) =>
                 _GradientFallback(index: post.colorIndex),
           );
         }
@@ -648,7 +643,7 @@ class _Scrim extends StatelessWidget {
           bottom: 0,
           left: 0,
           right: 0,
-          height: 420,
+          height: 320,
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -673,7 +668,6 @@ class _SidebarActions extends StatelessWidget {
   final int shareCount;
   final bool isLiked;
   final bool isSaved;
-  final String authorAvatarUrl;
   final VoidCallback onLike;
   final VoidCallback onSave;
   final VoidCallback onComment;
@@ -686,7 +680,6 @@ class _SidebarActions extends StatelessWidget {
     required this.shareCount,
     required this.isLiked,
     required this.isSaved,
-    required this.authorAvatarUrl,
     required this.onLike,
     required this.onSave,
     required this.onComment,
@@ -698,9 +691,6 @@ class _SidebarActions extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Author avatar at top of sidebar (TikTok-style)
-        _AuthorAvatar(avatarUrl: authorAvatarUrl),
-        const SizedBox(height: 20),
         _SidebarBtn(
           icon: isLiked
               ? Icons.favorite_rounded
@@ -708,6 +698,7 @@ class _SidebarActions extends StatelessWidget {
           label: _fmt(likeCount),
           color: isLiked ? Colors.redAccent : Colors.white,
           onTap: onLike,
+          animate: true,
         ),
         const SizedBox(height: 20),
         _SidebarBtn(
@@ -743,44 +734,13 @@ class _SidebarActions extends StatelessWidget {
   }
 }
 
-class _AuthorAvatar extends StatelessWidget {
-  final String avatarUrl;
-
-  const _AuthorAvatar({required this.avatarUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 46,
-      height: 46,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        color: AppColors.darkSurface,
-      ),
-      child: ClipOval(
-        child: avatarUrl.startsWith('http')
-            ? CachedNetworkImage(
-                imageUrl: avatarUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => const Icon(
-                    Icons.person_rounded,
-                    color: Colors.white,
-                    size: 22),
-              )
-            : const Icon(Icons.person_rounded,
-                color: Colors.white, size: 22),
-      ),
-    );
-  }
-}
-
-class _SidebarBtn extends StatelessWidget {
+class _SidebarBtn extends StatefulWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
   final bool mirrorHorizontal;
+  final bool animate;
 
   const _SidebarBtn({
     required this.icon,
@@ -788,22 +748,59 @@ class _SidebarBtn extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.mirrorHorizontal = false,
+    this.animate = false,
   });
+
+  @override
+  State<_SidebarBtn> createState() => _SidebarBtnState();
+}
+
+class _SidebarBtnState extends State<_SidebarBtn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (widget.animate) _ctrl.forward(from: 0);
+    widget.onTap();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: _handleTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Transform.scale(
-            scaleX: mirrorHorizontal ? -1.0 : 1.0,
-            child: Icon(icon, color: color, size: 28),
+          ScaleTransition(
+            scale: _scale,
+            child: Transform.scale(
+              scaleX: widget.mirrorHorizontal ? -1.0 : 1.0,
+              child: Icon(widget.icon, color: widget.color, size: 28),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            label,
+            widget.label,
             style: AppTypography.textSmall.copyWith(
               color: Colors.white,
               fontSize: 12,
@@ -818,139 +815,115 @@ class _SidebarBtn extends StatelessWidget {
 
 // ── Bottom content ─────────────────────────────────────────────────────────────
 
-class _BottomContent extends StatelessWidget {
+class _BottomContent extends StatefulWidget {
   final MediaPost post;
   final double bottomPad;
 
   const _BottomContent({required this.post, required this.bottomPad});
 
   @override
+  State<_BottomContent> createState() => _BottomContentState();
+}
+
+class _BottomContentState extends State<_BottomContent> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final post = widget.post;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 12),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, widget.bottomPad + 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Author row — no duplicate avatar; sidebar already shows it
+          // Author branding row
           Row(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              Text(
+                'StartupsIndia',
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.verified_rounded,
+                  size: 13, color: AppColors.primaryDefault),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          if (post.excerpt.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: RichText(
+                text: TextSpan(
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            post.authorName,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded,
-                            size: 14,
-                            color: AppColors.primaryDefault),
-                      ],
-                    ),
-                    Text(
-                      post.authorRole,
+                    TextSpan(
+                      text: _expanded
+                          ? post.excerpt
+                          : (post.excerpt.length > 90
+                              ? '${post.excerpt.substring(0, 90)}... '
+                              : post.excerpt),
                       style: AppTypography.textSmall.copyWith(
-                        fontSize: 11,
+                        fontSize: 13,
                         color: Colors.white70,
+                        height: 1.4,
                       ),
                     ),
+                    if (post.excerpt.length > 90)
+                      TextSpan(
+                        text: _expanded ? ' see less' : 'see more',
+                        style: AppTypography.textSmall.copyWith(
+                          fontSize: 13,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              _FollowButton(),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          Text(
-            post.headline,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.displaySmallBold.copyWith(
-              fontSize: 18,
-              color: Colors.white,
-              height: 1.25,
             ),
-          ),
-          if (post.excerpt.isNotEmpty) ...[
-            const SizedBox(height: 5),
-            Text(
-              post.excerpt,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 13,
-                color: Colors.white70,
-                height: 1.4,
-              ),
-            ),
+            const SizedBox(height: 10),
           ],
-          const SizedBox(height: 10),
 
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              const Icon(Icons.bar_chart_rounded,
-                  size: 13, color: Colors.white70),
-              const SizedBox(width: 4),
-              Text(
-                post.category,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 12,
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (post.readTimeMinutes > 0) ...[
-                const SizedBox(width: 12),
-                const Icon(Icons.access_time_rounded,
-                    size: 12, color: Colors.white54),
-                const SizedBox(width: 4),
-                Text(
-                  '${post.readTimeMinutes} min read',
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 12,
-                    color: Colors.white54,
-                  ),
-                ),
-              ],
+              _CategoryPill(label: post.category),
+              _FollowTopicBtn(topic: post.category),
             ],
           ),
-          const SizedBox(height: 10),
-          _FollowTopicBtn(topic: post.category),
         ],
       ),
     );
   }
 }
 
-class _FollowButton extends StatelessWidget {
+class _CategoryPill extends StatelessWidget {
+  final String label;
+
+  const _CategoryPill({required this.label});
+
   @override
   Widget build(BuildContext context) {
+    if (label.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white70, width: 1),
+        color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 0.5),
       ),
       child: Text(
-        'Follow',
+        label,
         style: AppTypography.textSmall.copyWith(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontSize: 11,
           color: Colors.white,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -1033,6 +1006,16 @@ class _CommentSheet extends ConsumerStatefulWidget {
 class _CommentSheetState extends ConsumerState<_CommentSheet> {
   final _controller = TextEditingController();
   bool _posting = false;
+  late final Stream<List<CommentModel>> _commentsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final repo = ref.read(postRepositoryProvider);
+    _commentsStream = widget.post.sourceType == MediaSource.post
+        ? repo.watchPostComments(widget.post.id)
+        : repo.watchArticleComments(widget.post.id);
+  }
 
   @override
   void dispose() {
@@ -1081,11 +1064,6 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final repo = ref.read(postRepositoryProvider);
-    final commentsStream = widget.post.sourceType == MediaSource.post
-        ? repo.watchPostComments(widget.post.id)
-        : repo.watchArticleComments(widget.post.id);
-
     final bottomPad = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -1126,7 +1104,7 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
           SizedBox(
             height: 320,
             child: StreamBuilder<List<CommentModel>>(
-              stream: commentsStream,
+              stream: _commentsStream,
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -1150,10 +1128,14 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: comments.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const SizedBox(height: 14),
-                  itemBuilder: (_, i) =>
-                      _CommentTile(comment: comments[i]),
+                  itemBuilder: (ctx, i) =>
+                      _CommentTile(
+                        comment: comments[i],
+                        postId: widget.post.id,
+                        buildContext: ctx,
+                      ),
                 );
               },
             ),
@@ -1230,8 +1212,26 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
 
 class _CommentTile extends StatelessWidget {
   final CommentModel comment;
+  final String postId;
+  final BuildContext buildContext;
 
-  const _CommentTile({required this.comment});
+  const _CommentTile({
+    required this.comment,
+    required this.postId,
+    required this.buildContext,
+  });
+
+  void _report() {
+    ReportSheet.show(
+      buildContext,
+      title: 'Report comment',
+      onSubmit: (reason) => ReportRepository().reportComment(
+        commentId: comment.id,
+        articleId: postId,
+        reason: reason,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1250,7 +1250,7 @@ class _CommentTile extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: comment.avatarUrl,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => const Icon(
+                    errorWidget: (_, _, _) => const Icon(
                         Icons.person_rounded,
                         color: Colors.white54,
                         size: 16),
@@ -1281,6 +1281,14 @@ class _CommentTile extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        GestureDetector(
+          onTap: _report,
+          child: const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Icon(Icons.more_vert_rounded,
+                color: Colors.white38, size: 18),
           ),
         ),
       ],

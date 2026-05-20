@@ -58,6 +58,16 @@ class PostRepository {
         .update({'shareCount': FieldValue.increment(1)});
   }
 
+  // ── Bookmarked posts ──────────────────────────────────────────────────────
+
+  Stream<List<PostModel>> getBookmarkedPosts(String userId) {
+    return _posts
+        .where('bookmarkedBy', arrayContains: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(PostModel.fromFirestore).toList());
+  }
+
   // ── Comments ──────────────────────────────────────────────────────────────
 
   Stream<List<CommentModel>> watchPostComments(String postId) {
