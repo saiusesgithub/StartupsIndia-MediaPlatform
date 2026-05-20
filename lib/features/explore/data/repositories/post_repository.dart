@@ -63,7 +63,6 @@ class PostRepository {
   Stream<List<PostModel>> getBookmarkedPosts(String userId) {
     return _posts
         .where('bookmarkedBy', arrayContains: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map(PostModel.fromFirestore).toList());
   }
