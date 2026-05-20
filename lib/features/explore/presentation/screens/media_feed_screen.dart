@@ -984,6 +984,16 @@ class _CommentSheet extends ConsumerStatefulWidget {
 class _CommentSheetState extends ConsumerState<_CommentSheet> {
   final _controller = TextEditingController();
   bool _posting = false;
+  late final Stream<List<CommentModel>> _commentsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final repo = ref.read(postRepositoryProvider);
+    _commentsStream = widget.post.sourceType == MediaSource.post
+        ? repo.watchPostComments(widget.post.id)
+        : repo.watchArticleComments(widget.post.id);
+  }
 
   @override
   void dispose() {
@@ -1032,11 +1042,6 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final repo = ref.read(postRepositoryProvider);
-    final commentsStream = widget.post.sourceType == MediaSource.post
-        ? repo.watchPostComments(widget.post.id)
-        : repo.watchArticleComments(widget.post.id);
-
     final bottomPad = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -1077,7 +1082,7 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
           SizedBox(
             height: 320,
             child: StreamBuilder<List<CommentModel>>(
-              stream: commentsStream,
+              stream: _commentsStream,
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
