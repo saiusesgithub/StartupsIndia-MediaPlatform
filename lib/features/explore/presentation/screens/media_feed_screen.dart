@@ -455,7 +455,6 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
               shareCount: _shareCount,
               isLiked: _isLiked,
               isSaved: _isSaved,
-              authorAvatarUrl: widget.post.authorAvatarUrl,
               onLike: _toggleLike,
               onSave: _toggleSave,
               onComment: _showComments,
@@ -612,7 +611,6 @@ class _SidebarActions extends StatelessWidget {
   final int shareCount;
   final bool isLiked;
   final bool isSaved;
-  final String authorAvatarUrl;
   final VoidCallback onLike;
   final VoidCallback onSave;
   final VoidCallback onComment;
@@ -625,7 +623,6 @@ class _SidebarActions extends StatelessWidget {
     required this.shareCount,
     required this.isLiked,
     required this.isSaved,
-    required this.authorAvatarUrl,
     required this.onLike,
     required this.onSave,
     required this.onComment,
@@ -637,9 +634,6 @@ class _SidebarActions extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Author avatar at top of sidebar (TikTok-style)
-        _AuthorAvatar(avatarUrl: authorAvatarUrl),
-        const SizedBox(height: 20),
         _SidebarBtn(
           icon: isLiked
               ? Icons.favorite_rounded
@@ -647,6 +641,7 @@ class _SidebarActions extends StatelessWidget {
           label: _fmt(likeCount),
           color: isLiked ? Colors.redAccent : Colors.white,
           onTap: onLike,
+          animate: true,
         ),
         const SizedBox(height: 20),
         _SidebarBtn(
@@ -682,44 +677,13 @@ class _SidebarActions extends StatelessWidget {
   }
 }
 
-class _AuthorAvatar extends StatelessWidget {
-  final String avatarUrl;
-
-  const _AuthorAvatar({required this.avatarUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 46,
-      height: 46,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        color: AppColors.darkSurface,
-      ),
-      child: ClipOval(
-        child: avatarUrl.startsWith('http')
-            ? CachedNetworkImage(
-                imageUrl: avatarUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, _) => const Icon(
-                    Icons.person_rounded,
-                    color: Colors.white,
-                    size: 22),
-              )
-            : const Icon(Icons.person_rounded,
-                color: Colors.white, size: 22),
-      ),
-    );
-  }
-}
-
-class _SidebarBtn extends StatelessWidget {
+class _SidebarBtn extends StatefulWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
   final bool mirrorHorizontal;
+  final bool animate;
 
   const _SidebarBtn({
     required this.icon,
@@ -727,22 +691,59 @@ class _SidebarBtn extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.mirrorHorizontal = false,
+    this.animate = false,
   });
+
+  @override
+  State<_SidebarBtn> createState() => _SidebarBtnState();
+}
+
+class _SidebarBtnState extends State<_SidebarBtn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (widget.animate) _ctrl.forward(from: 0);
+    widget.onTap();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: _handleTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Transform.scale(
-            scaleX: mirrorHorizontal ? -1.0 : 1.0,
-            child: Icon(icon, color: color, size: 28),
+          ScaleTransition(
+            scale: _scale,
+            child: Transform.scale(
+              scaleX: widget.mirrorHorizontal ? -1.0 : 1.0,
+              child: Icon(widget.icon, color: widget.color, size: 28),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            label,
+            widget.label,
             style: AppTypography.textSmall.copyWith(
               color: Colors.white,
               fontSize: 12,
