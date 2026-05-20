@@ -119,14 +119,43 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
     final isGuest = FirebaseAuth.instance.currentUser == null;
     const guestLimit = 2;
 
+    final isLoading = postsAsync is AsyncLoading;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          if (feedItems.isEmpty)
+          if (isLoading)
             const Center(
               child:
                   CircularProgressIndicator(color: AppColors.primaryDefault),
+            )
+          else if (feedItems.isEmpty)
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.play_circle_outline_rounded,
+                      size: 56, color: Colors.white24),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No videos yet',
+                    style: AppTypography.textMedium.copyWith(
+                      color: Colors.white54,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Check back soon for new content.',
+                    style: AppTypography.textSmall.copyWith(
+                      color: Colors.white38,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             )
           else
             PageView.builder(

@@ -67,7 +67,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         Navigator.pushNamed(
                           context,
                           '/search',
-                          arguments: SearchTab.topics,
+                          arguments: SearchTab.communities,
                         );
                       },
                       style: TextButton.styleFrom(

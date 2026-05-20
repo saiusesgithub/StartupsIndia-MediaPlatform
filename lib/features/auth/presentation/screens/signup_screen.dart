@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/theme_service_provider.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
 import '../providers/auth_providers.dart';
@@ -263,6 +264,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                       isPassword: true,
                                       validator: _validateConfirmPassword,
                                     ),
+                                    const SizedBox(height: 18),
+                                    _ThemePreferenceCard(isDark: isDark),
                                     const SizedBox(height: 20),
 
                                     // Terms & Conditions
@@ -439,6 +442,80 @@ class _ReqChip extends StatelessWidget {
 }
 
 // ── Radial glow decoration ─────────────────────────────────────────────────────
+
+class _ThemePreferenceCard extends ConsumerWidget {
+  final bool isDark;
+
+  const _ThemePreferenceCard({required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDarkMode = ref.watch(themeServiceProvider) == ThemeMode.dark;
+    final surface =
+        isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton;
+    final border = isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
+    final title =
+        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final muted =
+        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.primaryDefault.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+              color: AppColors.primaryDefault,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'App appearance',
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: title,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isDarkMode ? 'Dark mode selected' : 'Light mode selected',
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 12,
+                    color: muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: isDarkMode,
+            activeThumbColor: AppColors.primaryDefault,
+            onChanged: (value) =>
+                ref.read(themeServiceProvider.notifier).setDarkMode(value),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _GlowCircle extends StatelessWidget {
   final double size;
