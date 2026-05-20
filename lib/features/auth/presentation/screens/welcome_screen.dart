@@ -116,7 +116,7 @@ class WelcomeScreen extends StatelessWidget {
                         label: 'Create Account',
                         isDark: isDark,
                         onPressed: () =>
-                            Navigator.pushNamed(context, '/signup'),
+                            Navigator.pushNamed(context, '/role-selection'),
                       ),
                       const SizedBox(height: 6),
 

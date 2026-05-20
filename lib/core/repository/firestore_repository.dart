@@ -51,6 +51,17 @@ class FirestoreRepository {
     return UserModel.fromFirestore(doc);
   }
 
+  Future<bool> isUsernameAvailable(String username, String currentUid) async {
+    final normalized = username.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    final snap = await _users
+        .where('usernameLower', isEqualTo: normalized)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return true;
+    return snap.docs.first.id == currentUid;
+  }
+
   Stream<List<NewsArticleModel>> watchArticles() {
     return _articles
         .orderBy('updatedAt', descending: true)

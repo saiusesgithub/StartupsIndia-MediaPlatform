@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../theme/style_guide.dart';
@@ -79,9 +80,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       );
       return;
     }
+    final currentUser = FirebaseAuth.instance.currentUser;
     Navigator.pushNamed(
       context,
-      '/interest-selection',
+      currentUser == null ? '/signup' : '/interest-selection',
       arguments: _selectedRole,
     );
   }

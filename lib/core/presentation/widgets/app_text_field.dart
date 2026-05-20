@@ -8,6 +8,8 @@ class AppTextField extends StatefulWidget {
   final bool isPassword;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final bool readOnly;
+  final bool enabled;
 
   const AppTextField({
     super.key,
@@ -17,6 +19,8 @@ class AppTextField extends StatefulWidget {
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.readOnly = false,
+    this.enabled = true,
   });
 
   @override
@@ -61,6 +65,7 @@ class _AppTextFieldState extends State<AppTextField> {
         ),
         const SizedBox(height: 6),
         FormField<String>(
+          initialValue: widget.controller.text,
           validator: widget.validator,
           builder: (field) {
             final hasError = field.hasError;
@@ -97,6 +102,8 @@ class _AppTextFieldState extends State<AppTextField> {
                         child: TextField(
                           controller: widget.controller,
                           focusNode: _focusNode,
+                          readOnly: widget.readOnly,
+                          enabled: widget.enabled,
                           obscureText: widget.isPassword ? _obscureText : false,
                           keyboardType: widget.isPassword
                               ? TextInputType.visiblePassword

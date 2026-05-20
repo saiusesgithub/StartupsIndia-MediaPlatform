@@ -24,6 +24,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _isLoading = false;
   bool _isGoogleLoading = false;
 
+  String get _selectedRole {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is String ? args : '';
+  }
+
   // ── Validators ──────────────────────────────────────────────────────────────
 
   String? _validateEmail(String? val) {
@@ -65,7 +70,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         );
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(
-            context, '/role-selection', (_) => false);
+          context,
+          '/interest-selection',
+          (_) => false,
+          arguments: _selectedRole,
+        );
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         _showError(_friendlyError(e.code));
@@ -85,7 +94,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       final isNewUser = credential.additionalUserInfo?.isNewUser ?? false;
       if (isNewUser) {
         Navigator.pushNamedAndRemoveUntil(
-            context, '/role-selection', (_) => false);
+          context,
+          '/interest-selection',
+          (_) => false,
+          arguments: _selectedRole,
+        );
       } else {
         Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
       }

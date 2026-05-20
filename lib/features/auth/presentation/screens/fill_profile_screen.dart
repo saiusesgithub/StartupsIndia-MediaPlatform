@@ -23,6 +23,7 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
   final _phoneController = TextEditingController();
   final _bioController = TextEditingController();
   final _websiteController = TextEditingController();
+  final Map<String, TextEditingController> _roleControllers = {};
 
   File? _pickedImage;
   final ImagePicker _picker = ImagePicker();
@@ -31,8 +32,11 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final email = ref.read(authRepositoryProvider).currentUser?.email ?? '';
+    final user = ref.read(authRepositoryProvider).currentUser;
+    final email = user?.email ?? '';
     _emailController.text = email;
+    _fullNameController.text = user?.displayName ?? '';
+    _usernameController.text = email.contains('@') ? email.split('@').first : '';
   }
 
   @override
@@ -43,7 +47,28 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
     _phoneController.dispose();
     _bioController.dispose();
     _websiteController.dispose();
+    for (final controller in _roleControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  TextEditingController _roleController(String key) {
+    return _roleControllers.putIfAbsent(key, TextEditingController.new);
+  }
+
+  Map<String, Object?> _setupArgs() {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map ? Map<String, Object?>.from(args) : const {};
+  }
+
+  Map<String, dynamic> _collectRoleDetails(String role) {
+    final details = <String, dynamic>{};
+    for (final field in _roleFieldsFor(role)) {
+      final value = _roleController(field.key).text.trim();
+      if (value.isNotEmpty) details[field.key] = value;
+    }
+    return details;
   }
 
   Future<void> _pickImage() async {
@@ -77,18 +102,29 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
       final setup = args is Map ? args : const <String, Object?>{};
       final role = setup['role'] as String? ?? '';
       final interests = List<String>.from(setup['interests'] as List? ?? []);
+      final username = _usernameController.text.trim();
+      final firestoreRepo = ref.read(firestoreRepositoryProvider);
+      final available =
+          await firestoreRepo.isUsernameAvailable(username, currentUser.uid);
+      if (!available) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Username is already taken.')),
+        );
+        setState(() => _isSubmitting = false);
+        return;
+      }
 
       String avatarUrl = currentUser.photoURL ?? '';
-      final firestoreRepo = ref.read(firestoreRepositoryProvider);
       if (_pickedImage != null) {
         avatarUrl = await firestoreRepo.uploadImage(_pickedImage!.path);
       }
 
       final updatedUser = UserModel(
         uid: currentUser.uid,
-        username: _usernameController.text.trim(),
+        username: username,
         fullName: _fullNameController.text.trim(),
-        email: _emailController.text.trim(),
+        email: currentUser.email ?? _emailController.text.trim(),
         phone: _phoneController.text.trim(),
         displayName: _fullNameController.text.trim(),
         bio: _bioController.text.trim().isEmpty
@@ -101,6 +137,7 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
         newsCount: 0,
         role: role,
         interests: interests,
+        roleDetails: _collectRoleDetails(role),
         onboardingCompleted: true,
       );
 
@@ -130,6 +167,8 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final setup = _setupArgs();
+    final role = setup['role'] as String? ?? '';
 
     return Scaffold(
       backgroundColor:
@@ -161,12 +200,27 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                                 controller: _fullNameController,
                                 label: 'Full Name',
                                 hintText: 'Your full name',
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) {
+                                    return 'Full name is required';
+                                  }
+                                  return null;
+                                },
                               ),
                               const SizedBox(height: 14),
                               AppTextField(
                                 controller: _usernameController,
                                 label: 'Username',
                                 hintText: 'yourhandle',
+                                validator: (val) {
+                                  final text = val?.trim() ?? '';
+                                  if (text.isEmpty) return 'Username is required';
+                                  if (!RegExp(r'^[a-zA-Z0-9_]{3,24}$')
+                                      .hasMatch(text)) {
+                                    return 'Use 3-24 letters, numbers or _';
+                                  }
+                                  return null;
+                                },
                               ),
                             ],
                           ),
@@ -177,17 +231,11 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                             children: [
                               AppTextField(
                                 controller: _emailController,
-                                label: 'Email Address*',
+                                label: 'Email Address',
                                 hintText: 'example@email.com',
                                 keyboardType: TextInputType.emailAddress,
+                                readOnly: true,
                                 validator: (val) {
-                                  if (val == null || val.trim().isEmpty) {
-                                    return 'Email is required';
-                                  }
-                                  final ok = RegExp(
-                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                  ).hasMatch(val.trim());
-                                  if (!ok) return 'Enter a valid email address';
                                   return null;
                                 },
                               ),
@@ -209,6 +257,12 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                                 },
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 20),
+                          _RoleDetailsSection(
+                            role: role,
+                            isDark: isDark,
+                            controllerFor: _roleController,
                           ),
                           const SizedBox(height: 20),
                           _FormSection(
@@ -393,6 +447,106 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                 ),
         ),
       ),
+    );
+  }
+}
+
+class _RoleField {
+  final String key;
+  final String label;
+  final String hint;
+  final TextInputType keyboardType;
+
+  const _RoleField({
+    required this.key,
+    required this.label,
+    required this.hint,
+    this.keyboardType = TextInputType.text,
+  });
+}
+
+List<_RoleField> _roleFieldsFor(String role) {
+  return switch (role) {
+    'student' => const [
+        _RoleField(key: 'collegeName', label: 'College Name', hint: 'Your college'),
+        _RoleField(key: 'degreeCourse', label: 'Degree / Course', hint: 'B.Tech, BBA, MBA'),
+        _RoleField(key: 'year', label: 'Year', hint: '1st, 2nd, 3rd, Final'),
+        _RoleField(key: 'branch', label: 'Branch / Specialization', hint: 'Computer Science'),
+        _RoleField(key: 'skills', label: 'Skills', hint: 'Design, Flutter, AI'),
+        _RoleField(key: 'lookingFor', label: 'Looking For', hint: 'Internship, co-founder, learning'),
+      ],
+    'founder' => const [
+        _RoleField(key: 'startupName', label: 'Startup Name', hint: 'Your startup'),
+        _RoleField(key: 'startupStage', label: 'Startup Stage', hint: 'Idea, MVP, Revenue, Scaling'),
+        _RoleField(key: 'industry', label: 'Industry', hint: 'Fintech, SaaS, AI'),
+        _RoleField(key: 'startupDescription', label: 'Startup Description', hint: 'What are you building?'),
+        _RoleField(key: 'businessNeeds', label: 'Looking For', hint: 'Funding, mentors, hiring'),
+        _RoleField(key: 'startupLocation', label: 'Startup Location', hint: 'City / State'),
+        _RoleField(key: 'teamSize', label: 'Team Size', hint: '5', keyboardType: TextInputType.number),
+      ],
+    'mentor' => const [
+        _RoleField(key: 'profession', label: 'Profession / Designation', hint: 'Product Leader'),
+        _RoleField(key: 'company', label: 'Company / Organization', hint: 'Company name'),
+        _RoleField(key: 'expertise', label: 'Expertise', hint: 'Product, GTM, fundraising'),
+        _RoleField(key: 'yearsExperience', label: 'Years of Experience', hint: '10', keyboardType: TextInputType.number),
+        _RoleField(key: 'industry', label: 'Industry', hint: 'SaaS, fintech'),
+        _RoleField(key: 'mentorshipArea', label: 'Mentorship Area', hint: 'Startup, marketing, finance'),
+        _RoleField(key: 'availability', label: 'Availability', hint: 'Free, paid, group session'),
+      ],
+    'investor' => const [
+        _RoleField(key: 'investorType', label: 'Investor Type', hint: 'Angel, VC, family office'),
+        _RoleField(key: 'firmName', label: 'Firm Name', hint: 'Firm / fund name'),
+        _RoleField(key: 'investmentRange', label: 'Investment Range', hint: '10L - 1Cr'),
+        _RoleField(key: 'preferredIndustries', label: 'Preferred Industries', hint: 'AI, SaaS, consumer'),
+        _RoleField(key: 'preferredStage', label: 'Preferred Startup Stage', hint: 'Idea, MVP, revenue'),
+        _RoleField(key: 'portfolioCompanies', label: 'Portfolio Companies', hint: 'Optional'),
+      ],
+    'college' => const [
+        _RoleField(key: 'collegeName', label: 'College Name', hint: 'College / institute'),
+        _RoleField(key: 'collegeType', label: 'College Type', hint: 'Engineering, MBA, university'),
+        _RoleField(key: 'cityState', label: 'City / State', hint: 'Bengaluru, Karnataka'),
+        _RoleField(key: 'contactPersonName', label: 'Contact Person Name', hint: 'Full name'),
+        _RoleField(key: 'designation', label: 'Designation', hint: 'Placement officer'),
+        _RoleField(key: 'numberOfStudents', label: 'Number of Students', hint: '1200', keyboardType: TextInputType.number),
+        _RoleField(key: 'interestedIn', label: 'Interested In', hint: 'Programs, incubation, events'),
+      ],
+    _ => const [
+        _RoleField(key: 'interestArea', label: 'Startup Interest Area', hint: 'AI, funding, product, community'),
+        _RoleField(key: 'lookingFor', label: 'Looking For', hint: 'Learning, networking, events'),
+      ],
+  };
+}
+
+class _RoleDetailsSection extends StatelessWidget {
+  final String role;
+  final bool isDark;
+  final TextEditingController Function(String key) controllerFor;
+
+  const _RoleDetailsSection({
+    required this.role,
+    required this.isDark,
+    required this.controllerFor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fields = _roleFieldsFor(role);
+    if (fields.isEmpty) return const SizedBox.shrink();
+
+    return _FormSection(
+      label: role.isEmpty ? 'Role Details' : '${role.replaceAll('_', ' ')} Details',
+      isDark: isDark,
+      children: [
+        for (var i = 0; i < fields.length; i++) ...[
+          AppTextField(
+            controller: controllerFor(fields[i].key),
+            label: fields[i].label,
+            hintText: fields[i].hint,
+            keyboardType: fields[i].keyboardType,
+          ),
+          if (i != fields.length - 1) const SizedBox(height: 14),
+        ],
+      ],
     );
   }
 }

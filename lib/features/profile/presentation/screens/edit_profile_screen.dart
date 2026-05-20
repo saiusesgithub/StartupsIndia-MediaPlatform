@@ -89,6 +89,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 controller: _usernameController,
                                 label: 'Username',
                                 hintText: 'yourhandle',
+                                validator: _validateUsername,
                               ),
                             ],
                           ),
@@ -101,7 +102,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 controller: _emailController,
                                 label: 'Email Address',
                                 hintText: 'example@email.com',
-                                validator: _validateEmail,
+                                readOnly: true,
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 14),
@@ -361,6 +362,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         );
 
     try {
+      final username = _usernameController.text.trim();
+      final usernameAvailable = await ref
+          .read(firestoreRepositoryProvider)
+          .isUsernameAvailable(username, baseUser.uid);
+      if (!usernameAvailable) {
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Username is already taken.')),
+        );
+        return;
+      }
+
       String avatarUrl = baseUser.avatarUrl;
       if (_pickedAvatarPath != null) {
         avatarUrl = await ref
@@ -369,9 +383,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
 
       final updatedUser = baseUser.copyWith(
-        username: _usernameController.text.trim(),
+        username: username,
         fullName: _fullNameController.text.trim(),
-        email: _emailController.text.trim(),
+        email: baseUser.email,
         phone: _phoneController.text.trim(),
         displayName: _fullNameController.text.trim().isEmpty
             ? baseUser.displayName
@@ -399,11 +413,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
-  String? _validateEmail(String? value) {
+  String? _validateUsername(String? value) {
     final text = (value ?? '').trim();
-    if (text.isEmpty) return 'Email is required';
-    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$');
-    if (!emailRegex.hasMatch(text)) return 'Enter a valid email address';
+    if (text.isEmpty) return 'Username is required';
+    if (!RegExp(r'^[a-zA-Z0-9_]{3,24}$').hasMatch(text)) {
+      return 'Use 3-24 letters, numbers or _';
+    }
     return null;
   }
 

@@ -16,6 +16,7 @@ class UserModel {
   // ── Onboarding ────────────────────────────────────────────────────────────
   final String role;              // e.g. 'founder', 'student'
   final List<String> interests;   // e.g. ['ai', 'saas']
+  final Map<String, dynamic> roleDetails;
   final bool onboardingCompleted;
 
   const UserModel({
@@ -33,6 +34,7 @@ class UserModel {
     required this.newsCount,
     this.role = '',
     this.interests = const [],
+    this.roleDetails = const {},
     this.onboardingCompleted = false,
   });
 
@@ -51,6 +53,7 @@ class UserModel {
     int? newsCount,
     String? role,
     List<String>? interests,
+    Map<String, dynamic>? roleDetails,
     bool? onboardingCompleted,
   }) {
     return UserModel(
@@ -68,6 +71,7 @@ class UserModel {
       newsCount: newsCount ?? this.newsCount,
       role: role ?? this.role,
       interests: interests ?? this.interests,
+      roleDetails: roleDetails ?? this.roleDetails,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
@@ -89,6 +93,9 @@ class UserModel {
       newsCount: (data['newsCount'] as num?)?.toInt() ?? 0,
       role: data['role'] as String? ?? '',
       interests: List<String>.from(data['interests'] as List? ?? []),
+      roleDetails: Map<String, dynamic>.from(
+        data['roleDetails'] as Map? ?? {},
+      ),
       onboardingCompleted: data['onboardingCompleted'] as bool? ?? false,
     );
   }
@@ -97,6 +104,7 @@ class UserModel {
     return <String, dynamic>{
       'uid': uid,
       'username': username,
+      'usernameLower': username.trim().toLowerCase(),
       'fullName': fullName,
       'email': email,
       'phone': phone,
@@ -109,6 +117,7 @@ class UserModel {
       'newsCount': newsCount,
       'role': role,
       'interests': interests,
+      'roleDetails': roleDetails,
       'onboardingCompleted': onboardingCompleted,
       'updatedAt': FieldValue.serverTimestamp(),
     };
