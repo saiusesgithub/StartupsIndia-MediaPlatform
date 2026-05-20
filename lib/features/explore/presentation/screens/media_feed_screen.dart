@@ -309,7 +309,8 @@ class _MediaCard extends ConsumerStatefulWidget {
   ConsumerState<_MediaCard> createState() => _MediaCardState();
 }
 
-class _MediaCardState extends ConsumerState<_MediaCard> {
+class _MediaCardState extends ConsumerState<_MediaCard>
+    with SingleTickerProviderStateMixin {
   late bool _isLiked;
   late bool _isSaved;
   late int _likeCount;
@@ -319,6 +320,10 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
   VideoPlayerController? _videoController;
   bool _videoInitialized = false;
 
+  bool _showHeartOverlay = false;
+  late final AnimationController _heartCtrl;
+  late final Animation<double> _heartAnim;
+
   @override
   void initState() {
     super.initState();
@@ -327,6 +332,20 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
     _likeCount = widget.post.likeCount;
     _commentCount = widget.post.commentCount;
     _shareCount = widget.post.shareCount;
+
+    _heartCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..addStatusListener((s) {
+        if (s == AnimationStatus.completed) {
+          if (mounted) setState(() => _showHeartOverlay = false);
+        }
+      });
+    _heartAnim = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 40),
+    ]).animate(CurvedAnimation(parent: _heartCtrl, curve: Curves.easeOut));
 
     if (widget.post.mediaType == MediaType.video &&
         widget.post.mediaUrl != null) {
@@ -347,6 +366,7 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
 
   @override
   void dispose() {
+    _heartCtrl.dispose();
     _videoController?.dispose();
     super.dispose();
   }
@@ -433,6 +453,8 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
     return GestureDetector(
       onDoubleTap: () {
         if (!_isLiked) _toggleLike();
+        setState(() => _showHeartOverlay = true);
+        _heartCtrl.forward(from: 0);
       },
       child: Stack(
         fit: StackFit.expand,
@@ -443,6 +465,20 @@ class _MediaCardState extends ConsumerState<_MediaCard> {
             videoInitialized: _videoInitialized,
           ),
           const _Scrim(),
+
+          // Double-tap heart overlay
+          if (_showHeartOverlay)
+            Center(
+              child: ScaleTransition(
+                scale: _heartAnim,
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: Colors.white,
+                  size: 90,
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 20)],
+                ),
+              ),
+            ),
 
           // Right sidebar
           Positioned(
@@ -832,8 +868,41 @@ class _BottomContentState extends State<_BottomContent> {
             const SizedBox(height: 10),
           ],
 
-          _FollowTopicBtn(topic: post.category),
+          Row(
+            children: [
+              _CategoryPill(label: post.category),
+              const SizedBox(width: 10),
+              _FollowTopicBtn(topic: post.category),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _CategoryPill extends StatelessWidget {
+  final String label;
+
+  const _CategoryPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    if (label.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 0.5),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.textSmall.copyWith(
+          fontSize: 11,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
