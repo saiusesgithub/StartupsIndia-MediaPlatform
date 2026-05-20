@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../../../core/models/news_article_model.dart';
 import '../../../../core/providers/user_topics_provider.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/widgets/guest_gate.dart';
@@ -13,7 +12,6 @@ import '../../../../theme/style_guide.dart';
 import '../../domain/models/media_post.dart';
 import '../../domain/models/post_model.dart';
 import '../providers/post_providers.dart';
-import '../../../home/presentation/providers/news_provider.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
@@ -72,65 +70,50 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
 
   List<MediaPost> _buildFeed(
     List<PostModel> posts,
-    List<NewsArticleModel> all,
-    List<NewsArticleModel> trending,
     List<String> followedTopics,
   ) {
     final tab = _tabs[_tabIndex];
 
-    // Admin posts come first (actual videos)
-    final postItems = posts
+    final items = posts
         .asMap()
         .entries
         .map((e) => _postToMediaPost(e.value, e.key))
         .toList();
 
-    List<NewsArticleModel> source;
-    if (tab == 'Trending') {
-      source = trending.isNotEmpty ? trending : all;
-    } else {
-      source = all;
-    }
-
-    final articleItems = source
-        .asMap()
-        .entries
-        .map((e) => _articleToMediaPost(e.value, postItems.length + e.key))
-        .toList();
-
-    final combined = [...postItems, ...articleItems];
-
     if (tab == 'For You') {
-      if (followedTopics.isEmpty) return combined;
-      final followed = combined
+      if (followedTopics.isEmpty) return items;
+      final followed = items
           .where((p) => followedTopics.contains(p.category.toLowerCase()))
           .toList();
-      final rest = combined
+      final rest = items
           .where((p) => !followedTopics.contains(p.category.toLowerCase()))
           .toList();
       return [...followed, ...rest];
     }
 
+    if (tab == 'Trending') {
+      final sorted = List<MediaPost>.from(items)
+        ..sort((a, b) =>
+            (b.likeCount + b.commentCount).compareTo(a.likeCount + a.commentCount));
+      return sorted;
+    }
+
     final filter = _tabCategoryMap[tab] ?? '';
-    if (filter.isEmpty) return combined;
+    if (filter.isEmpty) return items;
     final filtered =
-        combined.where((p) => p.category.toLowerCase().contains(filter)).toList();
-    return filtered.isNotEmpty ? filtered : combined;
+        items.where((p) => p.category.toLowerCase().contains(filter)).toList();
+    return filtered.isNotEmpty ? filtered : items;
   }
 
   @override
   Widget build(BuildContext context) {
     final postsAsync = ref.watch(postsProvider);
-    final allAsync = ref.watch(latestNewsProvider);
-    final trendingAsync = ref.watch(trendingNewsProvider);
     final topicsAsync = ref.watch(userTopicsProvider);
 
     final posts = postsAsync.asData?.value ?? [];
-    final all = allAsync.asData?.value ?? [];
-    final trending = trendingAsync.asData?.value ?? [];
     final followedTopics = topicsAsync.asData?.value ?? [];
 
-    final feedItems = _buildFeed(posts, all, trending, followedTopics);
+    final feedItems = _buildFeed(posts, followedTopics);
     final isGuest = FirebaseAuth.instance.currentUser == null;
     const guestLimit = 2;
 
@@ -202,35 +185,6 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
     );
   }
 
-  static MediaPost _articleToMediaPost(NewsArticleModel article, int index) {
-    final words = article.body.trim().split(RegExp(r'\s+'));
-    final readTime = (words.length / 200).ceil().clamp(1, 30);
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    return MediaPost(
-      id: article.id,
-      authorId: article.authorId,
-      authorName: article.sourceName,
-      authorRole: article.category,
-      authorAvatarUrl: article.sourceLogoAsset,
-      isVerified: true,
-      thumbnailUrl: article.thumbnailAsset,
-      mediaType: MediaType.image,
-      sourceType: MediaSource.article,
-      headline: article.headline,
-      excerpt: article.body.length > 120
-          ? '${article.body.substring(0, 120)}...'
-          : article.body,
-      category: article.category,
-      readTimeMinutes: readTime,
-      likeCount: article.likesCount,
-      commentCount: article.commentsCount,
-      saveCount: 0,
-      shareCount: 0,
-      isLiked: article.likedBy.contains(uid),
-      isSaved: article.bookmarkedBy.contains(uid),
-      colorIndex: index,
-    );
-  }
 }
 
 // ── Header ─────────────────────────────────────────────────────────────────────
@@ -281,21 +235,6 @@ class _Header extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/search'),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.search_rounded,
-                          size: 20, color: Colors.white),
                     ),
                   ),
                 ],
@@ -574,7 +513,7 @@ class _MediaLayer extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: post.thumbnailUrl,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) =>
+                errorWidget: (_, __, _) =>
                     _GradientFallback(index: post.colorIndex),
               )
             else
@@ -591,7 +530,7 @@ class _MediaLayer extends StatelessWidget {
           return CachedNetworkImage(
             imageUrl: post.thumbnailUrl,
             fit: BoxFit.cover,
-            errorWidget: (_, __, ___) =>
+            errorWidget: (_, __, _) =>
                 _GradientFallback(index: post.colorIndex),
           );
         }
@@ -763,7 +702,7 @@ class _AuthorAvatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: avatarUrl,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => const Icon(
+                errorWidget: (_, __, _) => const Icon(
                     Icons.person_rounded,
                     color: Colors.white,
                     size: 22),
@@ -1150,7 +1089,7 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: comments.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const SizedBox(height: 14),
                   itemBuilder: (_, i) =>
                       _CommentTile(comment: comments[i]),
@@ -1250,7 +1189,7 @@ class _CommentTile extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: comment.avatarUrl,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => const Icon(
+                    errorWidget: (_, __, _) => const Icon(
                         Icons.person_rounded,
                         color: Colors.white54,
                         size: 16),
