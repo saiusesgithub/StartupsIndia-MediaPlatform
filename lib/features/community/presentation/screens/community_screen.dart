@@ -884,14 +884,11 @@ class _ActivitySliver extends ConsumerWidget {
                   )),
           ],
         ),
-        loading: () => const Padding(
-          padding: EdgeInsets.all(32),
-          child: Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primaryDefault,
-              strokeWidth: 2,
-            ),
-          ),
+        loading: () => _EmptyState(
+          isDark: isDark,
+          icon: Icons.chat_bubble_outline_rounded,
+          title: 'No questions yet',
+          body: 'Ask a doubt on any announcement to track it here.',
         ),
         error: (_, _) => _EmptyState(
           isDark: isDark,
