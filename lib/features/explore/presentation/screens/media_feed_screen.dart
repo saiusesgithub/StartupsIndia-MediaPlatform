@@ -13,6 +13,8 @@ import '../../domain/models/media_post.dart';
 import '../../domain/models/post_model.dart';
 import '../providers/post_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../home/data/repositories/report_repository.dart';
+import '../../../home/presentation/widgets/report_sheet.dart';
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
 
@@ -1108,8 +1110,12 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
                   itemCount: comments.length,
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: 14),
-                  itemBuilder: (_, i) =>
-                      _CommentTile(comment: comments[i]),
+                  itemBuilder: (ctx, i) =>
+                      _CommentTile(
+                        comment: comments[i],
+                        postId: widget.post.id,
+                        buildContext: ctx,
+                      ),
                 );
               },
             ),
@@ -1186,8 +1192,26 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
 
 class _CommentTile extends StatelessWidget {
   final CommentModel comment;
+  final String postId;
+  final BuildContext buildContext;
 
-  const _CommentTile({required this.comment});
+  const _CommentTile({
+    required this.comment,
+    required this.postId,
+    required this.buildContext,
+  });
+
+  void _report() {
+    ReportSheet.show(
+      buildContext,
+      title: 'Report comment',
+      onSubmit: (reason) => ReportRepository().reportComment(
+        commentId: comment.id,
+        articleId: postId,
+        reason: reason,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1237,6 +1261,14 @@ class _CommentTile extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        GestureDetector(
+          onTap: _report,
+          child: const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Icon(Icons.more_vert_rounded,
+                color: Colors.white38, size: 18),
           ),
         ),
       ],
