@@ -164,6 +164,10 @@ service cloud.firestore {
     // Authenticated users can create reports; only admin can read or moderate.
     // Reports are immutable once submitted (no client-side updates/deletes).
     // Field validation prevents spoofed reportedBy and invalid enum values.
+    match /{path=**}/comments/{commentId} {
+      allow read: if isSignedIn();
+    }
+
     match /reports/{reportId} {
       allow read: if isAdmin();
       allow create: if isSignedIn() &&

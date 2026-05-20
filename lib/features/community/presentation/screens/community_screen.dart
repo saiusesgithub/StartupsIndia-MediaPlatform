@@ -826,6 +826,7 @@ class _ActivityPreviewSliver extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activity = ref.watch(myCommunityActivityProvider).asData?.value ?? [];
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     final visible = activity.take(3).toList();
     return SliverToBoxAdapter(
       child: Column(
@@ -842,12 +843,13 @@ class _ActivityPreviewSliver extends ConsumerWidget {
               isDark: isDark,
               icon: Icons.chat_bubble_outline_rounded,
               title: 'No questions yet',
-              body: 'Your comments and pending admin replies will show here.',
+              body: 'Your comments and mentions will show here.',
             )
           else
             ...visible.map((comment) => _ActivityTile(
                   isDark: isDark,
                   comment: comment,
+                  currentUserId: currentUserId,
                 )),
           const SizedBox(height: 8),
         ],
@@ -864,6 +866,7 @@ class _ActivitySliver extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activityAsync = ref.watch(myCommunityActivityProvider);
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     return SliverToBoxAdapter(
       child: activityAsync.when(
         data: (activity) => Column(
@@ -875,12 +878,13 @@ class _ActivitySliver extends ConsumerWidget {
                 isDark: isDark,
                 icon: Icons.chat_bubble_outline_rounded,
                 title: 'No questions yet',
-                body: 'Ask a doubt on any announcement to track it here.',
+                body: 'Your comments and mentions will show here.',
               )
             else
               ...activity.map((comment) => _ActivityTile(
                     isDark: isDark,
                     comment: comment,
+                    currentUserId: currentUserId,
                   )),
           ],
         ),
@@ -888,7 +892,7 @@ class _ActivitySliver extends ConsumerWidget {
           isDark: isDark,
           icon: Icons.chat_bubble_outline_rounded,
           title: 'No questions yet',
-          body: 'Ask a doubt on any announcement to track it here.',
+          body: 'Your comments and mentions will show here.',
         ),
         error: (_, _) => _EmptyState(
           isDark: isDark,
@@ -904,12 +908,18 @@ class _ActivitySliver extends ConsumerWidget {
 class _ActivityTile extends StatelessWidget {
   final bool isDark;
   final CommunityCommentModel comment;
+  final String currentUserId;
 
-  const _ActivityTile({required this.isDark, required this.comment});
+  const _ActivityTile({
+    required this.isDark,
+    required this.comment,
+    required this.currentUserId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final pending = !comment.hasAdminReply;
+    final isMine = comment.authorId == currentUserId;
+    final label = isMine ? 'Your comment' : 'Mentioned you';
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       padding: const EdgeInsets.all(14),
@@ -924,10 +934,10 @@ class _ActivityTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            pending
-                ? Icons.hourglass_top_rounded
-                : Icons.mark_chat_read_outlined,
-            color: pending ? const Color(0xFFF4B740) : AppColors.primaryDefault,
+            isMine
+                ? Icons.chat_bubble_outline_rounded
+                : Icons.alternate_email_rounded,
+            color: isMine ? AppColors.primaryDefault : const Color(0xFFF4B740),
             size: 18,
           ),
           const SizedBox(width: 10),
@@ -949,7 +959,7 @@ class _ActivityTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  '${pending ? 'Pending admin reply' : 'Admin replied'} · ${_formatTime(comment.createdAt)}',
+                  '$label · ${_formatTime(comment.createdAt)}',
                   style: AppTypography.textSmall.copyWith(
                     fontSize: 11,
                     color: isDark

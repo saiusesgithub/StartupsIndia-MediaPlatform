@@ -44,5 +44,11 @@ final myCommunityActivityProvider =
     StreamProvider<List<CommunityCommentModel>>((ref) {
   final uid = FirebaseAuth.instance.currentUser?.uid;
   if (uid == null) return Stream.value([]);
-  return ref.watch(communityRepositoryProvider).watchMyCommentActivity(uid);
+  final authUser = FirebaseAuth.instance.currentUser;
+  final displayName =
+      authUser?.displayName ?? authUser?.email?.split('@').first ?? '';
+  return ref.watch(communityRepositoryProvider).watchMyCommentActivity(
+        userId: uid,
+        displayName: displayName,
+      );
 });

@@ -14,7 +14,10 @@ abstract class CommunityRepository {
     String communityId,
     String postId,
   );
-  Stream<List<CommunityCommentModel>> watchMyCommentActivity(String userId);
+  Stream<List<CommunityCommentModel>> watchMyCommentActivity({
+    required String userId,
+    required String displayName,
+  });
   Future<void> joinCommunity(String communityId, UserModel user);
   Future<void> leaveCommunity(String communityId, String userId);
   Future<void> markCommunityRead(String communityId, String userId);
@@ -24,6 +27,7 @@ abstract class CommunityRepository {
     required String content,
     required UserModel user,
     String? replyToCommentId,
+    String? replyToAuthorId,
     String? replyToAuthorName,
   });
   Future<void> reportComment({

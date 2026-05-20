@@ -779,6 +779,7 @@ class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
             content: text,
             user: user,
             replyToCommentId: _replyingTo?.id,
+            replyToAuthorId: _replyingTo?.authorId,
             replyToAuthorName: _replyingTo?.authorName,
           );
       _commentController.clear();

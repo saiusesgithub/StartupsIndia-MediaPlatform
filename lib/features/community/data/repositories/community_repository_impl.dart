@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -138,22 +140,65 @@ class CommunityRepositoryImpl implements CommunityRepository {
   }
 
   @override
-  Stream<List<CommunityCommentModel>> watchMyCommentActivity(String userId) {
-    return _firestore
+  Stream<List<CommunityCommentModel>> watchMyCommentActivity({
+    required String userId,
+    required String displayName,
+  }) {
+    final authored = _firestore
         .collectionGroup('comments')
         .where('authorId', isEqualTo: userId)
         .limit(30)
         .snapshots()
-        .map((snap) {
-      final comments =
-          snap.docs.map(CommunityCommentModel.fromFirestore).toList();
+        .map((snap) => snap.docs.map(CommunityCommentModel.fromFirestore));
+
+    final mentionedById = _firestore
+        .collectionGroup('comments')
+        .where('mentionedUserIds', arrayContains: userId)
+        .limit(30)
+        .snapshots()
+        .map((snap) => snap.docs.map(CommunityCommentModel.fromFirestore));
+
+    late StreamSubscription<Iterable<CommunityCommentModel>> mineSub;
+    late StreamSubscription<Iterable<CommunityCommentModel>> mentionSub;
+    final controller = StreamController<List<CommunityCommentModel>>();
+    Iterable<CommunityCommentModel> mine = const [];
+    Iterable<CommunityCommentModel> mentions = const [];
+
+    void emit() {
+      final byId = <String, CommunityCommentModel>{};
+      for (final comment in [...mine, ...mentions]) {
+        byId[comment.id] = comment;
+      }
+      final normalizedName = displayName.trim().toLowerCase();
+      final comments = byId.values.where((comment) {
+        if (comment.authorId == userId) return true;
+        if (comment.mentionedUserIds.contains(userId)) return true;
+        if (normalizedName.isEmpty) return false;
+        return comment.content.toLowerCase().contains('@$normalizedName');
+      }).toList();
       comments.sort((a, b) {
         final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
         final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
         return bTime.compareTo(aTime);
       });
-      return comments;
-    });
+      controller.add(comments);
+    }
+
+    controller.onListen = () {
+      mineSub = authored.listen((next) {
+        mine = next;
+        emit();
+      }, onError: controller.addError);
+      mentionSub = mentionedById.listen((next) {
+        mentions = next;
+        emit();
+      }, onError: controller.addError);
+    };
+    controller.onCancel = () async {
+      await mineSub.cancel();
+      await mentionSub.cancel();
+    };
+    return controller.stream;
   }
 
   @override
@@ -249,6 +294,7 @@ class CommunityRepositoryImpl implements CommunityRepository {
     required String content,
     required UserModel user,
     String? replyToCommentId,
+    String? replyToAuthorId,
     String? replyToAuthorName,
   }) async {
     final trimmed = content.trim();
@@ -270,7 +316,10 @@ class CommunityRepositoryImpl implements CommunityRepository {
       'authorRole': user.role,
       'replyToCommentId': replyToCommentId,
       'replyToAuthorName': replyToAuthorName,
-      'mentionedUserIds': <String>[],
+      'mentionedUserIds':
+          replyToAuthorId == null || replyToAuthorId.isEmpty
+              ? <String>[]
+              : <String>[replyToAuthorId],
       'reportCount': 0,
       'status': 'visible',
       'isAdminReply': false,
