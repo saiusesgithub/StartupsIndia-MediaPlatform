@@ -456,59 +456,17 @@ class _AnnouncementThread extends ConsumerStatefulWidget {
 }
 
 class _AnnouncementThreadState extends ConsumerState<_AnnouncementThread> {
-  final _commentController = TextEditingController();
-  bool _posting = false;
-  CommunityCommentModel? _replyingTo;
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submitComment() async {
-    final text = _commentController.text.trim();
-    if (text.isEmpty || _posting) return;
-    setState(() => _posting = true);
-    try {
-      final user =
-          await ref.read(authRepositoryProvider).getCurrentUserModel();
-      if (user == null) return;
-      await ref.read(communityRepositoryProvider).addComment(
-            communityId: widget.communityId,
-            postId: widget.post.id,
-            content: text,
-            user: user,
-            replyToCommentId: _replyingTo?.id,
-            replyToAuthorName: _replyingTo?.authorName,
-          );
-      _commentController.clear();
-      setState(() => _replyingTo = null);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to comment: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _posting = false);
-    }
-  }
-
-  Future<void> _reportComment(CommunityCommentModel comment) async {
-    final authUser = ref.read(authStateChangesProvider).value;
-    if (authUser == null) return;
-    await ref.read(communityRepositoryProvider).reportComment(
-          communityId: widget.communityId,
-          postId: widget.post.id,
-          commentId: comment.id,
-          userId: authUser.uid,
-        );
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Comment reported for admin review.')),
-      );
-    }
+  void _openComments() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CommentsSheet(
+        isDark: widget.isDark,
+        communityId: widget.communityId,
+        post: widget.post,
+      ),
+    );
   }
 
   @override
@@ -516,11 +474,6 @@ class _AnnouncementThreadState extends ConsumerState<_AnnouncementThread> {
     final post = widget.post;
     final isDark = widget.isDark;
     final isEvent = post.type == CommunityPostType.event;
-    final commentsAsync = ref.watch(
-      communityCommentsProvider(
-        (communityId: widget.communityId, postId: post.id),
-      ),
-    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -593,9 +546,8 @@ class _AnnouncementThreadState extends ConsumerState<_AnnouncementThread> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurface
-                              : AppColors.grayscaleWhite,
+                    color:
+                        isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
                     borderRadius: const BorderRadius.only(
                       topRight: Radius.circular(14),
                       bottomLeft: Radius.circular(14),
@@ -659,61 +611,33 @@ class _AnnouncementThreadState extends ConsumerState<_AnnouncementThread> {
                       if (post.linkUrl != null && post.linkUrl!.isNotEmpty)
                         _LinkPreview(isDark: isDark, post: post),
                       const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline_rounded,
-                            size: 14,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.grayscaleBodyText,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            '${post.commentCount} comments',
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 12,
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _openComments,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              size: 14,
                               color: isDark
                                   ? AppColors.darkTextSecondary
                                   : AppColors.grayscaleBodyText,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 5),
+                            Text(
+                              '${post.commentCount} comments',
+                              style: AppTypography.textSmall.copyWith(
+                                fontSize: 12,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.grayscaleBodyText,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                commentsAsync.when(
-                  data: (comments) => _CommentsList(
-                    isDark: isDark,
-                    comments: comments,
-                    onReply: (comment) => setState(() {
-                      _replyingTo = comment;
-                      _commentController.text = '@${comment.authorName} ';
-                    }),
-                    onReport: _reportComment,
-                  ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, _) => Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'Comments unavailable.',
-                      style: AppTypography.textSmall.copyWith(
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.grayscaleBodyText,
-                      ),
-                    ),
-                  ),
-                ),
-                _CommentInput(
-                  isDark: isDark,
-                  controller: _commentController,
-                  replyingTo: _replyingTo,
-                  isPosting: _posting,
-                  onCancelReply: () => setState(() => _replyingTo = null),
-                  onSubmit: _submitComment,
                 ),
               ],
             ),
@@ -816,37 +740,252 @@ class _LinkPreview extends StatelessWidget {
   }
 }
 
-class _CommentsList extends StatelessWidget {
+class _CommentsSheet extends ConsumerStatefulWidget {
   final bool isDark;
-  final List<CommunityCommentModel> comments;
-  final ValueChanged<CommunityCommentModel> onReply;
-  final ValueChanged<CommunityCommentModel> onReport;
+  final String communityId;
+  final CommunityPostModel post;
 
-  const _CommentsList({
+  const _CommentsSheet({
     required this.isDark,
-    required this.comments,
-    required this.onReply,
-    required this.onReport,
+    required this.communityId,
+    required this.post,
+  });
+
+  @override
+  ConsumerState<_CommentsSheet> createState() => _CommentsSheetState();
+}
+
+class _CommentsSheetState extends ConsumerState<_CommentsSheet> {
+  final _commentController = TextEditingController();
+  bool _posting = false;
+  CommunityCommentModel? _replyingTo;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitComment() async {
+    final text = _commentController.text.trim();
+    if (text.isEmpty || _posting) return;
+    setState(() => _posting = true);
+    try {
+      final user = await ref.read(authRepositoryProvider).getCurrentUserModel();
+      if (user == null) return;
+      await ref.read(communityRepositoryProvider).addComment(
+            communityId: widget.communityId,
+            postId: widget.post.id,
+            content: text,
+            user: user,
+            replyToCommentId: _replyingTo?.id,
+            replyToAuthorName: _replyingTo?.authorName,
+          );
+      _commentController.clear();
+      setState(() => _replyingTo = null);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to comment: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  Future<void> _reportComment(CommunityCommentModel comment) async {
+    final authUser = ref.read(authStateChangesProvider).value;
+    if (authUser == null) return;
+    await ref.read(communityRepositoryProvider).reportComment(
+          communityId: widget.communityId,
+          postId: widget.post.id,
+          commentId: comment.id,
+          userId: authUser.uid,
+        );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Comment reported for admin review.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final commentsAsync = ref.watch(
+      communityCommentsProvider(
+        (communityId: widget.communityId, postId: widget.post.id),
+      ),
+    );
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.42,
+      maxChildSize: 0.92,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(bottom: bottomInset),
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.grayscaleLine,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 10, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Comments',
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.grayscaleTitleActive,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.grayscaleBodyText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: commentsAsync.when(
+                    data: (comments) {
+                      final visible =
+                          comments.where((c) => !c.isDeleted).toList();
+                      if (visible.isEmpty) {
+                        return _CommentsEmptyState(isDark: isDark);
+                      }
+                      return ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: visible.length,
+                        itemBuilder: (context, index) {
+                          final comment = visible[index];
+                          return _CommentTile(
+                            isDark: isDark,
+                            comment: comment,
+                            onReply: () => setState(() {
+                              _replyingTo = comment;
+                              _commentController.text =
+                                  '@${comment.authorName} ';
+                            }),
+                            onReport: () => _reportComment(comment),
+                          );
+                        },
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryDefault,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    error: (_, _) => _CommentsEmptyState(
+                      isDark: isDark,
+                      title: 'Comments unavailable',
+                      body: 'Please try again after a moment.',
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                  child: _CommentInput(
+                    isDark: isDark,
+                    controller: _commentController,
+                    replyingTo: _replyingTo,
+                    isPosting: _posting,
+                    onCancelReply: () => setState(() => _replyingTo = null),
+                    onSubmit: _submitComment,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CommentsEmptyState extends StatelessWidget {
+  final bool isDark;
+  final String title;
+  final String body;
+
+  const _CommentsEmptyState({
+    required this.isDark,
+    this.title = 'No comments yet',
+    this.body = 'Ask the first doubt on this announcement.',
   });
 
   @override
   Widget build(BuildContext context) {
-    final visible = comments.where((c) => !c.isDeleted).toList();
-    if (visible.isEmpty) return const SizedBox(height: 8);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Column(
-        children: visible
-            .map(
-              (comment) => _CommentTile(
-                isDark: isDark,
-                comment: comment,
-                onReply: () => onReply(comment),
-                onReport: () => onReport(comment),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 34,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.grayscaleTitleActive,
               ),
-            )
-            .toList(),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 12,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.grayscaleBodyText,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
