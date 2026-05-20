@@ -22,6 +22,20 @@ class _CommunityDetailScreenState
     extends ConsumerState<CommunityDetailScreen> {
   bool _joiningLeaving = false;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _markRead());
+  }
+
+  Future<void> _markRead() async {
+    final authUser = ref.read(authStateChangesProvider).value;
+    if (authUser == null) return;
+    await ref
+        .read(communityRepositoryProvider)
+        .markCommunityRead(widget.communityId, authUser.uid);
+  }
+
   Future<void> _toggleMembership(
       bool isMember, CommunityModel community) async {
     setState(() => _joiningLeaving = true);
@@ -279,7 +293,11 @@ class _CommunityDetailScreenState
       itemCount: posts.length,
       itemBuilder: (context, i) {
         final post = posts[i];
-        return _PostBubble(isDark: isDark, post: post);
+        return _PostThread(
+          isDark: isDark,
+          communityId: widget.communityId,
+          post: post,
+        );
       },
     );
   }
@@ -365,18 +383,27 @@ class _CommunityDetailScreenState
 
 // ── Post bubble ───────────────────────────────────────────────────────────────
 
-class _PostBubble extends StatelessWidget {
+class _PostThread extends StatelessWidget {
   final bool isDark;
+  final String communityId;
   final CommunityPostModel post;
 
-  const _PostBubble({required this.isDark, required this.post});
+  const _PostThread({
+    required this.isDark,
+    required this.communityId,
+    required this.post,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (post.type == CommunityPostType.system) {
       return _SystemMessage(isDark: isDark, post: post);
     }
-    return _AnnouncementBubble(isDark: isDark, post: post);
+    return _AnnouncementThread(
+      isDark: isDark,
+      communityId: communityId,
+      post: post,
+    );
   }
 }
 
@@ -411,15 +438,88 @@ class _SystemMessage extends StatelessWidget {
   }
 }
 
-class _AnnouncementBubble extends StatelessWidget {
+class _AnnouncementThread extends ConsumerStatefulWidget {
   final bool isDark;
+  final String communityId;
   final CommunityPostModel post;
 
-  const _AnnouncementBubble({required this.isDark, required this.post});
+  const _AnnouncementThread({
+    required this.isDark,
+    required this.communityId,
+    required this.post,
+  });
+
+  @override
+  ConsumerState<_AnnouncementThread> createState() =>
+      _AnnouncementThreadState();
+}
+
+class _AnnouncementThreadState extends ConsumerState<_AnnouncementThread> {
+  final _commentController = TextEditingController();
+  bool _posting = false;
+  CommunityCommentModel? _replyingTo;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitComment() async {
+    final text = _commentController.text.trim();
+    if (text.isEmpty || _posting) return;
+    setState(() => _posting = true);
+    try {
+      final user =
+          await ref.read(authRepositoryProvider).getCurrentUserModel();
+      if (user == null) return;
+      await ref.read(communityRepositoryProvider).addComment(
+            communityId: widget.communityId,
+            postId: widget.post.id,
+            content: text,
+            user: user,
+            replyToCommentId: _replyingTo?.id,
+            replyToAuthorName: _replyingTo?.authorName,
+          );
+      _commentController.clear();
+      setState(() => _replyingTo = null);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to comment: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  Future<void> _reportComment(CommunityCommentModel comment) async {
+    final authUser = ref.read(authStateChangesProvider).value;
+    if (authUser == null) return;
+    await ref.read(communityRepositoryProvider).reportComment(
+          communityId: widget.communityId,
+          postId: widget.post.id,
+          commentId: comment.id,
+          userId: authUser.uid,
+        );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Comment reported for admin review.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final post = widget.post;
+    final isDark = widget.isDark;
     final isEvent = post.type == CommunityPostType.event;
+    final commentsAsync = ref.watch(
+      communityCommentsProvider(
+        (communityId: widget.communityId, postId: post.id),
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -492,7 +592,9 @@ class _AnnouncementBubble extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+                          color: isDark
+                              ? AppColors.darkSurface
+                              : AppColors.grayscaleWhite,
                     borderRadius: const BorderRadius.only(
                       topRight: Radius.circular(14),
                       bottomLeft: Radius.circular(14),
@@ -548,15 +650,436 @@ class _AnnouncementBubble extends StatelessWidget {
                             child: Image.network(
                               post.imageUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                              errorBuilder: (_, _, _) =>
+                                  const SizedBox.shrink(),
                             ),
                           ),
                         ),
+                      if (post.linkUrl != null && post.linkUrl!.isNotEmpty)
+                        _LinkPreview(isDark: isDark, post: post),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 14,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.grayscaleBodyText,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '${post.commentCount} comments',
+                            style: AppTypography.textSmall.copyWith(
+                              fontSize: 12,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.grayscaleBodyText,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
+                commentsAsync.when(
+                  data: (comments) => _CommentsList(
+                    isDark: isDark,
+                    comments: comments,
+                    onReply: (comment) => setState(() {
+                      _replyingTo = comment;
+                      _commentController.text = '@${comment.authorName} ';
+                    }),
+                    onReport: _reportComment,
+                  ),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Comments unavailable.',
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleBodyText,
+                      ),
+                    ),
+                  ),
+                ),
+                _CommentInput(
+                  isDark: isDark,
+                  controller: _commentController,
+                  replyingTo: _replyingTo,
+                  isPosting: _posting,
+                  onCancelReply: () => setState(() => _replyingTo = null),
+                  onSubmit: _submitComment,
+                ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LinkPreview extends StatelessWidget {
+  final bool isDark;
+  final CommunityPostModel post;
+
+  const _LinkPreview({required this.isDark, required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkInputBackground : const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.link_rounded,
+            color: AppColors.primaryDefault,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  post.linkTitle?.isNotEmpty == true
+                      ? post.linkTitle!
+                      : post.linkUrl!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
+                  ),
+                ),
+                if (post.linkDescription?.isNotEmpty == true)
+                  Text(
+                    post.linkDescription!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommentsList extends StatelessWidget {
+  final bool isDark;
+  final List<CommunityCommentModel> comments;
+  final ValueChanged<CommunityCommentModel> onReply;
+  final ValueChanged<CommunityCommentModel> onReport;
+
+  const _CommentsList({
+    required this.isDark,
+    required this.comments,
+    required this.onReply,
+    required this.onReport,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = comments.where((c) => !c.isDeleted).toList();
+    if (visible.isEmpty) return const SizedBox(height: 8);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        children: visible
+            .map(
+              (comment) => _CommentTile(
+                isDark: isDark,
+                comment: comment,
+                onReply: () => onReply(comment),
+                onReport: () => onReport(comment),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _CommentTile extends StatelessWidget {
+  final bool isDark;
+  final CommunityCommentModel comment;
+  final VoidCallback onReply;
+  final VoidCallback onReport;
+
+  const _CommentTile({
+    required this.isDark,
+    required this.comment,
+    required this.onReply,
+    required this.onReport,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkInputBackground : const Color(0xFFF7F7F8),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Avatar(name: comment.authorName, avatarUrl: comment.authorAvatarUrl),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        comment.authorName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.textSmall.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.grayscaleTitleActive,
+                        ),
+                      ),
+                    ),
+                    if (comment.isAdminReply)
+                      _TinyBadge(label: 'Admin', color: AppColors.primaryDefault),
+                    Text(
+                      _formatTime(comment.createdAt),
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 10,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleBodyText,
+                      ),
+                    ),
+                  ],
+                ),
+                if (comment.replyToAuthorName?.isNotEmpty == true)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      'Replying to @${comment.replyToAuthorName}',
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 11,
+                        color: AppColors.primaryDefault,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  comment.content,
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: onReply,
+                      child: Text(
+                        'Reply',
+                        style: AppTypography.textSmall.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryDefault,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: onReport,
+                      child: Text(
+                        comment.status == CommunityCommentStatus.reported
+                            ? 'Reported'
+                            : 'Report',
+                        style: AppTypography.textSmall.copyWith(
+                          fontSize: 11,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.grayscaleBodyText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TinyBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _TinyBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.textSmall.copyWith(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _CommentInput extends StatelessWidget {
+  final bool isDark;
+  final TextEditingController controller;
+  final CommunityCommentModel? replyingTo;
+  final bool isPosting;
+  final VoidCallback onCancelReply;
+  final VoidCallback onSubmit;
+
+  const _CommentInput({
+    required this.isDark,
+    required this.controller,
+    required this.replyingTo,
+    required this.isPosting,
+    required this.onCancelReply,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkInputBackground : const Color(0xFFF7F7F8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
+      ),
+      child: Column(
+        children: [
+          if (replyingTo != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Replying to @${replyingTo!.authorName}',
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 11,
+                        color: AppColors.primaryDefault,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: onCancelReply,
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: AppColors.primaryDefault,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  minLines: 1,
+                  maxLines: 3,
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 13,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Ask a doubt or add a comment',
+                    hintStyle: AppTypography.textSmall.copyWith(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: isPosting ? null : onSubmit,
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryDefault,
+                    shape: BoxShape.circle,
+                  ),
+                  child: isPosting
+                      ? const Padding(
+                          padding: EdgeInsets.all(9),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 1.6,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                          size: 17,
+                        ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
