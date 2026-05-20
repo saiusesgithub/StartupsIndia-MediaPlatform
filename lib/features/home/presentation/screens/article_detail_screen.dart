@@ -11,6 +11,8 @@ import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../explore/data/repositories/mock_source_repository.dart';
 import '../../../explore/domain/repositories/source_repository.dart';
+import '../../data/repositories/report_repository.dart';
+import '../widgets/report_sheet.dart';
 
 class ArticleDetailScreen extends ConsumerStatefulWidget {
   final NewsArticleModel? article;
@@ -577,8 +579,14 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
               isDark: isDark,
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Report submitted. Thank you.')),
+                final articleId = article.id;
+                ReportSheet.show(
+                  context,
+                  title: 'Report article',
+                  onSubmit: (reason) => ReportRepository().reportArticle(
+                    articleId: articleId,
+                    reason: reason,
+                  ),
                 );
               },
             ),

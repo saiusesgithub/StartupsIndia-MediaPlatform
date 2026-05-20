@@ -1,86 +1,150 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Helper Functions ─────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.uid == "dbIZyFkKffXNurjPApZX15kaRx42";
+    }
+
+    function isOwner(userId) {
+      return request.auth != null &&
+             request.auth.uid == userId;
+    }
+
     // ── Articles ─────────────────────────────────────────────────────────────
-    // Public read; writes come from the admin panel via admin SDK.
+    // Public read. Only admin panel user can create/update/delete articles.
     match /articles/{articleId} {
       allow read: if true;
-      allow write: if false;
+      allow create, update, delete: if isAdmin();
 
       // Comments — authenticated users can read and post.
+      // Admin can delete/moderate if needed.
       match /comments/{commentId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
-        allow update, delete: if false;
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update, delete: if isAdmin();
       }
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────
-    // Authenticated users can read any profile; only the owner can write theirs.
+    // Authenticated users can read profiles.
+    // User can edit own profile. Admin can manage all profiles.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isAdmin();
 
       // Community membership index — each user manages their own list.
-      // allow write (not just create/delete) so set() merge works on rejoin.
       match /communities/{communityId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
     }
 
-    // ── User topics ────────────────────────────────────────────────────────────
+    // ── User Topics ───────────────────────────────────────────────────────────
     match /user_topics/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId) || isAdmin();
     }
 
-    // ── Communities ────────────────────────────────────────────────────────────
-    // Public read so guests can see the community list.
-    // Authenticated users can create/update community docs (seeding + memberCount
-    // increments on join/leave). TODO: lock to admin claim in production.
+    // ── Communities ───────────────────────────────────────────────────────────
+    // Public read so guests can see community list.
+    // Only admin can create/delete community docs.
+    // Authenticated users can update only memberCount + lastPost (join/leave).
     match /communities/{communityId} {
       allow read: if true;
-      allow create, update: if request.auth != null;
-      allow delete: if false;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+                    (
+                      isSignedIn() &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['memberCount', 'lastPost'])
+                    );
 
-      // Member subcollection — each user joins/leaves their own slot.
-      // Full profile captured here for marketing segmentation.
+      // Member subcollection — users can join/leave their own slot.
       match /members/{userId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) || isAdmin();
       }
 
-      // Announcement channel — authenticated users can create system join
-      // messages; only admin SDK posts announcements/events.
+      // Announcements — admin can do anything.
+      // Authenticated users can create system messages (join/leave events)
+      // only for themselves — authorId must match their own uid.
       match /announcements/{postId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
-        allow update, delete: if false;
+        allow read: if isSignedIn();
+        allow create: if isAdmin() ||
+                      (
+                        isSignedIn() &&
+                        request.resource.data.type == 'system' &&
+                        request.resource.data.authorId == request.auth.uid
+                      );
+        allow update, delete: if isAdmin();
       }
     }
 
-    // ── Media Posts (admin-posted videos/images in the Explore feed) ──────────
-    // Admin creates via admin SDK (bypasses rules). Authenticated users can
-    // read and update interaction fields (likes, bookmarks, share count).
+    // ── Media Posts ───────────────────────────────────────────────────────────
+    // Admin creates posts. Authenticated users can read.
     match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if false; // admin SDK only
-      allow update: if request.auth != null;
-      allow delete: if false;
+      allow read: if isSignedIn();
+
+      // Admin panel can create/update/delete media posts.
+      allow create, delete: if isAdmin();
+
+      // Admin can update full post.
+      // Normal signed-in users can update only interaction fields.
+      allow update: if isAdmin() ||
+                    (
+                      isSignedIn() &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly([
+                          "likedBy",
+                          "bookmarkedBy",
+                          "likesCount",
+                          "bookmarksCount",
+                          "sharesCount",
+                          "commentsCount"
+                        ])
+                    );
 
       match /comments/{commentId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
-        allow update, delete: if false;
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update, delete: if isAdmin();
       }
     }
 
     // ── Notifications ─────────────────────────────────────────────────────────
     match /notifications/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // ── Reports ───────────────────────────────────────────────────────────────
+    // Authenticated users can create reports; only admin can read or moderate.
+    // Reports are immutable once submitted (no client-side updates/deletes).
+    // Field validation prevents spoofed reportedBy and invalid enum values.
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() &&
+                       request.resource.data.reportedBy == request.auth.uid &&
+                       request.resource.data.type in ['article', 'comment'] &&
+                       request.resource.data.reason in ['spam', 'misinformation', 'harassment', 'other'] &&
+                       request.resource.data.targetId is string &&
+                       request.resource.data.targetId.size() > 0 &&
+                       request.resource.data.articleId is string &&
+                       request.resource.data.articleId.size() > 0;
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Admin Panel Extra Collections / MVP Safety Net ────────────────────────
+    // Allows admin panel to use collections like drafts, moderationHistory,
+    // analytics, reviews, adminLogs, etc.
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }
