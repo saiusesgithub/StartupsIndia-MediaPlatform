@@ -16,7 +16,7 @@ import '../../../community/presentation/providers/community_providers.dart';
 import '../../../explore/data/repositories/post_repository.dart';
 import '../../../explore/domain/models/post_model.dart';
 
-enum _Tab { communities, saved, videos, liked }
+enum _Tab { overview, activity, groups, bookmarks }
 
 final profileSavedArticlesProvider =
     StreamProvider.autoDispose<List<NewsArticleModel>>((ref) {
@@ -50,7 +50,7 @@ class PersonalProfileScreen extends ConsumerStatefulWidget {
 class _PersonalProfileScreenState
     extends ConsumerState<PersonalProfileScreen> {
   late Future<UserModel?> _userFuture;
-  _Tab _activeTab = _Tab.communities;
+  _Tab _activeTab = _Tab.overview;
 
   @override
   void initState() {
@@ -125,8 +125,7 @@ class _PersonalProfileScreenState
                   onTabSelected: (t) => setState(() => _activeTab = t),
                 ),
               ),
-              ..._tabContent(_activeTab, isDark),
-              SliverToBoxAdapter(child: _Achievements(isDark: isDark)),
+              ..._tabContent(_activeTab, user, isDark),
               const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
@@ -135,11 +134,15 @@ class _PersonalProfileScreenState
     );
   }
 
-  List<Widget> _tabContent(_Tab tab, bool isDark) {
+  List<Widget> _tabContent(_Tab tab, UserModel user, bool isDark) {
     switch (tab) {
-      case _Tab.communities:
+      case _Tab.overview:
+        return [_OverviewSliver(user: user, isDark: isDark)];
+      case _Tab.activity:
+        return [_ActivitySliver(isDark: isDark)];
+      case _Tab.groups:
         return [_ProfileCommunitiesSliver(isDark: isDark)];
-      case _Tab.saved:
+      case _Tab.bookmarks:
         return [
           _ArticleListSliver(
             articlesAsync: ref.watch(profileSavedArticlesProvider),
@@ -148,18 +151,7 @@ class _PersonalProfileScreenState
             emptyTitle: 'No saved posts',
             emptySubtitle: 'Tap the bookmark icon on any post to save it here.',
           ),
-        ];
-      case _Tab.videos:
-        return [_SavedVideosSliver(isDark: isDark)];
-      case _Tab.liked:
-        return [
-          _ArticleListSliver(
-            articlesAsync: ref.watch(profileLikedArticlesProvider),
-            isDark: isDark,
-            emptyIcon: Icons.favorite_border_rounded,
-            emptyTitle: 'No liked posts',
-            emptySubtitle: 'Posts you like will appear here.',
-          ),
+          _SavedVideosSliver(isDark: isDark),
         ];
     }
   }
@@ -925,11 +917,11 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
     required this.onTabSelected,
   });
 
-  static const _items = [
-    (tab: _Tab.communities, icon: Icons.people_outline_rounded, label: 'Communities'),
-    (tab: _Tab.saved, icon: Icons.bookmark_border_rounded, label: 'Saved'),
-    (tab: _Tab.videos, icon: Icons.play_circle_outline_rounded, label: 'Videos'),
-    (tab: _Tab.liked, icon: Icons.favorite_border_rounded, label: 'Liked'),
+  static final _items = [
+    (tab: _Tab.overview, icon: Icons.person_outline_rounded, label: 'Overview'),
+    (tab: _Tab.activity, icon: Icons.timeline_rounded, label: 'Activity'),
+    (tab: _Tab.groups, icon: Icons.people_outline_rounded, label: 'Groups'),
+    (tab: _Tab.bookmarks, icon: Icons.bookmark_border_rounded, label: 'Bookmarks'),
   ];
 
   @override
@@ -1004,6 +996,424 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
       old.activeTab != activeTab || old.isDark != isDark;
 }
 
+// ── Overview tab ─────────────────────────────────────────────────────────────
+
+class _OverviewSliver extends StatelessWidget {
+  final UserModel user;
+  final bool isDark;
+
+  const _OverviewSliver({required this.user, required this.isDark});
+
+  static const _roleDetailLabels = <String, Map<String, String>>{
+    'student': {
+      'collegeName': 'College',
+      'degreeCourse': 'Degree',
+      'year': 'Year',
+      'branch': 'Branch',
+      'skills': 'Skills',
+      'lookingFor': 'Looking For',
+    },
+    'founder': {
+      'startupName': 'Startup',
+      'startupStage': 'Stage',
+      'industry': 'Industry',
+      'startupDescription': 'About',
+      'startupLocation': 'Location',
+      'teamSize': 'Team Size',
+      'businessNeeds': 'Looking For',
+    },
+    'mentor': {
+      'profession': 'Designation',
+      'company': 'Company',
+      'expertise': 'Expertise',
+      'yearsExperience': 'Experience',
+      'industry': 'Industry',
+      'mentorshipArea': 'Mentors In',
+      'availability': 'Availability',
+    },
+    'investor': {
+      'investorType': 'Type',
+      'firmName': 'Firm',
+      'investmentRange': 'Ticket Size',
+      'preferredIndustries': 'Industries',
+      'preferredStage': 'Stage',
+      'portfolioCompanies': 'Portfolio',
+    },
+    'college': {
+      'collegeName': 'College',
+      'collegeType': 'Type',
+      'cityState': 'Location',
+      'contactPersonName': 'Contact',
+      'designation': 'Designation',
+      'numberOfStudents': 'Students',
+      'interestedIn': 'Interested In',
+    },
+    'startup_enthusiast': {
+      'interestArea': 'Interests',
+      'lookingFor': 'Looking For',
+    },
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final labelMap = _roleDetailLabels[user.role] ?? {};
+    final roleRows = labelMap.entries
+        .where((e) =>
+            user.roleDetails[e.key]?.toString().trim().isNotEmpty == true)
+        .toList();
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          if (user.bio.trim().isNotEmpty) ...[
+            _SectionHeader(title: 'About Me', isDark: isDark),
+            const SizedBox(height: 8),
+            _InfoCard(
+              isDark: isDark,
+              child: Text(
+                user.bio.trim(),
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 13,
+                  height: 1.55,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.grayscaleBodyText,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (roleRows.isNotEmpty) ...[
+            _SectionHeader(
+              title: _roleSectionTitle(user.role),
+              isDark: isDark,
+            ),
+            const SizedBox(height: 8),
+            _InfoCard(
+              isDark: isDark,
+              child: Column(
+                children: [
+                  for (var i = 0; i < roleRows.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.grayscaleLine,
+                      ),
+                    _DetailRow(
+                      label: roleRows[i].value,
+                      value:
+                          user.roleDetails[roleRows[i].key]!.toString().trim(),
+                      isDark: isDark,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          _SectionHeader(title: 'Achievements', isDark: isDark),
+          const SizedBox(height: 8),
+          _AchievementsRow(role: user.role, isDark: isDark),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
+
+  static String _roleSectionTitle(String role) => switch (role) {
+        'student' => 'Education',
+        'founder' => 'Startup',
+        'mentor' => 'Mentorship',
+        'investor' => 'Investment',
+        'college' => 'College Info',
+        _ => 'Details',
+      };
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final bool isDark;
+  const _SectionHeader({required this.title, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: AppTypography.displaySmallBold.copyWith(
+        fontSize: 15,
+        color: isDark
+            ? AppColors.darkTextPrimary
+            : AppColors.grayscaleTitleActive,
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  final bool isDark;
+  final Widget child;
+  const _InfoCard({required this.isDark, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isDark;
+  const _DetailRow(
+      {required this.label, required this.value, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.grayscaleBodyText,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 13,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.grayscaleTitleActive,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Activity tab ──────────────────────────────────────────────────────────────
+
+class _ActivitySliver extends StatelessWidget {
+  final bool isDark;
+  const _ActivitySliver({required this.isDark});
+
+  static const _dummyActivity = [
+    (icon: Icons.people_rounded, color: Color(0xFF6C63FF), text: 'Joined the community  Startup Founders India'),
+    (icon: Icons.favorite_rounded, color: Color(0xFFE91E63), text: 'Liked a post  The Rise of Deep-Tech Startups'),
+    (icon: Icons.chat_bubble_rounded, color: Color(0xFF00BCD4), text: 'Commented on an article  How to Raise Your First Round'),
+    (icon: Icons.play_circle_filled_rounded, color: Color(0xFFFF5722), text: 'Commented on a video  Pitch Deck Breakdown: Series A'),
+    (icon: Icons.campaign_rounded, color: Color(0xFF4CAF50), text: 'Replied to a community announcement  Welcome to Cohort 4!'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          _SectionHeader(title: 'Recent Activity', isDark: isDark),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color:
+                      isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < _dummyActivity.length; i++) ...[
+                  if (i > 0)
+                    Divider(
+                      height: 1,
+                      indent: 56,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.grayscaleLine,
+                    ),
+                  _ActivityTile(
+                    icon: _dummyActivity[i].icon,
+                    color: _dummyActivity[i].color,
+                    text: _dummyActivity[i].text,
+                    isDark: isDark,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _ActivityTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+  final bool isDark;
+
+  const _ActivityTile({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                text,
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Achievements row (used inside Overview) ───────────────────────────────────
+
+class _AchievementsRow extends StatelessWidget {
+  final String role;
+  final bool isDark;
+
+  const _AchievementsRow({required this.role, required this.isDark});
+
+  static const _byRole = <String, List<(IconData, Color, String)>>{
+    'student': [
+      (Icons.school_rounded, Color(0xFF2196F3), 'Learner'),
+      (Icons.bolt_rounded, Color(0xFF4CAF50), 'Early Adopter'),
+      (Icons.star_rounded, Color(0xFFFFC107), 'Go-Getter'),
+    ],
+    'founder': [
+      (Icons.rocket_launch_rounded, Color(0xFFFF5722), 'Builder'),
+      (Icons.emoji_events_rounded, Color(0xFFFFC107), 'Visionary'),
+      (Icons.bolt_rounded, Color(0xFF4CAF50), 'Early Adopter'),
+    ],
+    'mentor': [
+      (Icons.workspace_premium_rounded, Color(0xFFFFC107), 'Top Mentor'),
+      (Icons.lightbulb_rounded, Color(0xFF9C27B0), 'Thought Leader'),
+      (Icons.bolt_rounded, Color(0xFF4CAF50), 'Early Adopter'),
+    ],
+    'investor': [
+      (Icons.trending_up_rounded, Color(0xFF4CAF50), 'Deal Maker'),
+      (Icons.emoji_events_rounded, Color(0xFFFFC107), 'Backer'),
+      (Icons.bolt_rounded, Color(0xFF2196F3), 'Early Adopter'),
+    ],
+  };
+
+  static const _default = [
+    (Icons.emoji_events_rounded, Color(0xFFFFC107), 'Contributor'),
+    (Icons.bolt_rounded, Color(0xFF4CAF50), 'Early Adopter'),
+    (Icons.auto_stories_rounded, Color(0xFF2196F3), 'Active Learner'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _byRole[role] ?? _default;
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.grayscaleLine),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: items[i].$2.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(items[i].$1, color: items[i].$2, size: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    items[i].$3,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
@@ -1056,119 +1466,6 @@ class _EmptyState extends StatelessWidget {
               color: isDark
                   ? AppColors.darkTextSecondary
                   : AppColors.grayscaleBodyText,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Achievements ──────────────────────────────────────────────────────────────
-
-class _Achievements extends StatelessWidget {
-  final bool isDark;
-
-  const _Achievements({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'My Achievements',
-            style: AppTypography.displaySmallBold.copyWith(
-              fontSize: 16,
-              color: isDark
-                  ? AppColors.darkTextPrimary
-                  : AppColors.grayscaleTitleActive,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _AchievementCard(
-                  icon: Icons.emoji_events_rounded,
-                  color: const Color(0xFFFFC107),
-                  label: 'Top Contributor',
-                  isDark: isDark,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _AchievementCard(
-                  icon: Icons.bolt_rounded,
-                  color: const Color(0xFF4CAF50),
-                  label: 'Early Adopter',
-                  isDark: isDark,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _AchievementCard(
-                  icon: Icons.auto_stories_rounded,
-                  color: const Color(0xFF2196F3),
-                  label: 'Active Learner',
-                  isDark: isDark,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AchievementCard extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final bool isDark;
-
-  const _AchievementCard({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: AppTypography.textSmall.copyWith(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: isDark
-                  ? AppColors.darkTextPrimary
-                  : AppColors.grayscaleTitleActive,
             ),
           ),
         ],
