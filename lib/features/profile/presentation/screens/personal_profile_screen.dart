@@ -741,58 +741,34 @@ class _ProfileCard extends StatelessWidget {
                           .toList(),
                     ),
                   ],
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
 
-                  // 4 stats
-                  Row(
+                  // Location · Joined date · Website
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 6,
                     children: [
-                      _Stat(
-                          value: _fmt(user.newsCount),
-                          label: 'Posts',
-                          isDark: isDark),
-                      _StatDiv(isDark: isDark),
-                      _Stat(
-                          value: _fmt(user.followersCount),
-                          label: 'Followers',
-                          isDark: isDark),
-                      _StatDiv(isDark: isDark),
-                      _Stat(
-                          value: _fmt(user.followingCount),
-                          label: 'Following',
-                          isDark: isDark),
-                      _StatDiv(isDark: isDark),
-                      _Stat(
-                          value: '0',
-                          label: 'Communities',
-                          isDark: isDark),
+                      if (_location(user).isNotEmpty)
+                        _MetaChip(
+                          icon: Icons.location_on_outlined,
+                          label: _location(user),
+                          isDark: isDark,
+                        ),
+                      _MetaChip(
+                        icon: Icons.calendar_today_outlined,
+                        label: 'Joined ${_joinedDate()}',
+                        isDark: isDark,
+                      ),
+                      if (user.websiteUrl.isNotEmpty)
+                        _MetaChip(
+                          icon: Icons.link_rounded,
+                          label: user.websiteUrl
+                              .replaceFirst(RegExp(r'https?://'), ''),
+                          isDark: isDark,
+                          isLink: true,
+                        ),
                     ],
                   ),
-
-                  if (user.websiteUrl.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Icon(Icons.link_rounded,
-                            size: 14,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.grayscaleBodyText),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            user.websiteUrl
-                                .replaceFirst(RegExp(r'https?://'), ''),
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 12,
-                              color: AppColors.primaryDefault,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -807,9 +783,18 @@ class _ProfileCard extends StatelessWidget {
       .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 
-  static String _fmt(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
+  static String _location(UserModel user) =>
+      user.roleDetails['location']?.toString().trim() ?? '';
+
+  static String _joinedDate() {
+    final created =
+        FirebaseAuth.instance.currentUser?.metadata.creationTime;
+    if (created == null) return '';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[created.month - 1]} ${created.year}';
   }
 }
 
@@ -1236,58 +1221,44 @@ class _Avatar extends StatelessWidget {
       );
 }
 
-// ── Stat cell ─────────────────────────────────────────────────────────────────
+// ── Meta chip (location / joined / website) ───────────────────────────────────
 
-class _Stat extends StatelessWidget {
-  final String value;
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
   final String label;
   final bool isDark;
+  final bool isLink;
 
-  const _Stat(
-      {required this.value, required this.label, required this.isDark});
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    required this.isDark,
+    this.isLink = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: AppTypography.displaySmallBold.copyWith(
-              fontSize: 18,
-              color: isDark
-                  ? AppColors.darkTextPrimary
-                  : AppColors.grayscaleTitleActive,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
+    final color = isLink
+        ? AppColors.primaryDefault
+        : (isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 180),
+          child: Text(
             label,
-            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
             style: AppTypography.textSmall.copyWith(
-              fontSize: 10,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.grayscaleBodyText,
+              fontSize: 12,
+              color: color,
+              fontWeight: isLink ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatDiv extends StatelessWidget {
-  final bool isDark;
-
-  const _StatDiv({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 28,
-      color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
+      ],
     );
   }
 }
