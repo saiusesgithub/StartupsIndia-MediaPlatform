@@ -24,6 +24,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _phoneController = TextEditingController();
   final _bioController = TextEditingController();
   final _websiteController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _roleDetailControllers = <String, TextEditingController>{};
 
   final ImagePicker _picker = ImagePicker();
 
@@ -31,6 +33,67 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   String? _pickedAvatarPath;
   UserModel? _currentUser;
   bool _isSubmitting = false;
+
+  // Field definitions per role: (key, label, hint)
+  static const _roleFields = <String, List<(String, String, String)>>{
+    'student': [
+      ('collegeName', 'College Name', 'e.g. IIT Bombay'),
+      ('degreeCourse', 'Degree / Course', 'e.g. B.Tech Computer Science'),
+      ('year', 'Year', 'e.g. 2nd Year'),
+      ('branch', 'Branch / Specialization', 'e.g. Artificial Intelligence'),
+      ('skills', 'Skills', 'e.g. Flutter, Python, Machine Learning'),
+      ('lookingFor', 'Looking For', 'e.g. Internship, Co-founder, Networking'),
+    ],
+    'founder': [
+      ('startupName', 'Startup Name', 'e.g. TechVenture India'),
+      ('startupStage', 'Startup Stage', 'e.g. Idea Stage, MVP, Revenue Stage'),
+      ('industry', 'Industry', 'e.g. Fintech, EdTech, HealthTech'),
+      ('startupDescription', 'Startup Description', 'What problem are you solving?'),
+      ('startupLocation', 'Location', 'e.g. Bangalore, Karnataka'),
+      ('teamSize', 'Team Size', 'e.g. 5'),
+      ('businessNeeds', 'Looking For', 'e.g. Funding, Mentors, Co-founders'),
+    ],
+    'mentor': [
+      ('profession', 'Profession / Designation', 'e.g. CTO, Founder'),
+      ('company', 'Company / Organization', 'e.g. Google, IIM Ahmedabad'),
+      ('expertise', 'Expertise', 'e.g. Product, Tech, Finance, Marketing'),
+      ('yearsExperience', 'Years of Experience', 'e.g. 10'),
+      ('industry', 'Industry', 'e.g. SaaS, Fintech, Edtech'),
+      ('mentorshipArea', 'Mentorship Areas', 'e.g. Startup, Marketing, Legal'),
+      ('availability', 'Availability', 'e.g. Free, Paid, Group Sessions'),
+    ],
+    'investor': [
+      ('investorType', 'Investor Type', 'e.g. Angel Investor, VC'),
+      ('firmName', 'Firm Name', 'e.g. Accel Partners'),
+      ('investmentRange', 'Investment Range', 'e.g. ₹10L – ₹1Cr'),
+      ('preferredIndustries', 'Preferred Industries', 'e.g. Fintech, SaaS, D2C'),
+      ('preferredStage', 'Preferred Stage', 'e.g. Pre-Seed, Seed, Series A'),
+      ('portfolioCompanies', 'Portfolio Companies', 'e.g. Zepto, Razorpay'),
+    ],
+    'college': [
+      ('collegeName', 'College Name', 'e.g. Anna University'),
+      ('collegeType', 'College Type', 'e.g. Engineering, Management'),
+      ('cityState', 'City / State', 'e.g. Chennai, Tamil Nadu'),
+      ('contactPersonName', 'Contact Person', 'e.g. Dr. Ramesh Kumar'),
+      ('designation', 'Designation', 'e.g. Dean, Training & Placement Officer'),
+      ('numberOfStudents', 'Number of Students', 'e.g. 5000'),
+      ('interestedIn', 'Interested In', 'e.g. Startup Programs, Incubation'),
+    ],
+    'startup_enthusiast': [
+      ('interestArea', 'Interest Areas', 'e.g. AI, Fintech, Gaming'),
+      ('lookingFor', 'Looking For', 'e.g. Networking, Learning, Co-founder'),
+    ],
+  };
+
+  static String _roleSectionLabel(String role) => switch (role) {
+        'student' => 'Student Details',
+        'founder' => 'Startup Details',
+        'mentor' => 'Mentor Details',
+        'investor' => 'Investor Details',
+        'college' => 'College Details',
+        'startup_enthusiast' => 'Your Interests',
+        _ => 'Profile Details',
+      };
 
   @override
   void initState() {
@@ -46,6 +109,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _phoneController.dispose();
     _bioController.dispose();
     _websiteController.dispose();
+    _locationController.dispose();
+    for (final c in _roleDetailControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -128,6 +195,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               ),
                               const SizedBox(height: 14),
                               AppTextField(
+                                controller: _locationController,
+                                label: 'Location',
+                                hintText: 'e.g. Bangalore, India',
+                                keyboardType: TextInputType.streetAddress,
+                              ),
+                              const SizedBox(height: 14),
+                              AppTextField(
                                 controller: _websiteController,
                                 label: 'Website',
                                 hintText: 'https://yourstartup.com',
@@ -135,6 +209,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               ),
                             ],
                           ),
+                          if (_currentUser != null &&
+                              _currentUser!.role.isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            _buildRoleBanner(isDark),
+                            const SizedBox(height: 20),
+                            _buildRoleSection(isDark),
+                          ],
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -311,6 +392,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           newsCount: 0,
         );
 
+    // Build role-detail controllers before setState so they're ready for build
+    final fields = _roleFields[resolved.role] ?? [];
+    for (final (key, _, _) in fields) {
+      _roleDetailControllers[key] = TextEditingController(
+        text: resolved.roleDetails[key]?.toString() ?? '',
+      );
+    }
+
     setState(() {
       _currentUser = resolved;
       _usernameController.text = resolved.username;
@@ -320,6 +409,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _phoneController.text = resolved.phone;
       _bioController.text = resolved.bio;
       _websiteController.text = resolved.websiteUrl;
+      _locationController.text =
+          resolved.roleDetails['location']?.toString() ?? '';
     });
   }
 
@@ -376,6 +467,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             .uploadImage(_pickedAvatarPath!);
       }
 
+      // Merge role-specific fields back, preserving any keys from other roles
+      final updatedRoleDetails = Map<String, dynamic>.from(baseUser.roleDetails);
+      for (final entry in _roleDetailControllers.entries) {
+        updatedRoleDetails[entry.key] = entry.value.text.trim();
+      }
+      updatedRoleDetails['location'] = _locationController.text.trim();
+
       final updatedUser = baseUser.copyWith(
         username: username,
         fullName: _fullNameController.text.trim(),
@@ -387,6 +485,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         bio: _bioController.text.trim(),
         websiteUrl: _websiteController.text.trim(),
         avatarUrl: avatarUrl,
+        roleDetails: updatedRoleDetails,
       );
 
       await ref.read(authRepositoryProvider).updateUserData(updatedUser);
@@ -422,6 +521,84 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final phoneRegex = RegExp(r'^[\+\d\-\s]{7,18}$');
     if (!phoneRegex.hasMatch(text)) return 'Enter a valid phone number';
     return null;
+  }
+
+  Widget _buildRoleBanner(bool isDark) {
+    final role = _currentUser!.role;
+    final label = role
+        .split('_')
+        .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryDefault.withValues(alpha: isDark ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: AppColors.primaryDefault.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline_rounded,
+              size: 16, color: AppColors.primaryDefault),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: AppTypography.textSmall.copyWith(fontSize: 12),
+                children: [
+                  TextSpan(
+                    text: 'Role: ',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
+                    ),
+                  ),
+                  TextSpan(
+                    text: label,
+                    style: const TextStyle(
+                      color: AppColors.primaryDefault,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '  ·  Your role cannot be changed after sign-up.',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoleSection(bool isDark) {
+    final role = _currentUser!.role;
+    final fields = _roleFields[role] ?? [];
+    if (fields.isEmpty) return const SizedBox.shrink();
+
+    return _FormSection(
+      label: _roleSectionLabel(role),
+      isDark: isDark,
+      children: [
+        for (var i = 0; i < fields.length; i++) ...[
+          if (i > 0) const SizedBox(height: 14),
+          AppTextField(
+            controller: _roleDetailControllers[fields[i].$1] ??
+                TextEditingController(),
+            label: fields[i].$2,
+            hintText: fields[i].$3,
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _avatarFallback(bool isDark) {
