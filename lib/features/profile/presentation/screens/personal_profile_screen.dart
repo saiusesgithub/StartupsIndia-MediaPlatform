@@ -145,12 +145,41 @@ class _PersonalProfileScreenState
         return [_ProfileCommunitiesSliver(isDark: isDark)];
       case _Tab.bookmarks:
         return [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 16, 4),
+              child: Text(
+                'Saved Articles',
+                style: AppTypography.displaySmallBold.copyWith(
+                  fontSize: 15,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive,
+                ),
+              ),
+            ),
+          ),
           _ArticleListSliver(
             articlesAsync: ref.watch(profileSavedArticlesProvider),
             isDark: isDark,
             emptyIcon: Icons.bookmark_border_rounded,
-            emptyTitle: 'No saved posts',
-            emptySubtitle: 'Tap the bookmark icon on any post to save it here.',
+            emptyTitle: 'No saved articles',
+            emptySubtitle:
+                'Tap the bookmark on any article to save it here.',
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 16, 4),
+              child: Text(
+                'Saved Videos',
+                style: AppTypography.displaySmallBold.copyWith(
+                  fontSize: 15,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.grayscaleTitleActive,
+                ),
+              ),
+            ),
           ),
           _SavedVideosSliver(isDark: isDark),
         ];
