@@ -158,15 +158,23 @@ class AboutScreen extends StatelessWidget {
           icon: Icons.language_rounded,
           iconColor: const Color(0xFF2196F3),
           label: 'Official Website',
-          url: 'https://startupindia.gov.in',
+          url: 'https://www.startupsindia.in/',
         ),
         _Divider(isDark: isDark),
         _LinkRow(
           isDark: isDark,
-          icon: Icons.chat_bubble_outline_rounded,
-          iconColor: const Color(0xFF1DA1F2),
-          label: 'Follow on Twitter / X',
-          url: 'https://twitter.com/startupindia',
+          icon: Icons.play_circle_outline_rounded,
+          iconColor: const Color(0xFFFF0000),
+          label: 'YouTube',
+          url: 'https://www.youtube.com/@startupsindiaofficial',
+        ),
+        _Divider(isDark: isDark),
+        _LinkRow(
+          isDark: isDark,
+          icon: Icons.camera_alt_outlined,
+          iconColor: const Color(0xFFE1306C),
+          label: 'Instagram',
+          url: 'https://www.instagram.com/startupsindia_official',
         ),
         _Divider(isDark: isDark),
         _LinkRow(
@@ -174,7 +182,7 @@ class AboutScreen extends StatelessWidget {
           icon: Icons.people_outline_rounded,
           iconColor: const Color(0xFF0077B5),
           label: 'LinkedIn',
-          url: 'https://linkedin.com/company/startup-india',
+          url: 'https://www.linkedin.com/company/startupsindia/',
         ),
       ],
     );
@@ -190,6 +198,8 @@ class AboutScreen extends StatelessWidget {
         _TechRow(isDark: isDark, label: 'Backend', value: 'Firebase'),
         _Divider(isDark: isDark),
         _TechRow(isDark: isDark, label: 'State Management', value: 'Riverpod'),
+        _Divider(isDark: isDark),
+        _MadeWithFlutter(isDark: isDark),
       ],
     );
   }
@@ -351,6 +361,60 @@ class _TechRow extends StatelessWidget {
               color: isDark
                   ? AppColors.darkTextPrimary
                   : AppColors.grayscaleTitleActive,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MadeWithFlutter extends StatelessWidget {
+  final bool isDark;
+  const _MadeWithFlutter({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      child: Row(
+        children: [
+          Text(
+            'Made with',
+            style: AppTypography.textSmall.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF54C5F8).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFF54C5F8).withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.flutter_dash,
+                    color: Color(0xFF54C5F8), size: 16),
+                const SizedBox(width: 5),
+                Text(
+                  'Flutter',
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF54C5F8),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

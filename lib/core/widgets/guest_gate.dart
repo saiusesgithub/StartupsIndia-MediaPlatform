@@ -10,11 +10,13 @@ import '../../theme/style_guide.dart';
 class GuestBlur extends StatelessWidget {
   final Widget child;
   final String label;
+  final BorderRadius borderRadius;
 
   const GuestBlur({
     super.key,
     required this.child,
     this.label = 'Sign Up Free →',
+    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
   });
 
   @override
@@ -23,21 +25,30 @@ class GuestBlur extends StatelessWidget {
       children: [
         child,
         Positioned.fill(
-          child: ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.05),
-                      Colors.black.withValues(alpha: 0.48),
-                    ],
+          child: RepaintBoundary(
+            child: ClipRRect(
+              borderRadius: borderRadius,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: borderRadius,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.0, 0.35, 1.0],
+                      colors: [
+                        Colors.black.withValues(alpha: 0.0),
+                        Colors.black.withValues(alpha: 0.18),
+                        Colors.black.withValues(alpha: 0.52),
+                      ],
+                    ),
+                  ),
+                  child: Align(
+                    alignment: const Alignment(0, 0.35),
+                    child: _UnlockPill(label: label),
                   ),
                 ),
-                child: Center(child: _UnlockPill(label: label)),
               ),
             ),
           ),
@@ -57,15 +68,22 @@ class _UnlockPill extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/signup'),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
         decoration: BoxDecoration(
           color: AppColors.primaryDefault,
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryDefault.withValues(alpha: 0.45),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+              color: AppColors.primaryDefault.withValues(alpha: 0.35),
+              blurRadius: 20,
+              spreadRadius: 0,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -73,14 +91,15 @@ class _UnlockPill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.lock_outline_rounded,
-                color: Colors.white, size: 15),
-            const SizedBox(width: 8),
+                color: Colors.white, size: 14),
+            const SizedBox(width: 7),
             Text(
               label,
               style: AppTypography.textSmall.copyWith(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
+                letterSpacing: 0.2,
               ),
             ),
           ],
