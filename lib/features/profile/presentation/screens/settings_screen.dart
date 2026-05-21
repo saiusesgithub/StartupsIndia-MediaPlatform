@@ -70,6 +70,15 @@ class SettingsScreen extends ConsumerWidget {
                     label: 'Change Password',
                     onTap: () => Navigator.pushNamed(context, '/change-password'),
                   ),
+                  _RowDivider(isDark: isDark),
+                  _SettingsRow(
+                    isDark: isDark,
+                    icon: Icons.delete_outline_rounded,
+                    iconColor: const Color(0xFFEF4444),
+                    label: 'Delete Account',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/delete-account'),
+                  ),
                 ],
               ),
             ),
@@ -166,24 +175,24 @@ class SettingsScreen extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     decoration: BoxDecoration(
-                      color: AppColors.errorDark.withValues(alpha: 0.08),
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: AppColors.errorDark.withValues(alpha: 0.25),
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.25),
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.logout_rounded,
-                            color: AppColors.errorDark, size: 18),
+                            color: Color(0xFFEF4444), size: 18),
                         const SizedBox(width: 10),
                         Text(
                           'Log Out',
                           style: AppTypography.textSmall.copyWith(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.errorDark,
+                            color: const Color(0xFFEF4444),
                           ),
                         ),
                       ],
@@ -217,11 +226,11 @@ class SettingsScreen extends ConsumerWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppColors.errorDark.withValues(alpha: 0.1),
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.logout_rounded,
-                    color: AppColors.errorDark, size: 24),
+                    color: Color(0xFFEF4444), size: 24),
               ),
               const SizedBox(height: 16),
               Text(
@@ -285,7 +294,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         decoration: BoxDecoration(
-                          color: AppColors.errorDark,
+                          color: const Color(0xFFEF4444),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(

@@ -1,6 +1,6 @@
 # App State
 
-Last updated: 2026-05-20.
+Last updated: 2026-05-21.
 
 ## Product Shape
 
@@ -150,14 +150,37 @@ communities should be created in Firestore/admin tooling.
 
 Personal profile shows:
 
-- identity, avatar, role, interests, bio, website
-- community membership tab
-- saved articles
-- saved videos
-- liked articles
-- achievements/pro banner UI
+- identity: avatar, full name, handle, role pill, bio, interests chips
+- meta row: location (from `roleDetails.location`), joined date (from Firebase
+  Auth `metadata.creationTime`), website link
+- StartupsIndia Pro upgrade banner
+- four tabs: Overview | Activity | Groups | Bookmarks
 
-Edit profile uses existing user data and keeps email read-only.
+**Overview tab** — About Me bio, role-specific detail rows (from `roleDetails`
+keyed by role), role-based achievement cards.
+
+**Activity tab** — recent activity feed (joined community, liked post,
+commented on article/video, replied to community announcement). Currently
+populated with dummy items; real activity indexing is planned.
+
+**Groups tab** — communities the user has joined (same as old Communities tab).
+
+**Bookmarks tab** — saved articles + saved explore videos in one place.
+
+Profile does **not** show posts/followers/following counts (removed by design).
+
+Edit profile:
+- single Save button in header (bottom duplicate removed)
+- email is read-only; phone is editable with live validation
+- pre-filled fields validate correctly even without user interaction (fixed
+  `AppTextField` FormField validator to read controller text directly)
+- location field shared across all roles
+- role-specific section shows role-appropriate detail fields (student college
+  info, founder startup info, mentor expertise, etc.)
+- role cannot be changed after sign-up (locked banner shown in edit form)
+
+Profile images upload to Cloudinary via `FirestoreRepository.uploadImage`;
+URL stored in `users/{uid}.avatarUrl`.
 
 ## Notifications
 
