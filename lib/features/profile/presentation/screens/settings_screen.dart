@@ -70,6 +70,15 @@ class SettingsScreen extends ConsumerWidget {
                     label: 'Change Password',
                     onTap: () => Navigator.pushNamed(context, '/change-password'),
                   ),
+                  _RowDivider(isDark: isDark),
+                  _SettingsRow(
+                    isDark: isDark,
+                    icon: Icons.delete_outline_rounded,
+                    iconColor: const Color(0xFFEF4444),
+                    label: 'Delete Account',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/delete-account'),
+                  ),
                 ],
               ),
             ),
