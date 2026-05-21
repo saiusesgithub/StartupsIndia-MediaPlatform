@@ -108,7 +108,8 @@ class _PersonalProfileScreenState
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              SliverToBoxAdapter(child: _HeaderBar(isDark: isDark)),
+              SliverToBoxAdapter(
+                  child: _HeaderBar(user: user, isDark: isDark)),
               SliverToBoxAdapter(
                   child: _ProfileCard(
                 user: user,
@@ -516,36 +517,60 @@ class _ArticleListSliver extends StatelessWidget {
 // ── Header bar ────────────────────────────────────────────────────────────────
 
 class _HeaderBar extends StatelessWidget {
+  final UserModel user;
   final bool isDark;
 
-  const _HeaderBar({required this.isDark});
+  const _HeaderBar({required this.user, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
+    final iconColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText;
+
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+        padding: const EdgeInsets.fromLTRB(20, 10, 8, 4),
         child: Row(
           children: [
-            Text(
-              'Profile',
-              style: AppTypography.displaySmallBold.copyWith(
-                fontSize: 22,
-                color: isDark
-                    ? AppColors.darkTextPrimary
-                    : AppColors.grayscaleTitleActive,
-              ),
+            // Brand + title
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'StartupsIndia',
+                  style: AppTypography.textSmall.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: AppColors.primaryDefault,
+                  ),
+                ),
+                Text(
+                  'My Profile',
+                  style: AppTypography.displaySmallBold.copyWith(
+                    fontSize: 20,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
+                  ),
+                ),
+              ],
             ),
             const Spacer(),
             IconButton(
-              onPressed: () => Navigator.pushNamed(context, '/settings'),
-              icon: Icon(
-                Icons.settings_outlined,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.grayscaleButtonText,
-              ),
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/notifications'),
+              icon: Icon(Icons.notifications_none_rounded,
+                  color: iconColor, size: 24),
+              tooltip: 'Notifications',
+            ),
+            IconButton(
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/settings'),
+              icon: Icon(Icons.settings_outlined,
+                  color: iconColor, size: 22),
+              tooltip: 'Settings',
             ),
           ],
         ),
