@@ -105,7 +105,7 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Startups India',
+            'StartupsIndia',
             style: AppTypography.textSmall.copyWith(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -206,7 +206,7 @@ class AboutScreen extends StatelessWidget {
 
   Widget _buildFooter(bool isDark) {
     return Text(
-      '© 2026 Startups India. All rights reserved.',
+      '© 2026 StartupsIndia. All rights reserved.',
       textAlign: TextAlign.center,
       style: AppTypography.textSmall.copyWith(
         fontSize: 12,

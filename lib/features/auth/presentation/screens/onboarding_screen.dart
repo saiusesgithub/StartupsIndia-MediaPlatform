@@ -83,6 +83,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
       body: Column(
         children: [
+          // Brand logo bar
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Image.asset(
+                  isDark
+                      ? 'assets/startupsindia/logo_dark.png'
+                      : 'assets/startupsindia/logo_light.png',
+                  height: 26,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
           // Expand PageView to take up most of the screen
           Expanded(
             child: PageView.builder(

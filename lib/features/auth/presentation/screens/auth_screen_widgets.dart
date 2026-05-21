@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../theme/style_guide.dart';
 
-/// Centered brand logo mark — icon badge + wordmark.
-/// Used on Splash and Welcome screens. [scale] multiplies all dimensions.
+/// Centered brand logo mark — uses the official StartupsIndia logo image.
+/// [scale] multiplies the logo height (base height = 52px).
 class AppLogoMark extends StatelessWidget {
   final double scale;
   const AppLogoMark({super.key, this.scale = 1.0});
@@ -11,60 +11,14 @@ class AppLogoMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final boxSize = 76.0 * scale;
-    final iconSize = 40.0 * scale;
-    final radius = 22.0 * scale;
-    final fontSize = 30.0 * scale;
-    final gap = 14.0 * scale;
+    final height = 52.0 * scale;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: boxSize,
-          height: boxSize,
-          decoration: BoxDecoration(
-            color: AppColors.primaryDefault,
-            borderRadius: BorderRadius.circular(radius),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDefault
-                    .withValues(alpha: isDark ? 0.35 : 0.20),
-                blurRadius: 28,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.rocket_launch_rounded,
-            color: Colors.white,
-            size: iconSize,
-          ),
-        ),
-        SizedBox(height: gap),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: 'Startups',
-                style: AppTypography.displaySmallBold.copyWith(
-                  color: AppColors.primaryDefault,
-                  fontSize: fontSize,
-                ),
-              ),
-              TextSpan(
-                text: 'India',
-                style: AppTypography.displaySmallBold.copyWith(
-                  color: isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.grayscaleTitleActive,
-                  fontSize: fontSize,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return Image.asset(
+      isDark
+          ? 'assets/startupsindia/logo_dark.png'
+          : 'assets/startupsindia/logo_light.png',
+      height: height,
+      fit: BoxFit.contain,
     );
   }
 }
@@ -87,46 +41,11 @@ class BrandHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo mark
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryDefault,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.rocket_launch_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Startups',
-                      style: AppTypography.linkMedium.copyWith(
-                        color: AppColors.primaryDefault,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'India',
-                      style: AppTypography.linkMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          // Logo mark (always on dark background)
+          Image.asset(
+            'assets/startupsindia/logo_dark.png',
+            height: 28,
+            fit: BoxFit.contain,
           ),
           const SizedBox(height: 24),
           Text(
