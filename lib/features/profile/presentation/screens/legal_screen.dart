@@ -236,7 +236,7 @@ const _privacySections = [
 const _termsSections = [
   (
     '1. Acceptance of Terms',
-    'By using the Startups India app, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app.',
+    'By using the StartupsIndia app, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app.',
   ),
   (
     '2. User Accounts',
@@ -252,7 +252,7 @@ const _termsSections = [
   ),
   (
     '5. Intellectual Property',
-    'The Startups India app and its original content, features, and functionality are owned by Startups India and are protected by applicable intellectual property laws.',
+    'The StartupsIndia app and its original content, features, and functionality are owned by StartupsIndia and are protected by applicable intellectual property laws.',
   ),
   (
     '6. Termination',
@@ -260,7 +260,7 @@ const _termsSections = [
   ),
   (
     '7. Limitation of Liability',
-    'To the maximum extent permitted by law, Startups India shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.',
+    'To the maximum extent permitted by law, StartupsIndia shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.',
   ),
   (
     '8. Changes to Terms',

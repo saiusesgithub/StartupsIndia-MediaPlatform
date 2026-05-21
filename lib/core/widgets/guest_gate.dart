@@ -113,28 +113,11 @@ class GuestFeedGate extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Startups',
-                        style: AppTypography.displaySmallBold.copyWith(
-                          fontSize: 28,
-                          color: AppColors.primaryDefault,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'India',
-                        style: AppTypography.displaySmallBold.copyWith(
-                          fontSize: 28,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
-                  ),
+                // Logo (dark background variant)
+                Image.asset(
+                  'assets/startupsindia/logo_dark.png',
+                  height: 36,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 32),
 
@@ -396,7 +379,7 @@ class GuestProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Join Startups India',
+                        'Join StartupsIndia',
                         style: AppTypography.displaySmallBold.copyWith(
                           fontSize: 20,
                           color: isDark
