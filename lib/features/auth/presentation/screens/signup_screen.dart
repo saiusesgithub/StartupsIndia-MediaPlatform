@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _agreedToTerms = false;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
+
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
 
   String get _selectedRole {
     final args = ModalRoute.of(context)?.settings.arguments;
@@ -137,10 +141,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () => Navigator.pushNamed(context, '/terms-of-service');
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () => Navigator.pushNamed(context, '/privacy-policy');
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
   }
 
@@ -267,7 +282,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                     const SizedBox(height: 10),
 
                                     // Password requirement chips
-                                    _PasswordRequirements(isDark: isDark),
+                                    _PasswordRequirements(
+                                      isDark: isDark,
+                                      controller: _passwordController,
+                                    ),
 
                                     const SizedBox(height: 16),
                                     AppTextField(
@@ -325,6 +343,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                                       text: 'I agree to the '),
                                                   TextSpan(
                                                     text: 'Terms of Service',
+                                                    recognizer:
+                                                        _termsRecognizer,
                                                     style: AppTypography
                                                         .textSmall
                                                         .copyWith(
@@ -332,11 +352,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                                           .primaryDefault,
                                                       fontWeight: FontWeight.w600,
                                                       fontSize: 13,
+                                                      decoration: TextDecoration
+                                                          .underline,
+                                                      decorationColor: AppColors
+                                                          .primaryDefault,
                                                     ),
                                                   ),
                                                   const TextSpan(text: ' and '),
                                                   TextSpan(
                                                     text: 'Privacy Policy',
+                                                    recognizer:
+                                                        _privacyRecognizer,
                                                     style: AppTypography
                                                         .textSmall
                                                         .copyWith(
@@ -344,6 +370,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                                           .primaryDefault,
                                                       fontWeight: FontWeight.w600,
                                                       fontSize: 13,
+                                                      decoration: TextDecoration
+                                                          .underline,
+                                                      decorationColor: AppColors
+                                                          .primaryDefault,
                                                     ),
                                                   ),
                                                 ],
@@ -406,20 +436,66 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
 // ── Password requirement chips ─────────────────────────────────────────────────
 
-class _PasswordRequirements extends StatelessWidget {
+class _PasswordRequirements extends StatefulWidget {
   final bool isDark;
-  const _PasswordRequirements({required this.isDark});
+  final TextEditingController controller;
+
+  const _PasswordRequirements({
+    required this.isDark,
+    required this.controller,
+  });
+
+  @override
+  State<_PasswordRequirements> createState() => _PasswordRequirementsState();
+}
+
+class _PasswordRequirementsState extends State<_PasswordRequirements> {
+  String _password = '';
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() {
+    if (widget.controller.text != _password) {
+      setState(() => _password = widget.controller.text);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 8,
       runSpacing: 6,
-      children: const [
-        _ReqChip('8+ chars'),
-        _ReqChip('Uppercase'),
-        _ReqChip('Number'),
-        _ReqChip('Symbol'),
+      children: [
+        _ReqChip(
+          label: '8+ chars',
+          met: _password.length >= 8,
+          isDark: widget.isDark,
+        ),
+        _ReqChip(
+          label: 'Uppercase',
+          met: RegExp(r'[A-Z]').hasMatch(_password),
+          isDark: widget.isDark,
+        ),
+        _ReqChip(
+          label: 'Number',
+          met: RegExp(r'[0-9]').hasMatch(_password),
+          isDark: widget.isDark,
+        ),
+        _ReqChip(
+          label: 'Symbol',
+          met: RegExp(r'[@#\$%^&*!?]').hasMatch(_password),
+          isDark: widget.isDark,
+        ),
       ],
     );
   }
@@ -427,28 +503,59 @@ class _PasswordRequirements extends StatelessWidget {
 
 class _ReqChip extends StatelessWidget {
   final String label;
-  const _ReqChip(this.label);
+  final bool met;
+  final bool isDark;
+
+  const _ReqChip({
+    required this.label,
+    required this.met,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
+    const metColor = Color(0xFF22C55E);
+    final bgColor = met
+        ? metColor.withValues(alpha: isDark ? 0.18 : 0.10)
+        : (isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton);
+    final borderColor = met
+        ? metColor.withValues(alpha: 0.45)
+        : (isDark ? AppColors.darkBorder : Colors.transparent);
+    final textColor = met
+        ? metColor
+        : (isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
+        color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.transparent,
-          width: 1,
-        ),
+        border: Border.all(color: borderColor, width: 1),
       ),
-      child: Text(
-        label,
-        style: AppTypography.textSmall.copyWith(
-          fontSize: 11,
-          color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText,
-          fontWeight: FontWeight.w500,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: met
+                ? const Icon(Icons.check_rounded,
+                    key: ValueKey('check'),
+                    size: 12,
+                    color: metColor)
+                : const SizedBox.shrink(key: ValueKey('empty')),
+          ),
+          if (met) const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTypography.textSmall.copyWith(
+              fontSize: 11,
+              color: textColor,
+              fontWeight: met ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
