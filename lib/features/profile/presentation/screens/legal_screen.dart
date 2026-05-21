@@ -186,8 +186,8 @@ class _LegalSection extends StatelessWidget {
 
 const _privacySections = [
   (
-    'Privacy Policy',
-    'Last Updated: November 10, 2025\n\n1. Introduction\nWelcome to Startup India Incubation ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.',
+    '1. Introduction',
+    'Welcome to Startups India ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use the Startups India app or visit our website at www.startupsindia.in.',
   ),
   (
     '2. Information We Collect',
@@ -236,34 +236,42 @@ const _privacySections = [
 const _termsSections = [
   (
     '1. Acceptance of Terms',
-    'By using the Startups India app, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app.',
+    'By using the Startups India app, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app. These Terms apply to all users, including guests, registered members, founders, students, mentors, and investors.',
   ),
   (
     '2. User Accounts',
-    'You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorised use of your account.',
+    'You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorised use of your account. Each user may hold only one account. Your role (Student, Founder, Mentor, etc.) is set at sign-up and cannot be changed afterwards.',
   ),
   (
     '3. Acceptable Use',
-    'You agree not to misuse the platform, post harmful content, violate any applicable laws, or attempt to gain unauthorised access to any part of the service.',
+    'You agree not to:\n• Post harmful, offensive, or misleading content\n• Harass or impersonate other users\n• Violate any applicable laws or regulations\n• Attempt to gain unauthorised access to any part of the service\n• Use the platform to spam or distribute unsolicited messages',
   ),
   (
     '4. Content',
-    'News content on the platform is sourced from verified publishers. We do not guarantee the accuracy of third-party content. User-generated content (comments, profile info) remains the responsibility of the user.',
+    'News content on the platform is sourced from verified publishers. We do not guarantee the accuracy of third-party content. User-generated content (community posts, comments, profile info) remains the sole responsibility of the user who posted it. We reserve the right to remove content that violates these Terms.',
   ),
   (
-    '5. Intellectual Property',
-    'The Startups India app and its original content, features, and functionality are owned by Startups India and are protected by applicable intellectual property laws.',
+    '5. Communities',
+    'Community spaces on Startups India are moderated environments. Admins may remove members who violate community guidelines. Announcements and discussions are public to all community members.',
   ),
   (
-    '6. Termination',
-    'We reserve the right to terminate or suspend accounts that violate these terms. You may delete your account at any time by contacting our support team.',
+    '6. Intellectual Property',
+    'The Startups India app and its original content, features, and functionality are owned by Startups India and are protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works without prior written permission.',
   ),
   (
-    '7. Limitation of Liability',
-    'To the maximum extent permitted by law, Startups India shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.',
+    '7. Termination',
+    'We reserve the right to terminate or suspend accounts that violate these Terms without notice. You may request account deletion at any time by contacting us at startupsindiaofficial@gmail.com.',
   ),
   (
-    '8. Changes to Terms',
-    'We may update these Terms from time to time. Continued use of the app after changes constitutes acceptance of the new Terms. We will notify users of significant changes.',
+    '8. Limitation of Liability',
+    'To the maximum extent permitted by law, Startups India shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the platform, including loss of data or business interruption.',
+  ),
+  (
+    '9. Changes to Terms',
+    'We may update these Terms from time to time. Continued use of the app after changes constitutes acceptance of the new Terms. We will notify users of significant changes via in-app notification or email.',
+  ),
+  (
+    '10. Contact Us',
+    'If you have questions about these Terms, please contact us:\n\nEmail: startupsindiaofficial@gmail.com\nPhone: +91 9599033080\nWebsite: www.startupsindia.in\nAddress: 3rd Floor, United Arcade, Pillar No. 143, Shop.No.8, Attapur, Hyderabad, Telangana 500048',
   ),
 ];
