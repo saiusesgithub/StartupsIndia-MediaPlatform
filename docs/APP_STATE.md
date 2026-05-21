@@ -68,6 +68,8 @@ requirements file and should be treated as client-approved behavior, not copied
 verbatim from the private file.
 
 Username uniqueness is checked by querying `users.usernameLower`.
+Profile handle display prefers `users.username` and falls back to the email
+prefix only for older/incomplete profiles without a saved username.
 
 Profile photo storage:
 
