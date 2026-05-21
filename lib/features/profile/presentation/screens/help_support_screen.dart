@@ -14,29 +14,39 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   static const _faqs = [
     (
-      q: 'How do I follow a news source?',
+      q: 'How do I join a community?',
       a:
-          'Go to the Explore tab, find a source you like, and tap the "Follow" button on their profile page. You\'ll then see their articles in your feed.',
+          'Go to the Community tab, browse or search for a community that interests you, and tap "Join". You\'ll see their posts and announcements in your feed.',
     ),
     (
-      q: 'How do I save articles for later?',
+      q: 'How do I save articles and videos for later?',
       a:
-          'Tap the bookmark icon on any article card or inside the article detail view. Saved articles appear in your Profile under the Saved tab.',
+          'Tap the bookmark icon on any article card or video reel. Saved content appears in your Profile under the Bookmarks tab, split into Saved Articles and Saved Videos.',
     ),
     (
       q: 'Why am I not receiving notifications?',
       a:
-          'Check your notification settings in Settings → Notifications. Also make sure you\'ve granted notification permissions to the app in your device settings.',
+          'Check your notification settings in Settings → Notifications. Also make sure you\'ve granted notification permissions in your device settings (Settings → Apps → Startups India → Notifications).',
     ),
     (
-      q: 'How do I change my profile photo?',
+      q: 'How do I change my profile photo or bio?',
       a:
-          'Go to Settings → Edit Profile. Tap the camera icon on your avatar to pick a new photo from your gallery.',
+          'Go to your Profile and tap the edit icon at the top right, or navigate to Settings → Edit Profile. Tap the camera icon on your avatar to pick a new photo, and update your bio and role details from there.',
+    ),
+    (
+      q: 'Can I change my role after signing up?',
+      a:
+          'No. Your role (Student, Founder, Mentor, etc.) is set during sign-up and cannot be changed afterwards. This ensures communities and content remain relevant to each member\'s profile.',
+    ),
+    (
+      q: 'How do I report inappropriate content or a bug?',
+      a:
+          'You can reach us at startupsindiaofficial@gmail.com or call +91 9599033080. Describe the issue and we\'ll get back to you within 24 hours.',
     ),
     (
       q: 'How do I delete my account?',
       a:
-          'Account deletion requests can be submitted by emailing support@startupsindia.app. We\'ll process your request within 7 business days.',
+          'Account deletion requests can be submitted by emailing startupsindiaofficial@gmail.com with the subject "Account Deletion Request". We\'ll process your request within 7 business days.',
     ),
   ];
 
@@ -178,9 +188,18 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           _ContactButton(
             icon: Icons.email_outlined,
             label: 'Email Us',
-            subtitle: 'support@startupsindia.app',
+            subtitle: 'startupsindiaofficial@gmail.com',
             isDark: isDark,
-            onTap: () => _launch('mailto:support@startupsindia.app'),
+            onTap: () =>
+                _launch('mailto:startupsindiaofficial@gmail.com'),
+          ),
+          const SizedBox(height: 10),
+          _ContactButton(
+            icon: Icons.phone_outlined,
+            label: 'Call Us',
+            subtitle: '+91 9599033080',
+            isDark: isDark,
+            onTap: () => _launch('tel:+919599033080'),
           ),
         ],
       ),
@@ -302,7 +321,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             icon: Icons.language_rounded,
             iconColor: const Color(0xFF2196F3),
             label: 'Visit Website',
-            onTap: () => _launch('https://startupindia.gov.in'),
+            onTap: () => _launch('https://www.startupsindia.in/'),
           ),
           Divider(
             height: 1,
@@ -311,10 +330,24 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           ),
           _ResourceRow(
             isDark: isDark,
-            icon: Icons.chat_bubble_outline_rounded,
-            iconColor: const Color(0xFF9C27B0),
-            label: 'Community Forum',
-            onTap: () => _launch('https://startupindia.gov.in'),
+            icon: Icons.play_circle_outline_rounded,
+            iconColor: const Color(0xFFFF0000),
+            label: 'YouTube Channel',
+            onTap: () =>
+                _launch('https://www.youtube.com/@startupsindiaofficial'),
+          ),
+          Divider(
+            height: 1,
+            indent: 66,
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+          ),
+          _ResourceRow(
+            isDark: isDark,
+            icon: Icons.camera_alt_outlined,
+            iconColor: const Color(0xFFE1306C),
+            label: 'Instagram',
+            onTap: () => _launch(
+                'https://www.instagram.com/startupsindia_official'),
           ),
         ],
       ),
