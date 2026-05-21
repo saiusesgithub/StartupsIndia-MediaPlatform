@@ -1,6 +1,6 @@
 # Decisions And Risks
 
-Last updated: 2026-05-20.
+Last updated: 2026-05-21.
 
 ## Decisions Already Taken
 
@@ -120,3 +120,9 @@ When changing the app:
 4. If a product decision changed, update this file.
 5. If a future chat needs a new briefing, update `HANDOFF.md`.
 6. Run the narrowest useful verification command and record any known failure.
+
+## Loading UX Note
+
+Submitting profile/auth forms should use one visible progress indicator for the
+same action. The profile completion, edit profile, and change password forms
+show progress in their action button instead of also stacking a page spinner.

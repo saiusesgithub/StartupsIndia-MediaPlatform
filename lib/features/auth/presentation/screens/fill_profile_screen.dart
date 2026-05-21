@@ -293,17 +293,6 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                 _buildContinueButton(isDark),
               ],
             ),
-            if (_isSubmitting)
-              Positioned.fill(
-                child: ColoredBox(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryDefault,
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
