@@ -518,9 +518,14 @@ class _ThemePreferenceCard extends ConsumerWidget {
               ],
             ),
           ),
-          Switch.adaptive(
+          Switch(
             value: isDarkMode,
             activeThumbColor: AppColors.primaryDefault,
+            activeTrackColor:
+                AppColors.primaryDefault.withValues(alpha: 0.28),
+            inactiveThumbColor: muted,
+            inactiveTrackColor: border,
+            trackOutlineColor: WidgetStatePropertyAll(border),
             onChanged: (value) =>
                 ref.read(themeServiceProvider.notifier).setDarkMode(value),
           ),
