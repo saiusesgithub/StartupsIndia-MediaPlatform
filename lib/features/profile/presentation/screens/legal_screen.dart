@@ -236,7 +236,7 @@ const _privacySections = [
 const _termsSections = [
   (
     '1. Acceptance of Terms',
-    'By using the Startups India app, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app. These Terms apply to all users, including guests, registered members, founders, students, mentors, and investors.',
+    'By using the StartupsIndia app, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app. These Terms apply to all users, including guests, registered members, founders, students, mentors, and investors.',
   ),
   (
     '2. User Accounts',
@@ -252,11 +252,11 @@ const _termsSections = [
   ),
   (
     '5. Communities',
-    'Community spaces on Startups India are moderated environments. Admins may remove members who violate community guidelines. Announcements and discussions are public to all community members.',
+    'Community spaces on StartupsIndia are moderated environments. Admins may remove members who violate community guidelines. Announcements and discussions are public to all community members.',
   ),
   (
     '6. Intellectual Property',
-    'The Startups India app and its original content, features, and functionality are owned by Startups India and are protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works without prior written permission.',
+    'The StartupsIndia app and its original content, features, and functionality are owned by StartupsIndia and are protected by applicable intellectual property laws. You may not reproduce, distribute, or create derivative works without prior written permission.',
   ),
   (
     '7. Termination',
@@ -264,7 +264,7 @@ const _termsSections = [
   ),
   (
     '8. Limitation of Liability',
-    'To the maximum extent permitted by law, Startups India shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the platform, including loss of data or business interruption.',
+    'To the maximum extent permitted by law, StartupsIndia shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the platform, including loss of data or business interruption.',
   ),
   (
     '9. Changes to Terms',
