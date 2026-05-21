@@ -135,12 +135,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 28),
-                          _SaveButton(
-                            isSubmitting: _isSubmitting,
-                            onTap: _submit,
-                            isDark: isDark,
-                          ),
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -602,48 +596,3 @@ class _MultilineFieldState extends State<_MultilineField> {
   }
 }
 
-class _SaveButton extends StatelessWidget {
-  final bool isSubmitting;
-  final VoidCallback onTap;
-  final bool isDark;
-
-  const _SaveButton({
-    required this.isSubmitting,
-    required this.onTap,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isSubmitting ? null : onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: isSubmitting
-              ? AppColors.primaryDefault.withValues(alpha: 0.5)
-              : AppColors.primaryDefault,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        alignment: Alignment.center,
-        child: isSubmitting
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : Text(
-                'Save Changes',
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-      ),
-    );
-  }
-}

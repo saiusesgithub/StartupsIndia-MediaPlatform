@@ -66,7 +66,9 @@ class _AppTextFieldState extends State<AppTextField> {
         const SizedBox(height: 6),
         FormField<String>(
           initialValue: widget.controller.text,
-          validator: widget.validator,
+          validator: widget.validator == null
+              ? null
+              : (_) => widget.validator!(widget.controller.text),
           builder: (field) {
             final hasError = field.hasError;
 
