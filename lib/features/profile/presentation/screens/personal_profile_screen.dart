@@ -59,6 +59,9 @@ class _PersonalProfileScreenState
   }
 
   String _handle(UserModel? user) {
+    final username = user?.username.trim() ?? '';
+    if (username.isNotEmpty) return username;
+
     final email = (user?.email.isNotEmpty == true)
         ? user!.email
         : FirebaseAuth.instance.currentUser?.email ?? '';
