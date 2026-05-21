@@ -152,29 +152,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Row(
         children: [
           // Logo wordmark
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Startups',
-                  style: AppTypography.displaySmallBold.copyWith(
-                    fontSize: 20,
-                    color: AppColors.primaryDefault,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                TextSpan(
-                  text: 'India',
-                  style: AppTypography.displaySmallBold.copyWith(
-                    fontSize: 20,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.grayscaleTitleActive,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
+          Image.asset(
+            isDark
+                ? 'assets/startupsindia/logo_dark.png'
+                : 'assets/startupsindia/logo_light.png',
+            height: 26,
+            fit: BoxFit.contain,
           ),
           const Spacer(),
           // Search icon
