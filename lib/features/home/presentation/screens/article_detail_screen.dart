@@ -11,6 +11,8 @@ import '../../../../core/models/news_article_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/time_format_helper.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
+import '../../../../features/explore/domain/models/post_model.dart';
+import '../../../../features/explore/presentation/providers/post_providers.dart';
 import '../../../../theme/style_guide.dart';
 import '../../data/repositories/report_repository.dart';
 import '../widgets/report_sheet.dart';
@@ -617,6 +619,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
           ),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             // Like
             GestureDetector(
@@ -646,7 +649,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: 22),
             // Comment
             GestureDetector(
               onTap: _openComments,
@@ -673,7 +675,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: 22),
             // Share
             GestureDetector(
               onTap: _shareArticle,
@@ -700,7 +701,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                 ],
               ),
             ),
-            const Spacer(),
           ],
         ),
       ),
@@ -744,7 +744,12 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   void _openComments() {
     final article = _article;
     if (article == null) return;
-    Navigator.pushNamed(context, '/comments', arguments: article);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ArticleCommentSheet(article: article),
+    );
   }
 
   void _showMenu(NewsArticleModel article) {
@@ -1061,6 +1066,302 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
             ),
         ],
       ),
+    );
+  }
+}
+
+// ── Article comment sheet ─────────────────────────────────────────────────────
+
+class _ArticleCommentSheet extends ConsumerStatefulWidget {
+  final NewsArticleModel article;
+
+  const _ArticleCommentSheet({required this.article});
+
+  @override
+  ConsumerState<_ArticleCommentSheet> createState() =>
+      _ArticleCommentSheetState();
+}
+
+class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
+  final _controller = TextEditingController();
+  bool _posting = false;
+  late final Stream<List<CommentModel>> _commentsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentsStream = ref
+        .read(postRepositoryProvider)
+        .watchArticleComments(widget.article.id);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final text = _controller.text.trim();
+    if (uid == null || text.isEmpty || _posting) return;
+    setState(() => _posting = true);
+    try {
+      final userModel =
+          await ref.read(authRepositoryProvider).getCurrentUserModel();
+      final authorName = userModel?.displayName.isNotEmpty == true
+          ? userModel!.displayName
+          : userModel?.fullName ?? 'User';
+      await ref.read(postRepositoryProvider).addArticleComment(
+            articleId: widget.article.id,
+            userId: uid,
+            authorName: authorName,
+            avatarUrl: userModel?.avatarUrl ?? '',
+            content: text,
+          );
+      _controller.clear();
+    } finally {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    final surfaceColor =
+        isDark ? AppColors.darkSurface : AppColors.grayscaleWhite;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(bottom: bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Text(
+              'Comments',
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: textPrimary,
+              ),
+            ),
+          ),
+          // Comment list
+          SizedBox(
+            height: 320,
+            child: StreamBuilder<List<CommentModel>>(
+              stream: _commentsStream,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryDefault,
+                      strokeWidth: 2,
+                    ),
+                  );
+                }
+                final comments = snap.data ?? [];
+                if (comments.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.chat_bubble_outline_rounded,
+                            size: 40, color: textSecondary),
+                        const SizedBox(height: 10),
+                        Text(
+                          'No comments yet',
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Be the first to share your thoughts!',
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 12,
+                            color: textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: comments.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 14),
+                  itemBuilder: (_, i) => _SheetCommentTile(
+                    comment: comments[i],
+                    isDark: isDark,
+                  ),
+                );
+              },
+            ),
+          ),
+          // Input bar
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: isDark
+                      ? AppColors.darkBorder
+                      : AppColors.grayscaleLine,
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    style: AppTypography.textSmall.copyWith(
+                      color: textPrimary,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Add a comment...',
+                      hintStyle: AppTypography.textSmall.copyWith(
+                        color: textSecondary,
+                        fontSize: 14,
+                      ),
+                      filled: true,
+                      fillColor: isDark
+                          ? AppColors.darkBackground
+                          : AppColors.grayscaleSecondaryButton,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _submit(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _submit,
+                  child: _posting
+                      ? const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                              color: AppColors.primaryDefault, strokeWidth: 2),
+                        )
+                      : Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryDefault,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SheetCommentTile extends StatelessWidget {
+  final CommentModel comment;
+  final bool isDark;
+
+  const _SheetCommentTile({required this.comment, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDark
+                ? AppColors.darkSurface
+                : AppColors.grayscaleSecondaryButton,
+          ),
+          child: ClipOval(
+            child: comment.avatarUrl.startsWith('http')
+                ? CachedNetworkImage(
+                    imageUrl: comment.avatarUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, _, _) => Icon(
+                        Icons.person_rounded,
+                        color: textSecondary,
+                        size: 16),
+                  )
+                : Icon(Icons.person_rounded, color: textSecondary, size: 16),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                comment.authorName,
+                style: AppTypography.textSmall.copyWith(
+                  color: textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                comment.content,
+                style: AppTypography.textSmall.copyWith(
+                  color: textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
