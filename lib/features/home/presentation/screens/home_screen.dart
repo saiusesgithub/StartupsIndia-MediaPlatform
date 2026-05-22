@@ -80,8 +80,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(isDark, isGuest)),
-            SliverToBoxAdapter(child: _buildQuickActions(isDark, isGuest)),
-            SliverToBoxAdapter(child: const SizedBox(height: 16)),
             SliverToBoxAdapter(child: _buildHeroBanner(isDark)),
             // 8 article sections
             for (int i = 0; i < _kSections.length; i++) ...[
@@ -157,12 +155,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
       child: Row(
         children: [
-          Image.asset(
-            isDark
-                ? 'assets/startupsindia/logo_dark.png'
-                : 'assets/startupsindia/logo_light.png',
-            height: 26,
-            fit: BoxFit.contain,
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Startups',
+                  style: AppTypography.displaySmallBold.copyWith(
+                    fontSize: 18,
+                    color: AppColors.primaryDefault,
+                    height: 1,
+                  ),
+                ),
+                TextSpan(
+                  text: 'India',
+                  style: AppTypography.displaySmallBold.copyWith(
+                    fontSize: 18,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
           const Spacer(),
           _HeaderIcon(
@@ -229,47 +244,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ? AppColors.darkTextSecondary
             : AppColors.grayscaleButtonText,
       );
-
-  // ── Quick Actions ─────────────────────────────────────────────────────────
-
-  Widget _buildQuickActions(bool isDark, bool isGuest) {
-    const actions = [
-      (Icons.event_rounded, 'Join Event'),
-      (Icons.school_rounded, 'Start Learning'),
-      (Icons.handshake_outlined, 'Find Mentor'),
-      (Icons.attach_money_rounded, 'Apply Funding'),
-    ];
-
-    return SizedBox(
-      height: 80,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: actions.length,
-        itemBuilder: (context, i) {
-          final (icon, label) = actions[i];
-          return _QuickActionCard(
-            icon: icon,
-            label: label,
-            isDark: isDark,
-            onTap: () => isGuest
-                ? Navigator.pushNamed(context, '/signup')
-                : _onQuickAction(label),
-          );
-        },
-      ),
-    );
-  }
-
-  void _onQuickAction(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label — coming soon!'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.primaryDefault,
-      ),
-    );
-  }
 
   // ── Hero Banner ──────────────────────────────────────────────────────────
 
@@ -938,59 +912,6 @@ class _HeaderIcon extends StatelessWidget {
           color: isDark
               ? AppColors.darkTextPrimary
               : AppColors.grayscaleTitleActive,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Quick Action Card ─────────────────────────────────────────────────────────
-
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.icon,
-    required this.label,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkSurface
-              : AppColors.grayscaleInputBackground,
-          borderRadius: BorderRadius.circular(40),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: AppColors.primaryDefault),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.darkTextPrimary
-                    : AppColors.grayscaleTitleActive,
-              ),
-            ),
-          ],
         ),
       ),
     );

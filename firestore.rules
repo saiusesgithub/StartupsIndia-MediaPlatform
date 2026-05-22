@@ -19,10 +19,17 @@ service cloud.firestore {
     }
 
     // ── Articles ─────────────────────────────────────────────────────────────
-    // Public read. Only admin panel user can create/update/delete articles.
+    // Public read. Admin can create/update/delete articles.
+    // Authenticated users can update only interaction fields (like, bookmark, view).
     match /articles/{articleId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() ||
+                    (
+                      isSignedIn() &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['likedBy', 'likesCount', 'bookmarkedBy', 'viewCount', 'updatedAt'])
+                    );
 
       // Comments — authenticated users can read and post.
       // Admin can delete/moderate if needed.

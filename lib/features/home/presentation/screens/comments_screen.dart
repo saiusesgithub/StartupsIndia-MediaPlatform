@@ -25,7 +25,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
   @override
   void initState() {
     super.initState();
-    _comments = _mockComments;
+    _comments = [];
   }
 
   @override
@@ -70,35 +70,69 @@ class _CommentsScreenState extends State<CommentsScreen> {
         ),
         centerTitle: true,
       ),
-      body: ListView.builder(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(6, 8, 6, 90),
-        itemCount: _comments.length,
-        itemBuilder: (context, index) {
-          final comment = _comments[index];
-          final bool isFresh = _freshlyInserted.contains(comment.id);
-
-          return AnimatedSlide(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            offset: isFresh ? const Offset(0, -0.16) : Offset.zero,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 260),
-              opacity: isFresh ? 0.85 : 1,
-              child: CommentTile(
-                key: ValueKey<String>(comment.id),
-                comment: comment,
-                isExpanded: _expandedThreads.contains(comment.id),
-                onReplyTap: _handleReplyTap,
-                onToggleLike: _toggleLikeById,
-                onToggleExpand: _toggleThreadExpansion,
-                onReport: _reportComment,
+      body: _comments.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 48,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleButtonText,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No comments yet',
+                    style: AppTypography.textMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Be the first to share your thoughts.',
+                    style: AppTypography.textSmall.copyWith(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.grayscaleBodyText,
+                    ),
+                  ),
+                ],
               ),
+            )
+          : ListView.builder(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(6, 8, 6, 90),
+              itemCount: _comments.length,
+              itemBuilder: (context, index) {
+                final comment = _comments[index];
+                final bool isFresh = _freshlyInserted.contains(comment.id);
+
+                return AnimatedSlide(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  offset: isFresh ? const Offset(0, -0.16) : Offset.zero,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 260),
+                    opacity: isFresh ? 0.85 : 1,
+                    child: CommentTile(
+                      key: ValueKey<String>(comment.id),
+                      comment: comment,
+                      isExpanded: _expandedThreads.contains(comment.id),
+                      onReplyTap: _handleReplyTap,
+                      onToggleLike: _toggleLikeById,
+                      onToggleExpand: _toggleThreadExpansion,
+                      onReport: _reportComment,
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
       bottomNavigationBar: _buildComposerBar(isDark),
     );
   }
@@ -113,7 +147,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
             top: BorderSide(
               color: isDark
                   ? AppColors.darkBorder
-                  : AppColors.grayscaleLine.withOpacity(0.8),
+                  : AppColors.grayscaleLine.withValues(alpha: 0.8),
             ),
           ),
         ),
@@ -283,62 +317,4 @@ class _CommentsScreenState extends State<CommentsScreen> {
     );
   }
 
-  List<CommentNode> get _mockComments => const <CommentNode>[
-    CommentNode(
-      id: 'c_1',
-      userName: 'Wilson Franci',
-      userAvatar: 'assets/images/thumb_politics.png',
-      timeAgo: '4w',
-      text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      likesCount: 125,
-    ),
-    CommentNode(
-      id: 'c_2',
-      userName: 'Marley Botosh',
-      userAvatar: 'assets/images/thumb_sports.png',
-      timeAgo: '4w',
-      text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      likesCount: 12,
-      replies: <CommentNode>[
-        CommentNode(
-          id: 'c_2_r1',
-          userName: 'Madelyn Saris',
-          userAvatar: 'assets/images/thumb_business.png',
-          timeAgo: '4w',
-          text: 'Lorem Ipsum is simply dummy text of the printing and type...',
-          likesCount: 3,
-          isLiked: true,
-        ),
-        CommentNode(
-          id: 'c_2_r2',
-          userName: 'Corey Geidt',
-          userAvatar: 'assets/images/thumb_tech.png',
-          timeAgo: '2w',
-          text: 'Adding another nested thought here to mimic a long thread.',
-          likesCount: 2,
-        ),
-      ],
-    ),
-    CommentNode(
-      id: 'c_3',
-      userName: 'Alfonso Septimus',
-      userAvatar: 'assets/images/thumb_tech.png',
-      timeAgo: '4w',
-      text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      likesCount: 14000,
-      isLiked: true,
-    ),
-    CommentNode(
-      id: 'c_4',
-      userName: 'Omar Herwitz',
-      userAvatar: 'assets/images/thumb_business.png',
-      timeAgo: '4w',
-      text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      likesCount: 16,
-    ),
-  ];
 }
