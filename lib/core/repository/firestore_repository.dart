@@ -91,6 +91,24 @@ class FirestoreRepository {
     );
   }
 
+  Stream<List<NewsArticleModel>> getNewsByCategory(String category) {
+    if (category.isEmpty) return getLatestNews();
+    final normalized = category.toLowerCase();
+    return getLatestNews().map(
+      (items) => items
+          .where((a) => a.category.toLowerCase() == normalized)
+          .toList(growable: false),
+    );
+  }
+
+  Future<void> incrementViewCount(String articleId) async {
+    try {
+      await _articles.doc(articleId).update({
+        'viewCount': FieldValue.increment(1),
+      });
+    } catch (_) {}
+  }
+
   Future<NewsArticleModel?> getArticleById(String articleId) async {
     if (articleId.trim().isEmpty) return null;
 

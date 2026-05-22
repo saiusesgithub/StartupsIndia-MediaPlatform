@@ -11,6 +11,11 @@ final trendingNewsProvider = StreamProvider<List<NewsArticleModel>>((ref) {
   return ref.watch(firestoreRepositoryProvider).getTrendingNews();
 });
 
+final newsByCategoryProvider =
+    StreamProvider.family<List<NewsArticleModel>, String>((ref, category) {
+  return ref.watch(firestoreRepositoryProvider).getNewsByCategory(category);
+});
+
 class SearchQueryNotifier extends Notifier<String> {
   @override
   String build() => '';

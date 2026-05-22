@@ -20,6 +20,11 @@ class NewsArticleModel {
   final bool isTrending;
   final List<String> likedBy;
   final List<String> bookmarkedBy;
+  final String description;
+  final int viewCount;
+  final List<String> imageGallery;
+  final String youtubeVideoId;
+  final List<String> tags;
 
   const NewsArticleModel({
     required this.id,
@@ -41,6 +46,11 @@ class NewsArticleModel {
     this.isTrending = false,
     this.likedBy = const [],
     this.bookmarkedBy = const [],
+    this.description = '',
+    this.viewCount = 0,
+    this.imageGallery = const [],
+    this.youtubeVideoId = '',
+    this.tags = const [],
   });
 
   NewsArticleModel copyWith({
@@ -63,6 +73,11 @@ class NewsArticleModel {
     bool? isTrending,
     List<String>? likedBy,
     List<String>? bookmarkedBy,
+    String? description,
+    int? viewCount,
+    List<String>? imageGallery,
+    String? youtubeVideoId,
+    List<String>? tags,
   }) {
     return NewsArticleModel(
       id: id ?? this.id,
@@ -84,6 +99,11 @@ class NewsArticleModel {
       isTrending: isTrending ?? this.isTrending,
       likedBy: likedBy ?? this.likedBy,
       bookmarkedBy: bookmarkedBy ?? this.bookmarkedBy,
+      description: description ?? this.description,
+      viewCount: viewCount ?? this.viewCount,
+      imageGallery: imageGallery ?? this.imageGallery,
+      youtubeVideoId: youtubeVideoId ?? this.youtubeVideoId,
+      tags: tags ?? this.tags,
     );
   }
 
@@ -116,6 +136,11 @@ class NewsArticleModel {
       isTrending: map['isTrending'] as bool? ?? false,
       likedBy: List<String>.from(map['likedBy'] as List? ?? []),
       bookmarkedBy: List<String>.from(map['bookmarkedBy'] as List? ?? []),
+      description: map['description'] as String? ?? '',
+      viewCount: (map['viewCount'] as num?)?.toInt() ?? 0,
+      imageGallery: List<String>.from(map['imageGallery'] as List? ?? []),
+      youtubeVideoId: map['youtubeVideoId'] as String? ?? '',
+      tags: List<String>.from(map['tags'] as List? ?? []),
     );
   }
 
@@ -144,6 +169,11 @@ class NewsArticleModel {
       'isTrending': isTrending,
       'likedBy': likedBy,
       'bookmarkedBy': bookmarkedBy,
+      'description': description,
+      'viewCount': viewCount,
+      'imageGallery': imageGallery,
+      'youtubeVideoId': youtubeVideoId,
+      'tags': tags,
     };
   }
 
