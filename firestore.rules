@@ -163,7 +163,8 @@ service cloud.firestore {
     }
 
     // ── Notifications ─────────────────────────────────────────────────────────
-    match /notifications/{userId}/{document=**} {
+    // Repository reads from users/{userId}/notifications subcollection
+    match /users/{userId}/notifications/{notificationId} {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 

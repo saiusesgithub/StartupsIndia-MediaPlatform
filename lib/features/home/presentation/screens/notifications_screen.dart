@@ -37,18 +37,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     color: AppColors.primaryDefault,
                   ),
                 ),
-                error: (error, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'Failed to load notifications.',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.textSmall.copyWith(
-                        color: AppColors.errorDark,
-                      ),
-                    ),
-                  ),
-                ),
+                error: (_, _) => _buildList(const [], isDark),
               ),
             ),
           ],
