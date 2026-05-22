@@ -36,6 +36,7 @@ import 'features/profile/presentation/screens/legal_screen.dart';
 import 'features/profile/presentation/screens/about_screen.dart';
 import 'features/profile/presentation/screens/pro_screen.dart';
 import 'features/home/presentation/screens/funding_all_screen.dart';
+import 'features/home/presentation/screens/section_list_screen.dart';
 import 'features/home/presentation/screens/events_all_screen.dart';
 import 'features/home/presentation/screens/courses_all_screen.dart';
 import 'features/community/presentation/screens/community_detail_screen.dart';
@@ -268,6 +269,19 @@ class _MyAppState extends ConsumerState<MyApp> {
             kind: args is CommunityCollectionKind
                 ? args
                 : CommunityCollectionKind.myGroups,
+          );
+        },
+        '/section-list': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is SectionListArgs) {
+            return SectionListScreen(
+              title: args.title,
+              category: args.category,
+            );
+          }
+          return const SectionListScreen(
+            title: 'Articles',
+            category: '',
           );
         },
         '/trending': (context) => const TrendingScreen(),

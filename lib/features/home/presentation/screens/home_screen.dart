@@ -5,24 +5,28 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/utils/time_format_helper.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../../../community/domain/models/community_model.dart';
-import '../../../community/presentation/providers/community_providers.dart';
 import '../../domain/models/home_mock_data.dart';
-import '../../domain/models/news_article.dart';
-import '../../domain/models/startup_leader_entry.dart';
-import '../providers/leaderboard_provider.dart';
-import '../providers/nav_index_provider.dart';
 import '../providers/news_provider.dart';
+import 'section_list_screen.dart';
 
 final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
   return ref.read(authRepositoryProvider).getCurrentUserModel();
 });
+
+// Section definitions: (label, category, icon)
+const _kSections = [
+  ('Startups Stories', 'startup'),
+  ('Entrepreneur Stories', 'entrepreneur'),
+  ('Podcasts', 'podcast'),
+  ('Funding Opportunities', 'funding'),
+  ('Women', 'women'),
+  ('Startup Learnings', 'learning'),
+];
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -41,7 +45,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _heroController = PageController();
     _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      final next = (_heroPage + 1) % HomeMockData.featured.length;
+      if (!mounted) return;
+      final trending = ref.read(trendingNewsProvider).asData?.value ?? [];
+      final count = trending.isNotEmpty
+          ? trending.take(5).length
+          : HomeMockData.featured.length;
+      if (count <= 1) return;
+      final next = (_heroPage + 1) % count;
       _heroController.animateToPage(
         next,
         duration: const Duration(milliseconds: 500),
@@ -60,7 +70,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final trendingAsync = ref.watch(trendingNewsProvider);
     final isGuest = FirebaseAuth.instance.currentUser == null;
 
     return Scaffold(
@@ -72,29 +81,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(isDark, isGuest)),
             SliverToBoxAdapter(child: _buildQuickActions(isDark, isGuest)),
-            SliverToBoxAdapter(child: const SizedBox(height: 20)),
-            SliverToBoxAdapter(child: _buildHeroBanner()),
-            SliverToBoxAdapter(
-              child: _buildSectionHeader(
-                '1', 'Trending Startup News', isDark,
-                onViewAll: () => Navigator.pushNamed(context, '/trending'),
+            SliverToBoxAdapter(child: const SizedBox(height: 16)),
+            SliverToBoxAdapter(child: _buildHeroBanner(isDark)),
+            // 8 article sections
+            for (int i = 0; i < _kSections.length; i++) ...[
+              SliverToBoxAdapter(
+                child: _buildSectionHeader(
+                  '${i + 1}',
+                  _kSections[i].$1,
+                  isDark,
+                  onViewAll: () => _openSection(_kSections[i].$1, _kSections[i].$2),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildTrendingSection(trendingAsync, isDark, isGuest),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSectionHeader(
-                '2', 'Funding Opportunities', isDark,
-                onViewAll: () => Navigator.pushNamed(context, '/funding-all'),
+              SliverToBoxAdapter(
+                child: _kSections[i].$2 == 'podcast'
+                    ? _gated(isGuest, _buildPodcastSection(isDark))
+                    : _gated(
+                        isGuest,
+                        _buildArticleSection(_kSections[i].$2, isDark),
+                      ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _gated(isGuest, _buildFundingSection(isDark)),
-            ),
+            ],
             SliverToBoxAdapter(
               child: _buildSectionHeader(
-                '3', 'Upcoming Events', isDark,
+                '7',
+                'Upcoming Events',
+                isDark,
                 onViewAll: () => Navigator.pushNamed(context, '/events-all'),
               ),
             ),
@@ -103,28 +115,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             SliverToBoxAdapter(
               child: _buildSectionHeader(
-                '4', 'Recommended Courses', isDark,
+                '8',
+                'Courses',
+                isDark,
                 onViewAll: () => Navigator.pushNamed(context, '/courses-all'),
               ),
             ),
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCoursesSection(isDark)),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSectionHeader(
-                '5', 'Top Communities', isDark,
-                onViewAll: () =>
-                    ref.read(navIndexProvider.notifier).setIndex(3),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: _gated(isGuest, _buildCommunitiesSection(isDark)),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSectionHeader('6', 'Startup Leaderboard', isDark),
-            ),
-            SliverToBoxAdapter(
-              child: _gated(isGuest, _buildLeaderboard(isDark)),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
@@ -138,7 +136,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return GuestBlur(child: child);
   }
 
-  // ── Header ─────────────────────────────────────────────────────────────────
+  void _openSection(String title, String category) {
+    Navigator.pushNamed(
+      context,
+      '/section-list',
+      arguments: SectionListArgs(title: title, category: category),
+    );
+  }
+
+  // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(bool isDark, bool isGuest) {
     final user = FirebaseAuth.instance.currentUser;
@@ -151,7 +157,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
       child: Row(
         children: [
-          // Logo wordmark
           Image.asset(
             isDark
                 ? 'assets/startupsindia/logo_dark.png'
@@ -160,14 +165,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             fit: BoxFit.contain,
           ),
           const Spacer(),
-          // Search icon
           _HeaderIcon(
             icon: Icons.search_rounded,
             isDark: isDark,
             onTap: () => Navigator.pushNamed(context, '/search'),
           ),
           const SizedBox(width: 10),
-          // Notification bell with badge (no dot for guests)
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -194,7 +197,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
           const SizedBox(width: 10),
-          // Profile avatar
           GestureDetector(
             onTap: () => Navigator.pushNamed(
                 context, isGuest ? '/signup' : '/profile'),
@@ -209,7 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ? CachedNetworkImage(
                         imageUrl: avatarUrl,
                         fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => _avatarFallback(isDark),
+                        errorWidget: (_, _, _) => _avatarFallback(isDark),
                       )
                     : _avatarFallback(isDark),
               ),
@@ -228,7 +230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             : AppColors.grayscaleButtonText,
       );
 
-  // ── Quick Actions ───────────────────────────────────────────────────────────
+  // ── Quick Actions ─────────────────────────────────────────────────────────
 
   Widget _buildQuickActions(bool isDark, bool isGuest) {
     const actions = [
@@ -260,16 +262,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _onQuickAction(String label) {
-    if (label == 'Start Learning') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$label — coming soon!'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.primaryDefault,
-        ),
-      );
-      return;
-    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$label — coming soon!'),
@@ -279,57 +271,105 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ── Hero Banner ─────────────────────────────────────────────────────────────
+  // ── Hero Banner ──────────────────────────────────────────────────────────
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner(bool isDark) {
+    final trendingAsync = ref.watch(trendingNewsProvider);
+    final articles = trendingAsync.asData?.value ?? [];
+    final heroArticles = articles.take(5).toList();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: SizedBox(
-          height: 250,
-          child: Stack(
-            children: [
-              PageView.builder(
-                controller: _heroController,
-                itemCount: HomeMockData.featured.length,
-                onPageChanged: (p) => setState(() => _heroPage = p),
-                itemBuilder: (context, i) {
-                  return _HeroSlide(story: HomeMockData.featured[i]);
-                },
-              ),
-              // Page dots
-              Positioned(
-                bottom: 14,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    HomeMockData.featured.length,
-                    (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: _heroPage == i ? 20 : 6,
-                      height: 4,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        color: _heroPage == i
-                            ? AppColors.primaryDefault
-                            : Colors.white.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(99),
+          height: 220,
+          child: heroArticles.isEmpty
+              ? _buildMockHeroSlide(HomeMockData.featured[0])
+              : Stack(
+                  children: [
+                    PageView.builder(
+                      controller: _heroController,
+                      itemCount: heroArticles.length,
+                      onPageChanged: (p) => setState(() => _heroPage = p),
+                      itemBuilder: (context, i) =>
+                          _RealHeroSlide(article: heroArticles[i]),
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          heroArticles.length,
+                          (i) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: _heroPage == i ? 18 : 5,
+                            height: 4,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: BoxDecoration(
+                              color: _heroPage == i
+                                  ? AppColors.primaryDefault
+                                  : Colors.white.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  // ── Section header with left red accent bar ─────────────────────────────────
+  Widget _buildMockHeroSlide(HomeFeaturedStory story) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/trending'),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [story.gradientStart, story.gradientEnd],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 36),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _CategoryBadge(label: story.badge),
+            const SizedBox(height: 12),
+            Text(
+              story.headline,
+              style: AppTypography.displaySmallBold.copyWith(
+                fontSize: 20,
+                color: Colors.white,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              story.highlightLine,
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 13,
+                color: AppColors.primaryDefault,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            _ReadFullStoryButton(
+              onTap: () => Navigator.pushNamed(context, '/trending'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Section header ────────────────────────────────────────────────────────
 
   Widget _buildSectionHeader(
     String number,
@@ -338,12 +378,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     VoidCallback? onViewAll,
   }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
       child: Row(
         children: [
           Container(
             width: 3,
-            height: 20,
+            height: 18,
             decoration: BoxDecoration(
               color: AppColors.primaryDefault,
               borderRadius: BorderRadius.circular(99),
@@ -388,81 +428,87 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ── 1. Trending Startup News ─────────────────────────────────────────────────
+  // ── Article section (Firestore-backed horizontal scroll) ─────────────────
 
-  Widget _buildTrendingSection(
-    AsyncValue<List<NewsArticleModel>> trendingAsync,
-    bool isDark,
-    bool isGuest,
-  ) {
+  Widget _buildArticleSection(String category, bool isDark) {
+    final articlesAsync = ref.watch(newsByCategoryProvider(category));
     return SizedBox(
       height: 200,
-      child: trendingAsync.when(
+      child: articlesAsync.when(
         loading: () => ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           itemCount: 3,
-          itemBuilder: (context, index) => _SkeletonCard(isDark: isDark),
+          itemBuilder: (_, _) => _SkeletonCard(isDark: isDark),
         ),
-        error: (error, stack) => _buildEmptyHScroll(
-          'No trending stories yet.',
+        error: (_, _) => _buildEmptySection(
+          'No articles yet',
           isDark,
         ),
         data: (items) {
           if (items.isEmpty) {
-            return _buildEmptyHScroll('No trending stories yet.', isDark);
+            return _buildEmptySection('No articles yet', isDark);
           }
-          // Guests see first 2 real cards + 1 locked teaser
-          final visible = isGuest ? items.take(2).toList() : items;
-          final extraCount = isGuest ? 1 : 0;
           return ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: visible.length + extraCount,
-            itemBuilder: (context, i) {
-              if (i < visible.length) {
-                final item = visible[i];
-                final article = _toNewsArticle(item);
-                return _StoryCard(
-                  article: article,
-                  colorIndex: i,
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    '/article-detail',
-                    arguments: item,
-                  ),
-                );
-              }
-              return _LockedStoryCard(isDark: isDark);
-            },
+            itemCount: items.length,
+            itemBuilder: (context, i) => _HomeSectionCard(
+              article: items[i],
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/article-detail',
+                arguments: items[i],
+              ),
+            ),
           );
         },
       ),
     );
   }
 
-  // ── 2. Funding Opportunities ─────────────────────────────────────────────────
+  // ── Podcast section ───────────────────────────────────────────────────────
 
-  Widget _buildFundingSection(bool isDark) {
+  Widget _buildPodcastSection(bool isDark) {
+    final articlesAsync = ref.watch(newsByCategoryProvider('podcast'));
     return SizedBox(
-      height: 150,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: HomeMockData.funding.length,
-        itemBuilder: (_, i) => _FundingCard(
-          card: HomeMockData.funding[i],
-          isDark: isDark,
+      height: 200,
+      child: articlesAsync.when(
+        loading: () => ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: 3,
+          itemBuilder: (_, _) => _SkeletonCard(isDark: isDark),
         ),
+        error: (_, _) => _buildEmptySection('No podcasts yet', isDark),
+        data: (items) {
+          if (items.isEmpty) {
+            return _buildEmptySection('No podcasts yet', isDark);
+          }
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: items.length,
+            itemBuilder: (context, i) => _HomeSectionCard(
+              article: items[i],
+              isPodcast: true,
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/article-detail',
+                arguments: items[i],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  // ── 3. Upcoming Events ───────────────────────────────────────────────────────
+  // ── Events section ────────────────────────────────────────────────────────
 
   Widget _buildEventsSection(bool isDark) {
     return SizedBox(
-      height: 148,
+      height: 160,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -473,11 +519,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ── 4. Recommended Courses ───────────────────────────────────────────────────
+  // ── Courses section ───────────────────────────────────────────────────────
 
   Widget _buildCoursesSection(bool isDark) {
     return SizedBox(
-      height: 148,
+      height: 160,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -488,126 +534,376 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ── 5. Top Communities ───────────────────────────────────────────────────────
-
-  Widget _buildCommunitiesSection(bool isDark) {
-    final communitiesAsync = ref.watch(communitiesProvider);
-    final communities = communitiesAsync.asData?.value ?? [];
-    if (communities.isEmpty) {
-      return const SizedBox(height: 80);
-    }
-    return SizedBox(
-      height: 80,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: communities.length,
-        itemBuilder: (_, i) => _CommunityCard(
-          community: communities[i],
-          isDark: isDark,
-        ),
-      ),
-    );
-  }
-
-  // ── 6. Startup Leaderboard ───────────────────────────────────────────────────
-
-  Widget _buildLeaderboard(bool isDark) {
-    final asyncData = ref.watch(leaderboardProvider);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: asyncData.when(
-        loading: () => Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primaryDefault,
-              strokeWidth: 2,
-            ),
-          ),
-        ),
-        error: (_, s) => Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Center(
-            child: Text(
-              'Could not load leaderboard',
-              style: AppTypography.textSmall.copyWith(
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.grayscaleBodyText,
-              ),
-            ),
-          ),
-        ),
-        data: (entries) => Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-            ),
-          ),
-          child: Column(
-            children: List.generate(entries.length, (i) {
-              return _LeaderboardRow(
-                entry: entries[i],
-                isDark: isDark,
-                showDivider: i < entries.length - 1,
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyHScroll(String msg, bool isDark) {
+  Widget _buildEmptySection(String msg, bool isDark) {
     return Center(
       child: Text(
         msg,
         style: AppTypography.textSmall.copyWith(
-          color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText,
+          color: isDark
+              ? AppColors.darkTextSecondary
+              : AppColors.grayscaleBodyText,
         ),
       ),
     );
   }
+}
 
-  NewsArticle _toNewsArticle(NewsArticleModel model) {
-    return NewsArticle(
-      id: model.id,
-      authorId: model.authorId,
-      category: model.category,
-      headline: model.headline,
-      sourceName: model.sourceName,
-      sourceId: model.sourceId,
-      sourceLogoAsset: model.sourceLogoAsset,
-      thumbnailAsset: model.thumbnailAsset,
-      timeAgo: formatArticleTimestamp(model.createdAt, fallback: model.timeAgo),
-      body: model.body,
-      likesCount: model.likesCount,
-      commentsCount: model.commentsCount,
-      isSourceFollowing: model.isSourceFollowing,
-      isBookmarked: model.isBookmarked,
-      isLiked: model.isLiked,
+// ── Reusable hero badge ───────────────────────────────────────────────────────
+
+class _CategoryBadge extends StatelessWidget {
+  final String label;
+  const _CategoryBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.primaryDefault,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: AppTypography.textSmall.copyWith(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
     );
   }
 }
 
-// ── Header icon button ─────────────────────────────────────────────────────────
+class _ReadFullStoryButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ReadFullStoryButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(40),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Read Full Story',
+              style: AppTypography.textSmall.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.grayscaleTitleActive,
+              ),
+            ),
+            const SizedBox(width: 5),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 11,
+              color: AppColors.grayscaleTitleActive,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Real hero slide (uses Firestore trending article) ─────────────────────────
+
+class _RealHeroSlide extends StatelessWidget {
+  final NewsArticleModel article;
+  const _RealHeroSlide({required this.article});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/article-detail',
+        arguments: article,
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background image
+          article.thumbnailAsset.startsWith('http')
+              ? CachedNetworkImage(
+                  imageUrl: article.thumbnailAsset,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(color: const Color(0xFF1A0A2E)),
+                  errorWidget: (_, _, _) => Container(color: const Color(0xFF1A0A2E)),
+                )
+              : Container(color: const Color(0xFF1A0A2E)),
+          // Gradient overlay
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.2),
+                    Colors.black.withValues(alpha: 0.85),
+                  ],
+                  stops: const [0.0, 0.35, 1.0],
+                ),
+              ),
+            ),
+          ),
+          // Content
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 20,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _CategoryBadge(label: article.category.isEmpty ? 'NEWS' : article.category),
+                const SizedBox(height: 8),
+                Text(
+                  article.headline,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.displaySmallBold.copyWith(
+                    fontSize: 18,
+                    color: Colors.white,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _ReadFullStoryButton(
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/article-detail',
+                        arguments: article,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (article.sourceName.isNotEmpty) ...[
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 11,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        article.timeAgo,
+                        style: AppTypography.textSmall.copyWith(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Home section card ─────────────────────────────────────────────────────────
+
+class _HomeSectionCard extends StatelessWidget {
+  final NewsArticleModel article;
+  final bool isPodcast;
+  final VoidCallback onTap;
+
+  const _HomeSectionCard({
+    required this.article,
+    required this.onTap,
+    this.isPodcast = false,
+  });
+
+  String _fmtViews(int v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+    if (v == 0) return '';
+    return '$v';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const cardBg = Color(0xFF0D1B2E);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 155,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: cardBg,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Thumbnail background
+            if (article.thumbnailAsset.startsWith('http'))
+              Positioned.fill(
+                child: CachedNetworkImage(
+                  imageUrl: article.thumbnailAsset,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(color: cardBg),
+                  errorWidget: (_, _, _) => Container(color: cardBg),
+                ),
+              )
+            else
+              Positioned.fill(child: Container(color: cardBg)),
+            // Gradient overlay (bottom-heavy)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.15),
+                      Colors.black.withValues(alpha: 0.82),
+                    ],
+                    stops: const [0.0, 0.35, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // Podcast play icon overlay
+            if (isPodcast)
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white54, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
+            // Top: category pill
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDefault,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  (article.category.isEmpty ? 'NEWS' : article.category)
+                      .toUpperCase(),
+                  style: AppTypography.textSmall.copyWith(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+            // Bottom: title + meta
+            Positioned(
+              left: 10,
+              right: 10,
+              bottom: 10,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    article.headline,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      if (article.timeAgo.isNotEmpty)
+                        Text(
+                          article.timeAgo,
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 9,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      if (article.timeAgo.isNotEmpty &&
+                          article.viewCount > 0) ...[
+                        const SizedBox(width: 5),
+                        Container(
+                          width: 2,
+                          height: 2,
+                          decoration: const BoxDecoration(
+                            color: Colors.white54,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                      ],
+                      if (article.viewCount > 0)
+                        Text(
+                          '${_fmtViews(article.viewCount)} views',
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 9,
+                            color: Colors.white70,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Skeleton loading card ─────────────────────────────────────────────────────
+
+class _SkeletonCard extends StatelessWidget {
+  final bool isDark;
+  const _SkeletonCard({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 155,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
+        borderRadius: BorderRadius.circular(14),
+      ),
+    );
+  }
+}
+
+// ── Header icon button ────────────────────────────────────────────────────────
 
 class _HeaderIcon extends StatelessWidget {
   final IconData icon;
@@ -628,7 +924,9 @@ class _HeaderIcon extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.grayscaleInputBackground,
+          color: isDark
+              ? AppColors.darkSurface
+              : AppColors.grayscaleInputBackground,
           borderRadius: BorderRadius.circular(10),
           border: isDark
               ? Border.all(color: AppColors.darkBorder, width: 1)
@@ -646,7 +944,7 @@ class _HeaderIcon extends StatelessWidget {
   }
 }
 
-// ── Quick Action Card ──────────────────────────────────────────────────────────
+// ── Quick Action Card ─────────────────────────────────────────────────────────
 
 class _QuickActionCard extends StatelessWidget {
   final IconData icon;
@@ -669,7 +967,9 @@ class _QuickActionCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.grayscaleInputBackground,
+          color: isDark
+              ? AppColors.darkSurface
+              : AppColors.grayscaleInputBackground,
           borderRadius: BorderRadius.circular(40),
           border: Border.all(
             color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
@@ -697,478 +997,7 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-// ── Hero slide ─────────────────────────────────────────────────────────────────
-
-class _HeroSlide extends StatelessWidget {
-  final HomeFeaturedStory story;
-
-  const _HeroSlide({required this.story});
-
-  void _openStory(BuildContext context) {
-    if (story.articleId != null && story.articleId!.isNotEmpty) {
-      Navigator.pushNamed(
-        context,
-        '/article-detail',
-        arguments: story.articleId,
-      );
-    } else {
-      // Mock/placeholder stories fall back to the trending article list.
-      Navigator.pushNamed(context, '/trending');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _openStory(context),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [story.gradientStart, story.gradientEnd],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryDefault,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  story.badge,
-                  style: AppTypography.textSmall.copyWith(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              // Headline
-              Text(
-                story.headline,
-                style: AppTypography.displaySmallBold.copyWith(
-                  fontSize: 22,
-                  color: Colors.white,
-                  height: 1.25,
-                ),
-              ),
-              const SizedBox(height: 4),
-              // Highlighted line
-              Text(
-                story.highlightLine,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 14,
-                  color: AppColors.primaryDefault,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              // Subtitle
-              Text(
-                story.subtitle,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.7),
-                  height: 1.4,
-                ),
-              ),
-              const Spacer(),
-              // Read Full Story button
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => _openStory(context),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 9),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(40),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Read Full Story',
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.grayscaleTitleActive,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 11,
-                            color: AppColors.grayscaleTitleActive,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Story card (trending) ──────────────────────────────────────────────────────
-
-const List<Color> _cardGradients = [
-  Color(0xFF1A0A2E),
-  Color(0xFF0A1628),
-  Color(0xFF0D2137),
-  Color(0xFF1C0A0A),
-  Color(0xFF0A1C0A),
-  Color(0xFF1A1A0A),
-];
-
-class _StoryCard extends StatelessWidget {
-  final NewsArticle article;
-  final int colorIndex;
-  final VoidCallback onTap;
-
-  const _StoryCard({
-    required this.article,
-    required this.colorIndex,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = _cardGradients[colorIndex % _cardGradients.length];
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 155,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: LinearGradient(
-            colors: [bg, bg.withValues(alpha: 0.85)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Thumbnail as subtle background
-            if (article.thumbnailAsset.startsWith('http'))
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Opacity(
-                    opacity: 0.25,
-                    child: CachedNetworkImage(
-                      imageUrl: article.thumbnailAsset,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Category pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryDefault,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      article.category.toUpperCase(),
-                      style: AppTypography.textSmall.copyWith(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    article.sourceName,
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    article.headline,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 11,
-                      color: Colors.white.withValues(alpha: 0.7),
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Time badge bottom-right
-            Positioned(
-              bottom: 10,
-              right: 10,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  article.timeAgo,
-                  style: AppTypography.textSmall.copyWith(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Locked teaser card (guest mode, trailing trending card) ───────────────────
-
-class _LockedStoryCard extends StatelessWidget {
-  final bool isDark;
-
-  const _LockedStoryCard({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/signup'),
-      child: Container(
-        width: 155,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1A0A2E), Color(0xFF0D0D0D)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border.all(
-            color: AppColors.primaryDefault.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.primaryDefault.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.lock_outline_rounded,
-                  color: AppColors.primaryDefault, size: 18),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Sign up to\nread more',
-              textAlign: TextAlign.center,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.white70,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.primaryDefault,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Join Free →',
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Skeleton loading card ──────────────────────────────────────────────────────
-
-class _SkeletonCard extends StatelessWidget {
-  final bool isDark;
-
-  const _SkeletonCard({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 155,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
-        borderRadius: BorderRadius.circular(14),
-      ),
-    );
-  }
-}
-
-// ── Funding card ───────────────────────────────────────────────────────────────
-
-class _FundingCard extends StatelessWidget {
-  final HomeFundingCard card;
-  final bool isDark;
-
-  const _FundingCard({required this.card, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 180,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: card.color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    card.initial,
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: card.color,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      card.company,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.textSmall.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.grayscaleTitleActive,
-                      ),
-                    ),
-                    Text(
-                      card.sector,
-                      style: AppTypography.textSmall.copyWith(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.grayscaleBodyText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.successDefault.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              'FUNDED',
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                color: AppColors.successDefault,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            card.amount,
-            style: AppTypography.displaySmallBold.copyWith(
-              fontSize: 18,
-              color: isDark
-                  ? AppColors.darkTextPrimary
-                  : AppColors.grayscaleTitleActive,
-            ),
-          ),
-          Text(
-            card.stage,
-            style: AppTypography.textSmall.copyWith(
-              fontSize: 11,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.grayscaleBodyText,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Event card ─────────────────────────────────────────────────────────────────
+// ── Event card ────────────────────────────────────────────────────────────────
 
 class _EventCard extends StatelessWidget {
   final HomeEvent event;
@@ -1179,7 +1008,7 @@ class _EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 200,
+      width: 190,
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1268,35 +1097,13 @@ class _EventCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 3),
-          Row(
-            children: [
-              Icon(
-                Icons.people_outline,
-                size: 12,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.grayscaleBodyText,
-              ),
-              const SizedBox(width: 3),
-              Text(
-                event.attendees,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 11,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.grayscaleBodyText,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 }
 
-// ── Course card ────────────────────────────────────────────────────────────────
+// ── Course card ───────────────────────────────────────────────────────────────
 
 class _CourseCard extends StatelessWidget {
   final HomeCourse course;
@@ -1307,7 +1114,7 @@ class _CourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 200,
+      width: 190,
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1378,231 +1185,3 @@ class _CourseCard extends StatelessWidget {
     );
   }
 }
-
-// ── Community card ─────────────────────────────────────────────────────────────
-
-class _CommunityCard extends StatelessWidget {
-  final CommunityModel community;
-  final bool isDark;
-
-  const _CommunityCard({required this.community, required this.isDark});
-
-  String _fmtMembers(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K members';
-    return '$n members';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: community.color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                community.emoji,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  community.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.grayscaleTitleActive,
-                  ),
-                ),
-                Text(
-                  _fmtMembers(community.memberCount),
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 10,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.grayscaleBodyText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.primaryDefault,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Join',
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Leaderboard row ────────────────────────────────────────────────────────────
-
-class _LeaderboardRow extends StatelessWidget {
-  final StartupLeaderEntry entry;
-  final bool isDark;
-  final bool showDivider;
-
-  const _LeaderboardRow({
-    required this.entry,
-    required this.isDark,
-    required this.showDivider,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isTop3 = entry.rank <= 3;
-    final changeColor =
-        entry.isPositive ? AppColors.successDefault : AppColors.errorDark;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 24,
-                child: Text(
-                  '#${entry.rank}',
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: isTop3
-                        ? AppColors.primaryDefault
-                        : isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.grayscaleBodyText,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: entry.color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    entry.name[0],
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: entry.color,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.name,
-                      style: AppTypography.textSmall.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.grayscaleTitleActive,
-                      ),
-                    ),
-                    Text(
-                      entry.sector,
-                      style: AppTypography.textSmall.copyWith(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.grayscaleBodyText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    entry.formattedMarketCap,
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.grayscaleTitleActive,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: changeColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      entry.formattedChange,
-                      style: AppTypography.textSmall.copyWith(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: changeColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            indent: 16,
-            endIndent: 16,
-            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
-          ),
-      ],
-    );
-  }
-}
-
