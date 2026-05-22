@@ -12,21 +12,17 @@ import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/time_format_helper.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../theme/style_guide.dart';
-import '../../../explore/data/repositories/mock_source_repository.dart';
-import '../../../explore/domain/repositories/source_repository.dart';
 import '../../data/repositories/report_repository.dart';
 import '../widgets/report_sheet.dart';
 
 class ArticleDetailScreen extends ConsumerStatefulWidget {
   final NewsArticleModel? article;
   final String? articleId;
-  final SourceRepository? sourceRepository;
 
   const ArticleDetailScreen({
     super.key,
     this.article,
     this.articleId,
-    this.sourceRepository,
   }) : assert(article != null || articleId != null);
 
   @override
@@ -35,27 +31,21 @@ class ArticleDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
-  late final SourceRepository _sourceRepository;
-
   NewsArticleModel? _article;
   bool _isLoading = false;
   String? _error;
-  late bool _isFollowing;
   late bool _isLiked;
   late bool _isBookmarked;
   late int _likesCount;
-  bool _isUpdatingFollow = false;
   String? _userId;
 
   @override
   void initState() {
     super.initState();
-    _sourceRepository = widget.sourceRepository ?? MockSourceRepository();
     final article = widget.article;
     if (article != null) {
       _setArticle(article);
     } else {
-      _isFollowing = false;
       _isLiked = false;
       _isBookmarked = false;
       _likesCount = 0;
@@ -67,7 +57,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   void _setArticle(NewsArticleModel article) {
     final userId = _userId;
     _article = article;
-    _isFollowing = article.isSourceFollowing;
     _isLiked = userId == null
         ? article.isLiked
         : article.likedBy.contains(userId) || article.isLiked;
@@ -188,15 +177,31 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                   : AppColors.grayscaleTitleActive,
             ),
           ),
-          // Logo (centered)
           Expanded(
             child: Center(
-              child: Image.asset(
-                isDark
-                    ? 'assets/startupsindia/logo_dark.png'
-                    : 'assets/startupsindia/logo_light.png',
-                height: 22,
-                fit: BoxFit.contain,
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Startups',
+                      style: AppTypography.displaySmallBold.copyWith(
+                        fontSize: 17,
+                        color: AppColors.primaryDefault,
+                        height: 1,
+                      ),
+                    ),
+                    TextSpan(
+                      text: 'India',
+                      style: AppTypography.displaySmallBold.copyWith(
+                        fontSize: 17,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.grayscaleTitleActive,
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -391,39 +396,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                 ],
               ),
             ],
-          ),
-        ),
-        // Follow button
-        SizedBox(
-          height: 34,
-          child: ElevatedButton(
-            onPressed: _isUpdatingFollow ? null : _toggleFollowSource,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryDefault,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              elevation: 0,
-            ),
-            child: _isUpdatingFollow
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    _isFollowing ? 'Following' : 'Follow',
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
           ),
         ),
       ],
@@ -729,33 +701,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
               ),
             ),
             const Spacer(),
-            // Comment input shortcut
-            GestureDetector(
-              onTap: _openComments,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.darkBackground
-                      : AppColors.grayscaleSecondaryButton,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : AppColors.grayscaleLine,
-                  ),
-                ),
-                child: Text(
-                  'Add comment…',
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 12,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.grayscaleButtonText,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -763,23 +708,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
-
-  Future<void> _toggleFollowSource() async {
-    final article = _article;
-    if (article == null) return;
-    setState(() => _isUpdatingFollow = true);
-    final updated = await _sourceRepository.toggleFollowSource(
-      sourceId: article.sourceId.trim().isEmpty
-          ? article.sourceName.toLowerCase().replaceAll(' ', '_')
-          : article.sourceId,
-      isFollowing: !_isFollowing,
-    );
-    if (!mounted) return;
-    setState(() {
-      _isFollowing = updated;
-      _isUpdatingFollow = false;
-    });
-  }
 
   Future<void> _toggleLike() async {
     final article = _article;
@@ -792,14 +720,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
     });
     try {
       await ref.read(firestoreRepositoryProvider).toggleLike(article.id, userId);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLiked = !_isLiked;
-        _likesCount += _isLiked ? 1 : -1;
-        if (_likesCount < 0) _likesCount = 0;
-      });
-    }
+    } catch (_) {}
   }
 
   Future<void> _toggleBookmark() async {
@@ -811,10 +732,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
       await ref
           .read(firestoreRepositoryProvider)
           .toggleBookmark(article.id, userId);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isBookmarked = !_isBookmarked);
-    }
+    } catch (_) {}
   }
 
   void _shareArticle() {

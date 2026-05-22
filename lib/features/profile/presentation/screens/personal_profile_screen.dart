@@ -565,29 +565,14 @@ class _HeaderBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 10, 8, 4),
         child: Row(
           children: [
-            // Brand + title
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'StartupsIndia',
-                  style: AppTypography.textSmall.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                    color: AppColors.primaryDefault,
-                  ),
-                ),
-                Text(
-                  'My Profile',
-                  style: AppTypography.displaySmallBold.copyWith(
-                    fontSize: 20,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.grayscaleTitleActive,
-                  ),
-                ),
-              ],
+            Text(
+              'My Profile',
+              style: AppTypography.displaySmallBold.copyWith(
+                fontSize: 20,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.grayscaleTitleActive,
+              ),
             ),
             const Spacer(),
             IconButton(
@@ -1280,103 +1265,14 @@ class _ActivitySliver extends StatelessWidget {
   final bool isDark;
   const _ActivitySliver({required this.isDark});
 
-  static const _dummyActivity = [
-    (icon: Icons.people_rounded, color: Color(0xFF6C63FF), text: 'Joined the community  Startup Founders India'),
-    (icon: Icons.favorite_rounded, color: Color(0xFFE91E63), text: 'Liked a post  The Rise of Deep-Tech Startups'),
-    (icon: Icons.chat_bubble_rounded, color: Color(0xFF00BCD4), text: 'Commented on an article  How to Raise Your First Round'),
-    (icon: Icons.play_circle_filled_rounded, color: Color(0xFFFF5722), text: 'Commented on a video  Pitch Deck Breakdown: Series A'),
-    (icon: Icons.campaign_rounded, color: Color(0xFF4CAF50), text: 'Replied to a community announcement  Welcome to Cohort 4!'),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          _SectionHeader(title: 'Recent Activity', isDark: isDark),
-          const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color:
-                      isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
-            ),
-            child: Column(
-              children: [
-                for (var i = 0; i < _dummyActivity.length; i++) ...[
-                  if (i > 0)
-                    Divider(
-                      height: 1,
-                      indent: 56,
-                      color: isDark
-                          ? AppColors.darkBorder
-                          : AppColors.grayscaleLine,
-                    ),
-                  _ActivityTile(
-                    icon: _dummyActivity[i].icon,
-                    color: _dummyActivity[i].color,
-                    text: _dummyActivity[i].text,
-                    isDark: isDark,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _ActivityTile extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String text;
-  final bool isDark;
-
-  const _ActivityTile({
-    required this.icon,
-    required this.color,
-    required this.text,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 16, color: color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                text,
-                style: AppTypography.textSmall.copyWith(
-                  fontSize: 13,
-                  height: 1.4,
-                  color: isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.grayscaleTitleActive,
-                ),
-              ),
-            ),
-          ),
-        ],
+    return SliverToBoxAdapter(
+      child: _EmptyState(
+        isDark: isDark,
+        icon: Icons.timeline_rounded,
+        title: 'No activity yet',
+        subtitle: 'Your likes, comments, and community activity will appear here.',
       ),
     );
   }
