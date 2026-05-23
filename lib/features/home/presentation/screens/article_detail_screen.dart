@@ -10,6 +10,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/time_format_helper.dart';
+import '../../../../core/widgets/guest_gate.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../features/explore/domain/models/post_model.dart';
 import '../../../../features/explore/presentation/providers/post_providers.dart';
@@ -646,6 +647,8 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
 
   Widget _buildRelatedArticlesSection(NewsArticleModel article, bool isDark) {
     final latestAsync = ref.watch(latestNewsProvider);
+    final category = article.category.toLowerCase();
+    final isPodcast = category == 'podcast';
     return latestAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
@@ -653,10 +656,12 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
         final related = items
             .where((item) =>
                 item.id != article.id &&
-                item.category.toLowerCase() == article.category.toLowerCase())
+                item.category.toLowerCase() == category)
             .toList(growable: false);
         final fallback = items
-            .where((item) => item.id != article.id)
+            .where((item) =>
+                item.id != article.id &&
+                (!isPodcast || item.category.toLowerCase() == 'podcast'))
             .take(8)
             .toList(growable: false);
         final visible = (related.isEmpty ? fallback : related).take(8).toList();
@@ -670,7 +675,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 20),
                 child: Text(
-                  'Related Articles',
+                  isPodcast ? 'Related Podcasts' : 'Related Articles',
                   style: AppTypography.displaySmallBold.copyWith(
                     fontSize: 18,
                     color: isDark
@@ -708,7 +713,15 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   Future<void> _toggleLike() async {
     final article = _article;
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (article == null || userId == null || userId.isEmpty) return;
+    if (article == null) return;
+    if (userId == null || userId.isEmpty) {
+      showGuestAuthPrompt(
+        context,
+        title: 'Sign in to like stories',
+        message: 'Create an account to like articles and podcasts.',
+      );
+      return;
+    }
     setState(() {
       _isLiked = !_isLiked;
       _likesCount += _isLiked ? 1 : -1;
@@ -722,7 +735,15 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   Future<void> _toggleBookmark() async {
     final article = _article;
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (article == null || userId == null || userId.isEmpty) return;
+    if (article == null) return;
+    if (userId == null || userId.isEmpty) {
+      showGuestAuthPrompt(
+        context,
+        title: 'Sign in to save this',
+        message: 'Create an account to bookmark articles and podcasts.',
+      );
+      return;
+    }
     setState(() => _isBookmarked = !_isBookmarked);
     try {
       await ref
@@ -744,6 +765,14 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   void _openComments() {
     final article = _article;
     if (article == null) return;
+    if (FirebaseAuth.instance.currentUser == null) {
+      showGuestAuthPrompt(
+        context,
+        title: 'Sign in to comment',
+        message: 'Create an account to join the discussion.',
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1254,7 +1283,15 @@ class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
   Future<void> _submit() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     final text = _controller.text.trim();
-    if (uid == null || text.isEmpty || _posting) return;
+    if (uid == null) {
+      showGuestAuthPrompt(
+        context,
+        title: 'Sign in to comment',
+        message: 'Create an account to ask questions and reply to discussions.',
+      );
+      return;
+    }
+    if (text.isEmpty || _posting) return;
     setState(() => _posting = true);
     try {
       final userModel =

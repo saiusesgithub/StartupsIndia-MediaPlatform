@@ -94,10 +94,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: _kSections[i].$2 == 'podcast'
-                    ? _gated(isGuest, _buildPodcastSection(isDark))
-                    : _gated(
-                        isGuest,
-                        _buildArticleSection(_kSections[i].$2, isDark),
+                    ? _buildPodcastSection(isDark, isGuest: isGuest)
+                    : _buildArticleSection(
+                        _kSections[i].$2,
+                        isDark,
+                        isGuest: isGuest,
                       ),
               ),
             ],
@@ -405,8 +406,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── Article section (Firestore-backed horizontal scroll) ─────────────────
 
-  Widget _buildArticleSection(String category, bool isDark) {
+  Widget _buildArticleSection(
+    String category,
+    bool isDark, {
+    required bool isGuest,
+  }) {
     final articlesAsync = ref.watch(newsByCategoryProvider(category));
+    const guestPreviewLimit = 3;
     return SizedBox(
       height: 200,
       child: articlesAsync.when(
@@ -428,14 +434,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: items.length,
-            itemBuilder: (context, i) => _HomeSectionCard(
-              article: items[i],
-              onTap: () => Navigator.pushNamed(
-                context,
-                '/article-detail',
-                arguments: items[i],
-              ),
-            ),
+            itemBuilder: (context, i) {
+              final card = _HomeSectionCard(
+                article: items[i],
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/article-detail',
+                  arguments: items[i],
+                ),
+              );
+              if (!isGuest || i < guestPreviewLimit) return card;
+              return SizedBox(
+                width: 167,
+                child: GuestBlur(
+                  borderRadius: BorderRadius.circular(14),
+                  label: 'Sign Up',
+                  child: card,
+                ),
+              );
+            },
           );
         },
       ),
@@ -444,8 +461,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── Podcast section ───────────────────────────────────────────────────────
 
-  Widget _buildPodcastSection(bool isDark) {
+  Widget _buildPodcastSection(
+    bool isDark, {
+    required bool isGuest,
+  }) {
     final articlesAsync = ref.watch(newsByCategoryProvider('podcast'));
+    const guestPreviewLimit = 3;
     return SizedBox(
       height: 200,
       child: articlesAsync.when(
@@ -464,15 +485,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: items.length,
-            itemBuilder: (context, i) => _HomeSectionCard(
-              article: items[i],
-              isPodcast: true,
-              onTap: () => Navigator.pushNamed(
-                context,
-                '/article-detail',
-                arguments: items[i],
-              ),
-            ),
+            itemBuilder: (context, i) {
+              final card = _HomeSectionCard(
+                article: items[i],
+                isPodcast: true,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/article-detail',
+                  arguments: items[i],
+                ),
+              );
+              if (!isGuest || i < guestPreviewLimit) return card;
+              return SizedBox(
+                width: 167,
+                child: GuestBlur(
+                  borderRadius: BorderRadius.circular(14),
+                  label: 'Sign Up',
+                  child: card,
+                ),
+              );
+            },
           );
         },
       ),

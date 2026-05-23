@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/time_format_helper.dart';
+import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/repositories/report_repository.dart';
@@ -55,7 +56,9 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isGuest = FirebaseAuth.instance.currentUser == null;
     final articlesAsync = ref.watch(newsByCategoryProvider(widget.category));
+    const guestPreviewLimit = 3;
 
     return Scaffold(
       backgroundColor:
@@ -127,11 +130,19 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     itemCount: filtered.length,
-                    itemBuilder: (context, i) => _SectionArticleTile(
-                      article: filtered[i],
-                      isDark: isDark,
-                      userId: _userId,
-                    ),
+                    itemBuilder: (context, i) {
+                      final tile = _SectionArticleTile(
+                        article: filtered[i],
+                        isDark: isDark,
+                        userId: _userId,
+                      );
+                      if (!isGuest || i < guestPreviewLimit) return tile;
+                      return GuestBlur(
+                        borderRadius: BorderRadius.circular(14),
+                        label: 'Sign Up',
+                        child: tile,
+                      );
+                    },
                   );
                 },
               ),
@@ -486,8 +497,10 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
     final userId = widget.userId ??
         FirebaseAuth.instance.currentUser?.uid;
     if (userId == null || userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save articles')),
+      showGuestAuthPrompt(
+        context,
+        title: 'Sign in to save articles',
+        message: 'Create an account to bookmark articles and read them later.',
       );
       return;
     }
