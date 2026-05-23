@@ -124,6 +124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(
               child: _gated(isGuest, _buildCoursesSection(isDark)),
             ),
+            SliverToBoxAdapter(child: _buildProCta(isDark)),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
@@ -549,6 +550,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           color: isDark
               ? AppColors.darkTextSecondary
               : AppColors.grayscaleBodyText,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProCta(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+      child: GestureDetector(
+        onTap: () => Navigator.pushNamed(context, '/pro'),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2A130F) : const Color(0xFFFFF1EE),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.primaryDefault.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDefault.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: AppColors.primaryDefault,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Want more from StartupsIndia?',
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.grayscaleTitleActive,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Upgrade to Pro for premium startup tools and early access.',
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.grayscaleBodyText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                color: AppColors.primaryDefault,
+                size: 22,
+              ),
+            ],
+          ),
         ),
       ),
     );
