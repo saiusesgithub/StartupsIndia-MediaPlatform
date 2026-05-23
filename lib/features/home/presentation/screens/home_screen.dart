@@ -20,6 +20,7 @@ final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
 
 // Section definitions: (label, category, icon)
 const _kSections = [
+  ('Top News', ''),
   ('Startups Stories', 'startup'),
   ('Entrepreneur Stories', 'entrepreneur'),
   ('Podcasts', 'podcast'),
@@ -102,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
             SliverToBoxAdapter(
               child: _buildSectionHeader(
-                '7',
+                '8',
                 'Upcoming Events',
                 isDark,
                 onViewAll: () => Navigator.pushNamed(context, '/events-all'),
@@ -113,7 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             SliverToBoxAdapter(
               child: _buildSectionHeader(
-                '8',
+                '9',
                 'Courses',
                 isDark,
                 onViewAll: () => Navigator.pushNamed(context, '/courses-all'),
