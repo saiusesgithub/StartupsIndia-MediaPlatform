@@ -533,7 +533,9 @@ class _ArticleListSliver extends StatelessWidget {
       sourceName: model.sourceName,
       sourceId: model.sourceId,
       sourceLogoAsset: model.sourceLogoAsset,
-      thumbnailAsset: model.thumbnailAsset,
+      thumbnailAsset: model.featuredImageUrl.trim().isNotEmpty
+          ? model.featuredImageUrl.trim()
+          : model.thumbnailAsset,
       timeAgo: formatArticleTimestamp(model.createdAt, fallback: model.timeAgo),
       body: model.body,
       likesCount: model.likesCount,
