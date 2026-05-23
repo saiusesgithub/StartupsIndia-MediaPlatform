@@ -62,9 +62,10 @@ class FirestoreRepository {
     return snap.docs.first.id == currentUid;
   }
 
-  Stream<List<NewsArticleModel>> watchArticles() {
+  Stream<List<NewsArticleModel>> watchArticles({int limit = 20}) {
     return _articles
         .orderBy('updatedAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
@@ -73,9 +74,10 @@ class FirestoreRepository {
         );
   }
 
-  Stream<List<NewsArticleModel>> getLatestNews() {
+  Stream<List<NewsArticleModel>> getLatestNews({int limit = 20}) {
     return _articles
-        .orderBy('createdAt', descending: true)
+        .orderBy('updatedAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
@@ -84,11 +86,35 @@ class FirestoreRepository {
         );
   }
 
-  Stream<List<NewsArticleModel>> getTrendingNews() {
-    return getLatestNews().map(
-      (items) =>
-          items.where((article) => article.isTrending).toList(growable: false),
-    );
+  Stream<List<NewsArticleModel>> getTrendingNews({int limit = 20}) {
+    return _articles
+        .where('isTrending', isEqualTo: true)
+        .orderBy('updatedAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList(growable: false),
+        );
+  }
+
+  Stream<List<NewsArticleModel>> getNewsByCategory(
+    String category, {
+    int limit = 20,
+  }) {
+    final normalized = category.trim().toLowerCase();
+    final query = normalized.isEmpty
+        ? _articles.orderBy('updatedAt', descending: true)
+        : _articles
+            .where('category', isEqualTo: normalized)
+            .orderBy('updatedAt', descending: true);
+
+    return query.limit(limit).snapshots().map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList(growable: false),
+        );
   }
 
   Future<NewsArticleModel?> getArticleById(String articleId) async {
@@ -138,7 +164,7 @@ class FirestoreRepository {
     }
 
     final snapshot = await _articles
-        .orderBy('createdAt', descending: true)
+        .orderBy('updatedAt', descending: true)
         .limit(100)
         .get();
 

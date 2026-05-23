@@ -24,6 +24,16 @@ final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
   return ref.read(authRepositoryProvider).getCurrentUserModel();
 });
 
+const _kArticleSections = [
+  ('Top News', ''),
+  ('Startups Stories', 'startup'),
+  ('Entrepreneur Stories', 'entrepreneur'),
+  ('Podcasts', 'podcast'),
+  ('Funding Opportunities', 'funding'),
+  ('Women', 'women'),
+  ('Startup Learnings', 'learning'),
+];
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -41,7 +51,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _heroController = PageController();
     _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      final next = (_heroPage + 1) % HomeMockData.featured.length;
+      if (!mounted) return;
+      final articles = ref.read(homeNewsByCategoryProvider('')).asData?.value ?? [];
+      final count = _pickHeroArticles(articles).isEmpty
+          ? HomeMockData.featured.length
+          : _pickHeroArticles(articles).length;
+      if (count <= 1) return;
+      final next = (_heroPage + 1) % count;
       _heroController.animateToPage(
         next,
         duration: const Duration(milliseconds: 500),
@@ -60,7 +76,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final trendingAsync = ref.watch(trendingNewsProvider);
     final isGuest = FirebaseAuth.instance.currentUser == null;
 
     return Scaffold(
@@ -73,28 +88,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(child: _buildHeader(isDark, isGuest)),
             SliverToBoxAdapter(child: _buildQuickActions(isDark, isGuest)),
             SliverToBoxAdapter(child: const SizedBox(height: 20)),
-            SliverToBoxAdapter(child: _buildHeroBanner()),
-            SliverToBoxAdapter(
-              child: _buildSectionHeader(
-                '1', 'Trending Startup News', isDark,
-                onViewAll: () => Navigator.pushNamed(context, '/trending'),
+            SliverToBoxAdapter(child: _buildHeroBanner(isDark)),
+            for (int i = 0; i < _kArticleSections.length; i++) ...[
+              SliverToBoxAdapter(
+                child: _buildSectionHeader(
+                  '${i + 1}',
+                  _kArticleSections[i].$1,
+                  isDark,
+                  onViewAll: () => _openArticleSection(_kArticleSections[i].$2),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _buildTrendingSection(trendingAsync, isDark, isGuest),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSectionHeader(
-                '2', 'Funding Opportunities', isDark,
-                onViewAll: () => Navigator.pushNamed(context, '/funding-all'),
+              SliverToBoxAdapter(
+                child: _buildArticleSection(
+                  category: _kArticleSections[i].$2,
+                  emptyMessage: _kArticleSections[i].$2 == 'podcast'
+                      ? 'No podcasts yet'
+                      : 'No articles yet',
+                  isDark: isDark,
+                  isGuest: isGuest,
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _gated(isGuest, _buildFundingSection(isDark)),
-            ),
+            ],
             SliverToBoxAdapter(
               child: _buildSectionHeader(
-                '3', 'Upcoming Events', isDark,
+                '8', 'Upcoming Events', isDark,
                 onViewAll: () => Navigator.pushNamed(context, '/events-all'),
               ),
             ),
@@ -103,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             SliverToBoxAdapter(
               child: _buildSectionHeader(
-                '4', 'Recommended Courses', isDark,
+                '9', 'Recommended Courses', isDark,
                 onViewAll: () => Navigator.pushNamed(context, '/courses-all'),
               ),
             ),
@@ -136,6 +153,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _gated(bool isGuest, Widget child) {
     if (!isGuest) return child;
     return GuestBlur(child: child);
+  }
+
+  void _openArticleSection(String category) {
+    if (category == 'funding') {
+      Navigator.pushNamed(context, '/funding-all');
+      return;
+    }
+    Navigator.pushNamed(context, '/trending');
   }
 
   // ── Header ─────────────────────────────────────────────────────────────────
@@ -281,7 +306,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── Hero Banner ─────────────────────────────────────────────────────────────
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner(bool isDark) {
+    final latestAsync = ref.watch(homeNewsByCategoryProvider(''));
+    final articles = latestAsync.asData?.value ?? [];
+    final heroArticles = _pickHeroArticles(articles);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: ClipRRect(
@@ -292,10 +321,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               PageView.builder(
                 controller: _heroController,
-                itemCount: HomeMockData.featured.length,
+                itemCount: heroArticles.isEmpty
+                    ? HomeMockData.featured.length
+                    : heroArticles.length,
                 onPageChanged: (p) => setState(() => _heroPage = p),
                 itemBuilder: (context, i) {
-                  return _HeroSlide(story: HomeMockData.featured[i]);
+                  if (heroArticles.isEmpty) {
+                    return _HeroSlide(story: HomeMockData.featured[i]);
+                  }
+                  return _ArticleHeroSlide(article: heroArticles[i]);
                 },
               ),
               // Page dots
@@ -306,7 +340,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
-                    HomeMockData.featured.length,
+                    heroArticles.isEmpty
+                        ? HomeMockData.featured.length
+                        : heroArticles.length,
                     (i) => AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       width: _heroPage == i ? 20 : 6,
@@ -327,6 +363,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  List<NewsArticleModel> _pickHeroArticles(List<NewsArticleModel> articles) {
+    final candidates = articles
+        .where((article) =>
+            article.featuredImageUrl.trim().isNotEmpty ||
+            article.thumbnailAsset.trim().isNotEmpty)
+        .toList();
+    candidates.sort((a, b) => _stableHeroRank(a).compareTo(_stableHeroRank(b)));
+    return candidates.take(5).toList(growable: false);
+  }
+
+  int _stableHeroRank(NewsArticleModel article) {
+    final seed = '${DateTime.now().toUtc().day}-${article.id}-${article.headline}';
+    return seed.codeUnits.fold<int>(0, (value, unit) => value + unit);
   }
 
   // ── Section header with left red accent bar ─────────────────────────────────
@@ -390,6 +441,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── 1. Trending Startup News ─────────────────────────────────────────────────
 
+  // ignore: unused_element
   Widget _buildTrendingSection(
     AsyncValue<List<NewsArticleModel>> trendingAsync,
     bool isDark,
@@ -443,6 +495,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── 2. Funding Opportunities ─────────────────────────────────────────────────
 
+  Widget _buildArticleSection({
+    required String category,
+    required String emptyMessage,
+    required bool isDark,
+    required bool isGuest,
+  }) {
+    final articlesAsync = ref.watch(homeNewsByCategoryProvider(category));
+    const guestPreviewLimit = 3;
+
+    return SizedBox(
+      height: 200,
+      child: articlesAsync.when(
+        loading: () => ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: 3,
+          itemBuilder: (context, index) => _SkeletonCard(isDark: isDark),
+        ),
+        error: (_, _) => _buildEmptyHScroll(emptyMessage, isDark),
+        data: (items) {
+          if (items.isEmpty) {
+            return _buildEmptyHScroll(emptyMessage, isDark);
+          }
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final card = _ArticleStoryCard(
+                article: items[i],
+                colorIndex: i,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/article-detail',
+                  arguments: items[i],
+                ),
+              );
+              if (!isGuest || i < guestPreviewLimit) return card;
+              return SizedBox(
+                width: 167,
+                child: GuestBlur(
+                  borderRadius: BorderRadius.circular(14),
+                  label: 'Sign Up',
+                  child: card,
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  // ignore: unused_element
   Widget _buildFundingSection(bool isDark) {
     return SizedBox(
       height: 150,
@@ -698,6 +804,146 @@ class _QuickActionCard extends StatelessWidget {
 }
 
 // ── Hero slide ─────────────────────────────────────────────────────────────────
+
+class _ArticleImage extends StatelessWidget {
+  final NewsArticleModel article;
+  final Color fallbackColor;
+
+  const _ArticleImage({
+    required this.article,
+    required this.fallbackColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final featuredImage = article.featuredImageUrl.trim();
+    final thumbnail = article.thumbnailAsset.trim();
+    final image = featuredImage.isNotEmpty ? featuredImage : thumbnail;
+    final fallback = Container(color: fallbackColor);
+
+    if (image.isEmpty) return fallback;
+    if (image.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.cover,
+        placeholder: (_, _) => fallback,
+        errorWidget: (_, _, _) => fallback,
+      );
+    }
+
+    return Image.asset(
+      image,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => fallback,
+    );
+  }
+}
+
+class _ArticleHeroSlide extends StatelessWidget {
+  final NewsArticleModel article;
+
+  const _ArticleHeroSlide({required this.article});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/article-detail',
+        arguments: article,
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _ArticleImage(
+            article: article,
+            fallbackColor: const Color(0xFF1A0A2E),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.1),
+                    Colors.black.withValues(alpha: 0.38),
+                    Colors.black.withValues(alpha: 0.88),
+                  ],
+                  stops: const [0.0, 0.48, 1.0],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDefault,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    article.category.toUpperCase(),
+                    style: AppTypography.textSmall.copyWith(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  article.headline,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.displaySmallBold.copyWith(
+                    fontSize: 22,
+                    color: Colors.white,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Read Full Story',
+                        style: AppTypography.textSmall.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.grayscaleTitleActive,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 11,
+                        color: AppColors.grayscaleTitleActive,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _HeroSlide extends StatelessWidget {
   final HomeFeaturedStory story;
@@ -960,6 +1206,119 @@ class _StoryCard extends StatelessWidget {
 }
 
 // ── Locked teaser card (guest mode, trailing trending card) ───────────────────
+
+class _ArticleStoryCard extends StatelessWidget {
+  final NewsArticleModel article;
+  final int colorIndex;
+  final VoidCallback onTap;
+
+  const _ArticleStoryCard({
+    required this.article,
+    required this.colorIndex,
+    required this.onTap,
+  });
+
+  String _fmtViews(int v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M views';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K views';
+    if (v == 0) return '';
+    return '$v views';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = _cardGradients[colorIndex % _cardGradients.length];
+    final views = _fmtViews(article.viewCount);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 155,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: bg,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _ArticleImage(article: article, fallbackColor: bg),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.05),
+                      Colors.black.withValues(alpha: 0.2),
+                      Colors.black.withValues(alpha: 0.82),
+                    ],
+                    stops: const [0.0, 0.42, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDefault,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  (article.category.isEmpty ? 'NEWS' : article.category)
+                      .toUpperCase(),
+                  style: AppTypography.textSmall.copyWith(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 14,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    article.headline,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.3,
+                    ),
+                  ),
+                  if (views.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      views,
+                      style: AppTypography.textSmall.copyWith(
+                        fontSize: 10,
+                        color: Colors.white.withValues(alpha: 0.76),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _LockedStoryCard extends StatelessWidget {
   final bool isDark;

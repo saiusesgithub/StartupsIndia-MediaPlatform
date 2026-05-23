@@ -325,14 +325,18 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   }
 
   Widget _buildHeroImage(NewsArticleModel article, bool isDark) {
-    final image = article.thumbnailAsset;
+    final image = article.featuredImageUrl.trim().isNotEmpty
+        ? article.featuredImageUrl.trim()
+        : article.thumbnailAsset.trim();
     return Hero(
       tag: article.id,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
           aspectRatio: 16 / 10,
-          child: image.startsWith('http')
+          child: image.isEmpty
+              ? _imageFallback(isDark)
+              : image.startsWith('http')
               ? CachedNetworkImage(
                   imageUrl: image,
                   fit: BoxFit.cover,

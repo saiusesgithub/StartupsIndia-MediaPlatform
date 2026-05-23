@@ -3,12 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
 
+const int kHomeSectionArticleLimit = 10;
+
 final latestNewsProvider = StreamProvider<List<NewsArticleModel>>((ref) {
   return ref.watch(firestoreRepositoryProvider).getLatestNews();
 });
 
 final trendingNewsProvider = StreamProvider<List<NewsArticleModel>>((ref) {
   return ref.watch(firestoreRepositoryProvider).getTrendingNews();
+});
+
+final homeNewsByCategoryProvider =
+    StreamProvider.family<List<NewsArticleModel>, String>((ref, category) {
+  return ref
+      .watch(firestoreRepositoryProvider)
+      .getNewsByCategory(category, limit: kHomeSectionArticleLimit);
 });
 
 class SearchQueryNotifier extends Notifier<String> {

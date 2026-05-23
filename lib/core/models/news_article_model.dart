@@ -10,10 +10,12 @@ class NewsArticleModel {
   final String sourceId;
   final String sourceLogoAsset;
   final String thumbnailAsset;
+  final String featuredImageUrl;
   final String timeAgo;
   final String body;
   final int likesCount;
   final int commentsCount;
+  final int viewCount;
   final bool isSourceFollowing;
   final bool isBookmarked;
   final bool isLiked;
@@ -31,10 +33,12 @@ class NewsArticleModel {
     this.sourceId = '',
     required this.sourceLogoAsset,
     required this.thumbnailAsset,
+    this.featuredImageUrl = '',
     required this.timeAgo,
     this.body = '',
     this.likesCount = 0,
     this.commentsCount = 0,
+    this.viewCount = 0,
     this.isSourceFollowing = false,
     this.isBookmarked = false,
     this.isLiked = false,
@@ -53,10 +57,12 @@ class NewsArticleModel {
     String? sourceId,
     String? sourceLogoAsset,
     String? thumbnailAsset,
+    String? featuredImageUrl,
     String? timeAgo,
     String? body,
     int? likesCount,
     int? commentsCount,
+    int? viewCount,
     bool? isSourceFollowing,
     bool? isBookmarked,
     bool? isLiked,
@@ -74,10 +80,12 @@ class NewsArticleModel {
       sourceId: sourceId ?? this.sourceId,
       sourceLogoAsset: sourceLogoAsset ?? this.sourceLogoAsset,
       thumbnailAsset: thumbnailAsset ?? this.thumbnailAsset,
+      featuredImageUrl: featuredImageUrl ?? this.featuredImageUrl,
       timeAgo: timeAgo ?? this.timeAgo,
       body: body ?? this.body,
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount ?? this.commentsCount,
+      viewCount: viewCount ?? this.viewCount,
       isSourceFollowing: isSourceFollowing ?? this.isSourceFollowing,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       isLiked: isLiked ?? this.isLiked,
@@ -106,10 +114,15 @@ class NewsArticleModel {
       sourceId: map['sourceId'] as String? ?? '',
       sourceLogoAsset: map['sourceLogoAsset'] as String? ?? '',
       thumbnailAsset: map['thumbnailAsset'] as String? ?? '',
+      featuredImageUrl:
+          map['featuredImageUrl'] as String? ??
+          map['featuredImage'] as String? ??
+          '',
       timeAgo: map['timeAgo'] as String? ?? '',
       body: map['body'] as String? ?? '',
       likesCount: (map['likesCount'] as num?)?.toInt() ?? 0,
       commentsCount: (map['commentsCount'] as num?)?.toInt() ?? 0,
+      viewCount: (map['viewCount'] as num?)?.toInt() ?? 0,
       isSourceFollowing: map['isSourceFollowing'] as bool? ?? false,
       isBookmarked: map['isBookmarked'] as bool? ?? false,
       isLiked: map['isLiked'] as bool? ?? false,
@@ -134,10 +147,12 @@ class NewsArticleModel {
       'sourceId': sourceId,
       'sourceLogoAsset': sourceLogoAsset,
       'thumbnailAsset': thumbnailAsset,
+      'featuredImageUrl': featuredImageUrl,
       'timeAgo': timeAgo,
       'body': body,
       'likesCount': likesCount,
       'commentsCount': commentsCount,
+      'viewCount': viewCount,
       'isSourceFollowing': isSourceFollowing,
       'isBookmarked': isBookmarked,
       'isLiked': isLiked,
