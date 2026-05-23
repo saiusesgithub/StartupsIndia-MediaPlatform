@@ -15,6 +15,7 @@ import '../../../../features/explore/domain/models/post_model.dart';
 import '../../../../features/explore/presentation/providers/post_providers.dart';
 import '../../../../theme/style_guide.dart';
 import '../../data/repositories/report_repository.dart';
+import '../providers/news_provider.dart';
 import '../widgets/report_sheet.dart';
 
 class ArticleDetailScreen extends ConsumerStatefulWidget {
@@ -146,8 +147,6 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
           ],
         ),
       ),
-      bottomNavigationBar:
-          _article == null ? null : _buildBottomBar(_article!, isDark),
     );
   }
 
@@ -243,12 +242,20 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   Widget _buildBody(NewsArticleModel article, bool isDark) {
     final isPodcast = article.category.toLowerCase() == 'podcast' &&
         article.youtubeVideoId.isNotEmpty;
+    final bodyParts = _splitBodyForGallery(article.body);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Featured media comes first.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: isPodcast
+                ? _buildYouTubePlayer(article.youtubeVideoId, isDark)
+                : _buildFeaturedImage(article, isDark),
+          ),
           // Category tag
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -288,21 +295,27 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
             child: _buildAuthorRow(article, isDark),
           ),
-          const SizedBox(height: 16),
-          // Hero media: YouTube player OR thumbnail image
-          isPodcast
-              ? _buildYouTubePlayer(article.youtubeVideoId, isDark)
-              : _buildHeroImage(article, isDark),
-          // Image gallery (small images)
-          if (article.imageGallery.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildImageGallery(article.imageGallery, isDark),
-          ],
-          // Article body (markdown)
+          // Article body, with gallery embedded in the middle of content.
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-            child: _buildMarkdownBody(article, isDark),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: _buildMarkdownText(bodyParts.$1, isDark),
           ),
+          if (article.imageGallery.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            _buildImageGallery(article.imageGallery, isDark),
+            const SizedBox(height: 18),
+          ],
+          if (bodyParts.$2.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: _buildMarkdownText(bodyParts.$2, isDark),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: _buildArticleActions(article, isDark),
+          ),
+          _buildRelatedArticlesSection(article, isDark),
+          const SizedBox(height: 28),
         ],
       ),
     );
@@ -406,31 +419,19 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
 
   // ── Hero image ────────────────────────────────────────────────────────────
 
-  Widget _buildHeroImage(NewsArticleModel article, bool isDark) {
-    final image = article.thumbnailAsset;
+  Widget _buildFeaturedImage(NewsArticleModel article, bool isDark) {
+    final image = article.featuredImageUrl.isNotEmpty
+        ? article.featuredImageUrl
+        : article.thumbnailAsset;
     if (image.isEmpty) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Hero(
-        tag: article.id,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: image.startsWith('http')
-                ? CachedNetworkImage(
-                    imageUrl: image,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => _imageFallback(isDark),
-                    errorWidget: (_, _, _) => _imageFallback(isDark),
-                  )
-                : Image.asset(
-                    image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _imageFallback(isDark),
-                  ),
-          ),
+    return Hero(
+      tag: article.id,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: _buildArticleImage(image, isDark),
         ),
       ),
     );
@@ -445,14 +446,11 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
         Uri.parse('https://www.youtube.com/embed/$videoId?rel=0&modestbranding=1'),
       );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: WebViewWidget(controller: controller),
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: WebViewWidget(controller: controller),
       ),
     );
   }
@@ -480,21 +478,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                     : AppColors.grayscaleSecondaryButton,
               ),
               clipBehavior: Clip.antiAlias,
-              child: CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
-                placeholder: (_, _) => Container(
-                  color: isDark
-                      ? AppColors.darkSurface
-                      : AppColors.grayscaleSecondaryButton,
-                ),
-                errorWidget: (_, _, _) => Icon(
-                  Icons.broken_image_outlined,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.grayscaleButtonText,
-                ),
-              ),
+              child: _buildArticleImage(url, isDark),
             ),
           );
         },
@@ -517,11 +501,27 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
 
   // ── Markdown body ─────────────────────────────────────────────────────────
 
-  Widget _buildMarkdownBody(NewsArticleModel article, bool isDark) {
-    final fallback =
-        'This article does not have body text yet.';
-    final raw = article.body.trim().isEmpty ? fallback : article.body.trim();
+  (String, String) _splitBodyForGallery(String body) {
+    final raw = body.trim();
+    if (raw.isEmpty) return ('', '');
 
+    final blocks = raw
+        .split(RegExp(r'\n\s*\n'))
+        .map((block) => block.trim())
+        .where((block) => block.isNotEmpty)
+        .toList(growable: false);
+    if (blocks.length <= 1) return (raw, '');
+
+    final splitIndex = (blocks.length / 2).ceil();
+    return (
+      blocks.take(splitIndex).join('\n\n'),
+      blocks.skip(splitIndex).join('\n\n'),
+    );
+  }
+
+  Widget _buildMarkdownText(String content, bool isDark) {
+    final fallback = 'This article does not have body text yet.';
+    final raw = content.trim().isEmpty ? fallback : content.trim();
     final bodyTextColor = isDark
         ? AppColors.darkTextSecondary
         : AppColors.grayscaleBodyText;
@@ -602,108 +602,104 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
 
   // ── Bottom action bar ─────────────────────────────────────────────────────
 
-  Widget _buildBottomBar(NewsArticleModel article, bool isDark) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 62,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-          border: Border(
-            top: BorderSide(
-              color: isDark
-                  ? AppColors.darkBorder
-                  : AppColors.grayscaleLine.withValues(alpha: 0.8),
-            ),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            // Like
-            GestureDetector(
-              onTap: _toggleLike,
-              child: Row(
-                children: [
-                  Icon(
-                    _isLiked ? Icons.favorite : Icons.favorite_border_rounded,
-                    size: 22,
-                    color: _isLiked
-                        ? const Color(0xFFE91E63)
-                        : isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.grayscaleBodyText,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _fmtEngagement(_likesCount),
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.grayscaleTitleActive,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Comment
-            GestureDetector(
-              onTap: _openComments,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline_rounded,
-                    size: 20,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.grayscaleBodyText,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _fmtEngagement(article.commentsCount),
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.grayscaleTitleActive,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Share
-            GestureDetector(
-              onTap: _shareArticle,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.share_outlined,
-                    size: 20,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.grayscaleBodyText,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'Share',
-                    style: AppTypography.textSmall.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.grayscaleTitleActive,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+  Widget _buildArticleActions(NewsArticleModel article, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
         ),
       ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ActionButton(
+              icon: _isLiked ? Icons.favorite : Icons.favorite_border_rounded,
+              label: _fmtEngagement(_likesCount),
+              color: _isLiked ? const Color(0xFFE91E63) : null,
+              isDark: isDark,
+              onTap: _toggleLike,
+            ),
+          ),
+          Expanded(
+            child: _ActionButton(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: _fmtEngagement(article.commentsCount),
+              isDark: isDark,
+              onTap: _openComments,
+            ),
+          ),
+          Expanded(
+            child: _ActionButton(
+              icon: Icons.share_outlined,
+              label: 'Share',
+              isDark: isDark,
+              onTap: _shareArticle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRelatedArticlesSection(NewsArticleModel article, bool isDark) {
+    final latestAsync = ref.watch(latestNewsProvider);
+    return latestAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (items) {
+        final related = items
+            .where((item) =>
+                item.id != article.id &&
+                item.category.toLowerCase() == article.category.toLowerCase())
+            .toList(growable: false);
+        final fallback = items
+            .where((item) => item.id != article.id)
+            .take(8)
+            .toList(growable: false);
+        final visible = (related.isEmpty ? fallback : related).take(8).toList();
+        if (visible.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 28, 0, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: Text(
+                  'Related Articles',
+                  style: AppTypography.displaySmallBold.copyWith(
+                    fontSize: 18,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 198,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(right: 20),
+                  itemCount: visible.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    return _RelatedArticleCard(
+                      article: visible[index],
+                      isDark: isDark,
+                      imageBuilder: _buildArticleImage,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -906,6 +902,25 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
     return fallback;
   }
 
+  Widget _buildArticleImage(String image, bool isDark) {
+    if (image.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.cover,
+        placeholder: (_, _) => _imageFallback(isDark),
+        errorWidget: (_, _, _) => _imageFallback(isDark),
+      );
+    }
+    if (image.isNotEmpty) {
+      return Image.asset(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _imageFallback(isDark),
+      );
+    }
+    return _imageFallback(isDark);
+  }
+
   Widget _imageFallback(bool isDark) => Container(
         color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
         alignment: Alignment.center,
@@ -966,6 +981,137 @@ class _CategoryPill extends StatelessWidget {
 }
 
 // ── Full-screen image gallery ─────────────────────────────────────────────────
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isDark;
+  final VoidCallback onTap;
+  final Color? color;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.isDark,
+    required this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedColor = color ??
+        (isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText);
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: resolvedColor),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RelatedArticleCard extends StatelessWidget {
+  final NewsArticleModel article;
+  final bool isDark;
+  final Widget Function(String image, bool isDark) imageBuilder;
+
+  const _RelatedArticleCard({
+    required this.article,
+    required this.isDark,
+    required this.imageBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final image = article.featuredImageUrl.isNotEmpty
+        ? article.featuredImageUrl
+        : article.thumbnailAsset;
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/article-detail',
+        arguments: article,
+      ),
+      child: SizedBox(
+        width: 172,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: imageBuilder(image, isDark),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 9, 10, 0),
+                  child: Text(
+                    article.category.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primaryDefault,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 4, 10, 0),
+                  child: Text(
+                    article.headline,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.textSmall.copyWith(
+                      fontSize: 13,
+                      height: 1.25,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.grayscaleTitleActive,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _FullScreenGallery extends StatefulWidget {
   final List<String> images;

@@ -92,6 +92,7 @@ Common fields used by the app:
 - `sourceId`
 - `sourceLogoAsset`
 - `thumbnailAsset`
+- `featuredImageUrl`, optional single featured image for detail pages; falls back to `thumbnailAsset`
 - `body`
 - `timeAgo`
 - `createdAt`
@@ -102,6 +103,7 @@ Common fields used by the app:
 - `bookmarkedBy`: string array
 - `isTrending`
 - `isSourceFollowing`
+- `imageGallery`: string array, rendered in the middle of article detail content
 
 Interactions:
 
