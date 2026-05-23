@@ -6,6 +6,20 @@ import '../models/news_article_model.dart';
 import '../models/user_model.dart';
 import '../providers/firebase_providers.dart';
 
+const int kInitialArticleLimit = 20;
+
+class ArticlePage {
+  final List<NewsArticleModel> articles;
+  final DocumentSnapshot<Map<String, dynamic>>? lastDocument;
+  final bool hasMore;
+
+  const ArticlePage({
+    required this.articles,
+    required this.lastDocument,
+    required this.hasMore,
+  });
+}
+
 class FirestoreRepository {
   FirestoreRepository(this._firestore);
 
@@ -62,42 +76,149 @@ class FirestoreRepository {
     return snap.docs.first.id == currentUid;
   }
 
-  Stream<List<NewsArticleModel>> watchArticles() {
-    return _articles
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map(NewsArticleModel.fromFirestore)
-              .toList(growable: false),
-        );
+  Query<Map<String, dynamic>> _articleOrderQuery() {
+    return _articles.orderBy('updatedAt', descending: true);
   }
 
-  Stream<List<NewsArticleModel>> getLatestNews() {
-    return _articles
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map(NewsArticleModel.fromFirestore)
-              .toList(growable: false),
-        );
+  Query<Map<String, dynamic>> _latestArticlesQuery() {
+    return _articleOrderQuery();
   }
 
-  Stream<List<NewsArticleModel>> getTrendingNews() {
-    return getLatestNews().map(
-      (items) =>
-          items.where((article) => article.isTrending).toList(growable: false),
+  Query<Map<String, dynamic>> _trendingArticlesQuery() {
+    return _articleOrderQuery().where('isTrending', isEqualTo: true);
+  }
+
+  List<String> _categoryVariants(String category) {
+    final raw = category.trim();
+    final lower = raw.toLowerCase();
+    final titleCase = lower.isEmpty
+        ? lower
+        : '${lower[0].toUpperCase()}${lower.substring(1)}';
+    return <String>{raw, lower, lower.toUpperCase(), titleCase}
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Query<Map<String, dynamic>> _categoryArticlesQuery(String category) {
+    final variants = _categoryVariants(category);
+    return _articleOrderQuery().where(
+      'category',
+      whereIn: variants,
     );
   }
 
-  Stream<List<NewsArticleModel>> getNewsByCategory(String category) {
-    if (category.isEmpty) return getLatestNews();
-    final normalized = category.toLowerCase();
-    return getLatestNews().map(
-      (items) => items
-          .where((a) => a.category.toLowerCase() == normalized)
-          .toList(growable: false),
+  Query<Map<String, dynamic>> _queryForCategory(String category) {
+    final normalized = category.trim().toLowerCase();
+    return normalized.isEmpty
+        ? _latestArticlesQuery()
+        : _categoryArticlesQuery(normalized);
+  }
+
+  Future<ArticlePage> _fetchArticlePage(
+    Query<Map<String, dynamic>> query, {
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    int limit = kInitialArticleLimit,
+  }) async {
+    final pageSize = limit <= 0 ? kInitialArticleLimit : limit;
+    var pageQuery = query.limit(pageSize);
+    if (startAfter != null) {
+      pageQuery = pageQuery.startAfterDocument(startAfter);
+    }
+
+    final snapshot = await pageQuery.get();
+    final articles = snapshot.docs
+        .map(NewsArticleModel.fromFirestore)
+        .toList(growable: false);
+
+    return ArticlePage(
+      articles: articles,
+      lastDocument: snapshot.docs.isEmpty ? startAfter : snapshot.docs.last,
+      hasMore: snapshot.docs.length == pageSize,
+    );
+  }
+
+  Stream<List<NewsArticleModel>> watchArticles({int limit = kInitialArticleLimit}) {
+    return _latestArticlesQuery()
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList(growable: false),
+        );
+  }
+
+  Stream<List<NewsArticleModel>> getLatestNews({
+    int limit = kInitialArticleLimit,
+  }) {
+    return _latestArticlesQuery()
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList(growable: false),
+        );
+  }
+
+  Future<ArticlePage> fetchLatestNewsPage({
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    int limit = kInitialArticleLimit,
+  }) {
+    return _fetchArticlePage(
+      _latestArticlesQuery(),
+      startAfter: startAfter,
+      limit: limit,
+    );
+  }
+
+  Stream<List<NewsArticleModel>> getTrendingNews({
+    int limit = kInitialArticleLimit,
+  }) {
+    return _trendingArticlesQuery()
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList(growable: false),
+        );
+  }
+
+  Future<ArticlePage> fetchTrendingNewsPage({
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    int limit = kInitialArticleLimit,
+  }) {
+    return _fetchArticlePage(
+      _trendingArticlesQuery(),
+      startAfter: startAfter,
+      limit: limit,
+    );
+  }
+
+  Stream<List<NewsArticleModel>> getNewsByCategory(
+    String category, {
+    int limit = kInitialArticleLimit,
+  }) {
+    return _queryForCategory(category)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList(growable: false),
+        );
+  }
+
+  Future<ArticlePage> fetchNewsByCategoryPage(
+    String category, {
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    int limit = kInitialArticleLimit,
+  }) {
+    return _fetchArticlePage(
+      _queryForCategory(category),
+      startAfter: startAfter,
+      limit: limit,
     );
   }
 
@@ -120,33 +241,45 @@ class FirestoreRepository {
   Stream<List<NewsArticleModel>> getArticlesByAuthor(String authorId) {
     if (authorId.trim().isEmpty) return Stream.value(<NewsArticleModel>[]);
 
-    return getLatestNews().map(
-      (items) => items
-          .where((article) => article.authorId == authorId)
-          .toList(growable: false),
-    );
+    return _articleOrderQuery()
+        .where('authorId', isEqualTo: authorId)
+        .limit(kInitialArticleLimit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList(growable: false),
+        );
   }
 
   Stream<List<NewsArticleModel>> getBookmarkedArticles(String userId) {
     if (userId.trim().isEmpty) return Stream.value(<NewsArticleModel>[]);
 
-    return getLatestNews().map(
-      (items) => items
-          .where((article) => article.bookmarkedBy.contains(userId))
+    return _articleOrderQuery()
+        .where('bookmarkedBy', arrayContains: userId)
+        .limit(kInitialArticleLimit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
           .map((article) => article.copyWith(isBookmarked: true))
           .toList(growable: false),
-    );
+        );
   }
 
   Stream<List<NewsArticleModel>> getLikedArticles(String userId) {
     if (userId.trim().isEmpty) return Stream.value(<NewsArticleModel>[]);
 
-    return getLatestNews().map(
-      (items) => items
-          .where((article) => article.likedBy.contains(userId))
+    return _articleOrderQuery()
+        .where('likedBy', arrayContains: userId)
+        .limit(kInitialArticleLimit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
           .map((article) => article.copyWith(isLiked: true))
           .toList(growable: false),
-    );
+        );
   }
 
   Future<List<NewsArticleModel>> searchArticles(String query) async {
@@ -156,7 +289,7 @@ class FirestoreRepository {
     }
 
     final snapshot = await _articles
-        .orderBy('createdAt', descending: true)
+        .orderBy('updatedAt', descending: true)
         .limit(100)
         .get();
 
