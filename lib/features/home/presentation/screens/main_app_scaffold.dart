@@ -4,13 +4,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/models/news_article_model.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../../../community/presentation/screens/community_screen.dart';
-import '../providers/nav_index_provider.dart';
+import '../../../community/presentation/screens/community_detail_screen.dart';
+import '../../../explore/domain/models/source_profile_model.dart';
 import '../../../explore/presentation/screens/media_feed_screen.dart';
+import '../../../explore/presentation/screens/search_screen.dart';
+import '../../../explore/presentation/screens/source_profile_screen.dart';
+import '../../../profile/presentation/screens/about_screen.dart';
+import '../../../profile/presentation/screens/change_password_screen.dart';
+import '../../../profile/presentation/screens/delete_account_screen.dart';
+import '../../../profile/presentation/screens/edit_profile_screen.dart';
+import '../../../profile/presentation/screens/help_support_screen.dart';
+import '../../../profile/presentation/screens/legal_screen.dart';
+import '../../../profile/presentation/screens/notification_settings_screen.dart';
 import '../../../profile/presentation/screens/personal_profile_screen.dart';
+import '../../../profile/presentation/screens/pro_screen.dart';
+import '../../../profile/presentation/screens/settings_screen.dart';
+import '../providers/nav_index_provider.dart';
+import 'article_detail_screen.dart';
+import 'comments_screen.dart';
+import 'courses_all_screen.dart';
+import 'events_all_screen.dart';
+import 'funding_all_screen.dart';
 import 'home_screen.dart';
+import 'notifications_screen.dart';
+import 'section_list_screen.dart';
+import 'trending_screen.dart';
 
 // ── Build menu items ───────────────────────────────────────────────────────────
 
@@ -41,6 +63,87 @@ const _kBuildItems = [
   ),
 ];
 
+// ── Route generator for all tab navigators ────────────────────────────────────
+
+Route<dynamic>? _generateTabRoute(RouteSettings settings) {
+  Widget page;
+  switch (settings.name) {
+    case '/home-tab':
+      page = const HomeScreen();
+    case '/explore-tab':
+      page = const MediaFeedScreen();
+    case '/community-tab':
+      page = const CommunityScreen();
+    case '/profile-tab':
+      page = const PersonalProfileScreen();
+    case '/article-detail':
+      final args = settings.arguments;
+      page = args is NewsArticleModel
+          ? ArticleDetailScreen(article: args)
+          : ArticleDetailScreen(articleId: args as String? ?? '');
+    case '/search':
+      final args = settings.arguments;
+      page = SearchScreen(
+        initialTab: args is SearchTab ? args : SearchTab.articles,
+      );
+    case '/source-profile':
+      page = SourceProfileScreen(
+          source: settings.arguments as SourceProfileModel);
+    case '/notifications':
+      page = const NotificationsScreen();
+    case '/section-list':
+      final args = settings.arguments;
+      if (args is SectionListArgs) {
+        page = SectionListScreen(title: args.title, category: args.category);
+      } else {
+        page = const SectionListScreen(title: 'Articles', category: '');
+      }
+    case '/trending':
+      page = const TrendingScreen();
+    case '/funding-all':
+      page = const FundingAllScreen();
+    case '/events-all':
+      page = const EventsAllScreen();
+    case '/courses-all':
+      page = const CoursesAllScreen();
+    case '/community-detail':
+      final id = settings.arguments as String? ?? '';
+      page = CommunityDetailScreen(communityId: id);
+    case '/community-collection':
+      final args = settings.arguments;
+      page = CommunityCollectionScreen(
+        kind: args is CommunityCollectionKind
+            ? args
+            : CommunityCollectionKind.myGroups,
+      );
+    case '/settings':
+      page = const SettingsScreen();
+    case '/edit-profile':
+      page = const EditProfileScreen();
+    case '/change-password':
+      page = const ChangePasswordScreen();
+    case '/delete-account':
+      page = const DeleteAccountScreen();
+    case '/notification-settings':
+      page = const NotificationSettingsScreen();
+    case '/help-support':
+      page = const HelpSupportScreen();
+    case '/privacy-policy':
+      page = const LegalScreen(type: LegalType.privacyPolicy);
+    case '/terms-of-service':
+      page = const LegalScreen(type: LegalType.termsOfService);
+    case '/about':
+      page = const AboutScreen();
+    case '/pro':
+      page = const ProScreen();
+    case '/comments':
+      page = CommentsScreen(article: settings.arguments as NewsArticleModel);
+    default:
+      return null;
+  }
+  return MaterialPageRoute(builder: (_) => page, settings: settings);
+}
+
 // ── Scaffold ───────────────────────────────────────────────────────────────────
 
 class MainAppScaffold extends ConsumerStatefulWidget {
@@ -56,6 +159,16 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
   late int _navIndex;
   bool _showBuildMenu = false;
 
+  // One navigator key per real tab (Home=0, Explore=1, Community=3, Profile=4)
+  final _tabKeys = <int, GlobalKey<NavigatorState>>{
+    0: GlobalKey<NavigatorState>(),
+    1: GlobalKey<NavigatorState>(),
+    3: GlobalKey<NavigatorState>(),
+    4: GlobalKey<NavigatorState>(),
+  };
+
+  NavigatorState? get _currentTabNav => _tabKeys[_navIndex]?.currentState;
+
   @override
   void initState() {
     super.initState();
@@ -65,12 +178,18 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
   void _onNavTap(int index) {
     if (index == 2) {
       setState(() => _showBuildMenu = !_showBuildMenu);
-    } else {
-      setState(() {
-        _navIndex = index;
-        _showBuildMenu = false;
-      });
+      return;
     }
+    // Same tab tapped — pop back to root of that tab's stack
+    if (index == _navIndex && !_showBuildMenu) {
+      final nav = _tabKeys[_navIndex]?.currentState;
+      if (nav?.canPop() ?? false) nav!.popUntil((r) => r.isFirst);
+      return;
+    }
+    setState(() {
+      _navIndex = index;
+      _showBuildMenu = false;
+    });
   }
 
   Future<void> _launchUrl(String url) async {
@@ -87,10 +206,13 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
-      canPop: !_showBuildMenu,
+      canPop: !_showBuildMenu && !(_currentTabNav?.canPop() ?? false),
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _showBuildMenu) {
+        if (didPop) return;
+        if (_showBuildMenu) {
           setState(() => _showBuildMenu = false);
+        } else if (_currentTabNav?.canPop() ?? false) {
+          _currentTabNav!.pop();
         }
       },
       child: Scaffold(
@@ -98,15 +220,31 @@ class _MainAppScaffoldState extends ConsumerState<MainAppScaffold> {
             isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
         body: Stack(
           children: [
-            // ── Main content ───────────────────────────────────────────
+            // ── Tab navigators ─────────────────────────────────────────
             IndexedStack(
               index: _navIndex,
-              children: const [
-                HomeScreen(),
-                MediaFeedScreen(),
-                SizedBox.shrink(), // Build — never shown (menu only)
-                CommunityScreen(),
-                PersonalProfileScreen(),
+              children: [
+                Navigator(
+                  key: _tabKeys[0],
+                  initialRoute: '/home-tab',
+                  onGenerateRoute: _generateTabRoute,
+                ),
+                Navigator(
+                  key: _tabKeys[1],
+                  initialRoute: '/explore-tab',
+                  onGenerateRoute: _generateTabRoute,
+                ),
+                const SizedBox.shrink(), // Build — menu only, never shown
+                Navigator(
+                  key: _tabKeys[3],
+                  initialRoute: '/community-tab',
+                  onGenerateRoute: _generateTabRoute,
+                ),
+                Navigator(
+                  key: _tabKeys[4],
+                  initialRoute: '/profile-tab',
+                  onGenerateRoute: _generateTabRoute,
+                ),
               ],
             ),
 
