@@ -332,7 +332,9 @@ class _ArticlesBody extends ConsumerWidget {
         sourceName: m.sourceName,
         sourceId: m.sourceId,
         sourceLogoAsset: m.sourceLogoAsset,
-        thumbnailAsset: m.thumbnailAsset,
+        thumbnailAsset: m.featuredImageUrl.trim().isNotEmpty
+            ? m.featuredImageUrl.trim()
+            : m.thumbnailAsset,
         timeAgo: formatArticleTimestamp(m.createdAt, fallback: m.timeAgo),
         body: m.body,
         likesCount: m.likesCount,

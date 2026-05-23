@@ -8,12 +8,30 @@ import '../providers/news_provider.dart';
 import '../widgets/trending_card.dart';
 
 class TrendingScreen extends ConsumerWidget {
-  const TrendingScreen({super.key});
+  const TrendingScreen({
+    super.key,
+    this.title = 'Trending',
+    this.category = '',
+    this.mode = 'trending',
+  });
+
+  final String title;
+  final String category;
+  final String mode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final trendingAsync = ref.watch(trendingNewsProvider);
+    final articlesAsync = switch (mode) {
+      'latest' => ref.watch(latestNewsProvider),
+      'category' => ref.watch(newsByCategoryProvider(category)),
+      _ => ref.watch(trendingNewsProvider),
+    };
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final emptyTitle = category == 'podcast'
+        ? 'No podcasts yet.'
+        : mode == 'trending'
+            ? 'No trending articles yet.'
+            : 'No articles yet.';
 
     return Scaffold(
       backgroundColor:
@@ -33,7 +51,7 @@ class TrendingScreen extends ConsumerWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Trending',
+          title,
           style: AppTypography.displaySmallBold.copyWith(
             color: isDark
                 ? AppColors.darkTextPrimary
@@ -51,12 +69,12 @@ class TrendingScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: trendingAsync.when(
+      body: articlesAsync.when(
         data: (items) {
           if (items.isEmpty) {
             return Center(
               child: Text(
-                'No trending articles yet.',
+                emptyTitle,
                 style: AppTypography.textSmall.copyWith(
                   color: isDark
                       ? AppColors.darkTextSecondary
@@ -115,7 +133,9 @@ class TrendingScreen extends ConsumerWidget {
       sourceName: model.sourceName,
       sourceId: model.sourceId,
       sourceLogoAsset: model.sourceLogoAsset,
-      thumbnailAsset: model.thumbnailAsset,
+      thumbnailAsset: model.featuredImageUrl.trim().isNotEmpty
+          ? model.featuredImageUrl.trim()
+          : model.thumbnailAsset,
       timeAgo: formatArticleTimestamp(model.createdAt, fallback: model.timeAgo),
       body: model.body,
       likesCount: model.likesCount,
