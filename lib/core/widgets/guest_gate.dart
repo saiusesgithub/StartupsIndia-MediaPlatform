@@ -58,6 +58,124 @@ class GuestBlur extends StatelessWidget {
   }
 }
 
+void showGuestAuthPrompt(
+  BuildContext context, {
+  String title = 'Create an account to continue',
+  String message =
+      'Sign up or log in to like, comment, bookmark, and personalize your feed.',
+}) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Center(
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: AppColors.primaryDefault.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                color: AppColors.primaryDefault,
+                size: 24,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: AppTypography.displaySmallBold.copyWith(
+              fontSize: 19,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.grayscaleTitleActive,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTypography.textSmall.copyWith(
+              fontSize: 13,
+              height: 1.45,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/signup');
+            },
+            child: Container(
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primaryDefault,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                'Create Account',
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/login');
+            },
+            child: Center(
+              child: Text(
+                'Already have an account? Log in',
+                style: AppTypography.textSmall.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryDefault,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _UnlockPill extends StatelessWidget {
   final String label;
 

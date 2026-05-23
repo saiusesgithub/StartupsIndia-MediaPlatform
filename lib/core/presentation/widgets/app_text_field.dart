@@ -122,7 +122,9 @@ class _AppTextFieldState extends State<AppTextField> {
                             hintStyle: AppTypography.textSmall.copyWith(
                               color: isDark
                                   ? AppColors.darkTextSecondary
-                                  : AppColors.grayscaleButtonText,
+                                      .withValues(alpha: 0.55)
+                                  : AppColors.grayscaleButtonText
+                                      .withValues(alpha: 0.62),
                               fontSize: 14,
                             ),
                             border: InputBorder.none,

@@ -10,6 +10,7 @@ class NewsArticleModel {
   final String sourceId;
   final String sourceLogoAsset;
   final String thumbnailAsset;
+  final String featuredImageUrl;
   final String timeAgo;
   final String body;
   final int likesCount;
@@ -36,6 +37,7 @@ class NewsArticleModel {
     this.sourceId = '',
     required this.sourceLogoAsset,
     required this.thumbnailAsset,
+    this.featuredImageUrl = '',
     required this.timeAgo,
     this.body = '',
     this.likesCount = 0,
@@ -63,6 +65,7 @@ class NewsArticleModel {
     String? sourceId,
     String? sourceLogoAsset,
     String? thumbnailAsset,
+    String? featuredImageUrl,
     String? timeAgo,
     String? body,
     int? likesCount,
@@ -89,6 +92,7 @@ class NewsArticleModel {
       sourceId: sourceId ?? this.sourceId,
       sourceLogoAsset: sourceLogoAsset ?? this.sourceLogoAsset,
       thumbnailAsset: thumbnailAsset ?? this.thumbnailAsset,
+      featuredImageUrl: featuredImageUrl ?? this.featuredImageUrl,
       timeAgo: timeAgo ?? this.timeAgo,
       body: body ?? this.body,
       likesCount: likesCount ?? this.likesCount,
@@ -126,6 +130,10 @@ class NewsArticleModel {
       sourceId: map['sourceId'] as String? ?? '',
       sourceLogoAsset: map['sourceLogoAsset'] as String? ?? '',
       thumbnailAsset: map['thumbnailAsset'] as String? ?? '',
+      featuredImageUrl:
+          map['featuredImageUrl'] as String? ??
+          map['featuredImage'] as String? ??
+          '',
       timeAgo: map['timeAgo'] as String? ?? '',
       body: map['body'] as String? ?? '',
       likesCount: (map['likesCount'] as num?)?.toInt() ?? 0,
@@ -159,6 +167,7 @@ class NewsArticleModel {
       'sourceId': sourceId,
       'sourceLogoAsset': sourceLogoAsset,
       'thumbnailAsset': thumbnailAsset,
+      'featuredImageUrl': featuredImageUrl,
       'timeAgo': timeAgo,
       'body': body,
       'likesCount': likesCount,
