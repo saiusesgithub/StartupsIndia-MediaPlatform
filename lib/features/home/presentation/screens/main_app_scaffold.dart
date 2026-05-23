@@ -61,6 +61,12 @@ const _kBuildItems = [
     label: 'Funding',
     url: 'https://www.startupsindia.in/investors',
   ),
+  (
+    icon: Icons.miscellaneous_services_rounded,
+    color: Color(0xFFFF9800),
+    label: 'Services',
+    url: 'https://www.startupsindia.in/contact',
+  ),
 ];
 
 // ── Route generator for all tab navigators ────────────────────────────────────

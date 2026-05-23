@@ -84,7 +84,8 @@ Profile photo storage:
 
 - Home tab: news/articles and home content.
 - Explore tab: media feed.
-- Build action: opens a bottom bubble of external Startup India links.
+- Build action: opens a bottom bubble of external Startup India links,
+  including Services, which opens `https://www.startupsindia.in/contact`.
 - Community tab: communities overview.
 - Profile tab: personal profile.
 
@@ -114,6 +115,8 @@ Article detail:
 - Gallery images render in the middle of the article body.
 - Like/comment/share CTA sits after the article body.
 - Related articles/podcasts render as a horizontal carousel after the CTA.
+- The end of Home includes a StartupsIndia Pro upgrade CTA that routes to the
+  in-app Pro screen.
 
 ## Explore
 
