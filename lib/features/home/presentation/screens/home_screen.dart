@@ -412,7 +412,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     bool isDark, {
     required bool isGuest,
   }) {
-    final articlesAsync = ref.watch(newsByCategoryProvider(category));
+    final articlesAsync = ref.watch(homeNewsByCategoryProvider(category));
     const guestPreviewLimit = 3;
     return SizedBox(
       height: 200,
@@ -466,7 +466,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     bool isDark, {
     required bool isGuest,
   }) {
-    final articlesAsync = ref.watch(newsByCategoryProvider('podcast'));
+    final articlesAsync = ref.watch(homeNewsByCategoryProvider('podcast'));
     const guestPreviewLimit = 3;
     return SizedBox(
       height: 200,
@@ -694,6 +694,40 @@ class _ReadFullStoryButton extends StatelessWidget {
 
 // ── Real hero slide (uses Firestore trending article) ─────────────────────────
 
+class _ArticleBackgroundImage extends StatelessWidget {
+  final NewsArticleModel article;
+  final Color fallbackColor;
+
+  const _ArticleBackgroundImage({
+    required this.article,
+    required this.fallbackColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final featuredImage = article.featuredImageUrl.trim();
+    final thumbnail = article.thumbnailAsset.trim();
+    final image = featuredImage.isNotEmpty ? featuredImage : thumbnail;
+    final fallback = Container(color: fallbackColor);
+
+    if (image.isEmpty) return fallback;
+    if (image.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.cover,
+        placeholder: (_, _) => fallback,
+        errorWidget: (_, _, _) => fallback,
+      );
+    }
+
+    return Image.asset(
+      image,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => fallback,
+    );
+  }
+}
+
 class _RealHeroSlide extends StatelessWidget {
   final NewsArticleModel article;
   const _RealHeroSlide({required this.article});
@@ -709,15 +743,10 @@ class _RealHeroSlide extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Background image
-          article.thumbnailAsset.startsWith('http')
-              ? CachedNetworkImage(
-                  imageUrl: article.thumbnailAsset,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(color: const Color(0xFF1A0A2E)),
-                  errorWidget: (_, _, _) => Container(color: const Color(0xFF1A0A2E)),
-                )
-              : Container(color: const Color(0xFF1A0A2E)),
+          _ArticleBackgroundImage(
+            article: article,
+            fallbackColor: const Color(0xFF1A0A2E),
+          ),
           // Gradient overlay
           Positioned.fill(
             child: DecoratedBox(
@@ -830,18 +859,10 @@ class _HomeSectionCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Thumbnail background
-            if (article.thumbnailAsset.startsWith('http'))
-              Positioned.fill(
-                child: CachedNetworkImage(
-                  imageUrl: article.thumbnailAsset,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(color: cardBg),
-                  errorWidget: (_, _, _) => Container(color: cardBg),
-                ),
-              )
-            else
-              Positioned.fill(child: Container(color: cardBg)),
+            _ArticleBackgroundImage(
+              article: article,
+              fallbackColor: cardBg,
+            ),
             // Gradient overlay (bottom-heavy)
             Positioned.fill(
               child: DecoratedBox(

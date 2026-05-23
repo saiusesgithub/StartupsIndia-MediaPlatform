@@ -97,8 +97,15 @@ Home uses Firestore articles via `FirestoreRepository`.
 
 Main data flows:
 
-- Latest articles: `articles` ordered by `createdAt desc`.
-- Trending articles: latest articles filtered by `isTrending`.
+- Home Top News: `articles` ordered by `updatedAt desc`, limited to 10.
+- Home category sections: one Firestore query per category, each limited to 10.
+- General latest article reads are limited to the first 20 by default.
+- Trending articles: Firestore query where `isTrending == true`, ordered by
+  `updatedAt desc`.
+- Category articles: Firestore query where `category` matches common case
+  variants of the category, ordered by `updatedAt desc`.
+- View-all article/category pages use cursor pagination and load 20 articles at
+  a time.
 - Article search: loads latest 100 articles and filters locally by headline, source, or category.
 - Likes and bookmarks update arrays on `articles/{articleId}`.
 - Article comments are stored in `articles/{articleId}/comments`.

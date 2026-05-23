@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +11,6 @@ import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/repositories/report_repository.dart';
-import '../providers/news_provider.dart';
 import '../widgets/report_sheet.dart';
 
 class SectionListArgs {
@@ -39,11 +39,26 @@ class SectionListScreen extends ConsumerStatefulWidget {
 class _SectionListScreenState extends ConsumerState<SectionListScreen> {
   _SectionFilter _filter = _SectionFilter.all;
   String? _userId;
+  final List<NewsArticleModel> _articles = [];
+  DocumentSnapshot<Map<String, dynamic>>? _lastDocument;
+  bool _isLoadingInitial = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
     _loadUserId();
+    _loadInitialArticles();
+  }
+
+  @override
+  void didUpdateWidget(covariant SectionListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.category != widget.category) {
+      _loadInitialArticles();
+    }
   }
 
   Future<void> _loadUserId() async {
@@ -53,11 +68,67 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
     } catch (_) {}
   }
 
+  Future<void> _loadInitialArticles() async {
+    setState(() {
+      _articles.clear();
+      _lastDocument = null;
+      _hasMore = true;
+      _isLoadingInitial = true;
+      _loadError = null;
+    });
+
+    try {
+      final page = await ref
+          .read(firestoreRepositoryProvider)
+          .fetchNewsByCategoryPage(widget.category);
+      if (!mounted) return;
+      setState(() {
+        _articles.addAll(page.articles);
+        _lastDocument = page.lastDocument;
+        _hasMore = page.hasMore;
+        _isLoadingInitial = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Failed to load articles';
+        _isLoadingInitial = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreArticles() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() {
+      _isLoadingMore = true;
+      _loadError = null;
+    });
+
+    try {
+      final page = await ref.read(firestoreRepositoryProvider).fetchNewsByCategoryPage(
+            widget.category,
+            startAfter: _lastDocument,
+          );
+      if (!mounted) return;
+      setState(() {
+        _articles.addAll(page.articles);
+        _lastDocument = page.lastDocument;
+        _hasMore = page.hasMore;
+        _isLoadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Failed to load more articles';
+        _isLoadingMore = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isGuest = FirebaseAuth.instance.currentUser == null;
-    final articlesAsync = ref.watch(newsByCategoryProvider(widget.category));
     const guestPreviewLimit = 3;
 
     return Scaffold(
@@ -69,24 +140,15 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
             _buildHeader(isDark),
             _buildFilterBar(isDark),
             Expanded(
-              child: articlesAsync.when(
-                loading: () => const Center(
+              child: _isLoadingInitial
+                  ? const Center(
                   child: CircularProgressIndicator(
                     color: AppColors.primaryDefault,
                   ),
-                ),
-                error: (e, _) => Center(
-                  child: Text(
-                    'Failed to load articles',
-                    style: AppTypography.textSmall.copyWith(
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.grayscaleBodyText,
-                    ),
-                  ),
-                ),
-                data: (items) {
-                  final filtered = _applyFilter(items);
+                )
+                  : Builder(
+                builder: (context) {
+                  final filtered = _applyFilter(_articles);
                   if (filtered.isEmpty) {
                     return Center(
                       child: Padding(
@@ -129,8 +191,16 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
                   return ListView.builder(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    itemCount: filtered.length,
+                    itemCount: filtered.length + (_hasMore ? 1 : 0),
                     itemBuilder: (context, i) {
+                      if (i == filtered.length) {
+                        return _LoadMoreButton(
+                          isDark: isDark,
+                          isLoading: _isLoadingMore,
+                          errorText: _loadError,
+                          onTap: _loadMoreArticles,
+                        );
+                      }
                       final tile = _SectionArticleTile(
                         article: filtered[i],
                         isDark: isDark,
@@ -158,10 +228,7 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
       case _SectionFilter.all:
         return items;
       case _SectionFilter.latest:
-        final sorted = [...items];
-        sorted.sort((a, b) =>
-            (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
-        return sorted;
+        return items;
       case _SectionFilter.mostViewed:
         final sorted = [...items];
         sorted.sort((a, b) => b.viewCount.compareTo(a.viewCount));
@@ -272,6 +339,90 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _LoadMoreButton extends StatelessWidget {
+  final bool isDark;
+  final bool isLoading;
+  final String? errorText;
+  final VoidCallback onTap;
+
+  const _LoadMoreButton({
+    required this.isDark,
+    required this.isLoading,
+    required this.errorText,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 6),
+      child: Column(
+        children: [
+          if (errorText != null) ...[
+            Text(
+              errorText!,
+              style: AppTypography.textSmall.copyWith(
+                color: AppColors.errorDark,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          GestureDetector(
+            onTap: isLoading ? null : onTap,
+            child: Container(
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.darkSurface
+                    : AppColors.grayscaleWhite,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+                ),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryDefault,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Load more articles',
+                          style: AppTypography.textSmall.copyWith(
+                            color: textColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.expand_more_rounded,
+                          color: secondaryColor,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }

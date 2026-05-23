@@ -58,3 +58,5 @@ firebase-debug.*.log
 # Environment variables
 .env
 .env.*
+serviceAccount.json
+.claude/settings.local.json
