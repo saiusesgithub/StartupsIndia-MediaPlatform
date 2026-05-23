@@ -77,7 +77,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _showError('Google Sign-In failed: ${e.message}');
     } catch (e) {
       if (!mounted) return;
-      _showError('Google Sign-In error: $e');
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('cancel') || msg.contains('[16]')) return;
+      _showError('Sign in failed. Please try again.');
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
     }

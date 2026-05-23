@@ -32,11 +32,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             Expanded(
               child: notificationsAsync.when(
                 data: (notifications) => _buildList(notifications, isDark),
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryDefault,
-                  ),
-                ),
+                loading: () => _buildList(const [], isDark),
                 error: (_, _) => _buildList(const [], isDark),
               ),
             ),
