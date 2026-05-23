@@ -299,7 +299,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     await user.delete();
 
     if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+    Navigator.of(context, rootNavigator: true)
+        .pushNamedAndRemoveUntil('/login', (_) => false);
   }
 }
 
