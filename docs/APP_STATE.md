@@ -102,6 +102,18 @@ Main data flows:
 - Likes and bookmarks update arrays on `articles/{articleId}`.
 - Article comments are stored in `articles/{articleId}/comments`.
 - Reports are written to `reports`.
+- Guest users can preview the first three cards in each article/podcast
+  section. Remaining home and section-list cards stay visible but blurred with a
+  sign-up CTA.
+- Guest users can open/read preview articles, but like, comment, and bookmark
+  actions open the auth prompt instead of writing to Firestore.
+
+Article detail:
+
+- Featured image/video renders first.
+- Gallery images render in the middle of the article body.
+- Like/comment/share CTA sits after the article body.
+- Related articles/podcasts render as a horizontal carousel after the CTA.
 
 ## Explore
 

@@ -638,8 +638,8 @@ class _MultilineFieldState extends State<_MultilineField> {
         ? AppColors.darkTextPrimary
         : AppColors.grayscaleTitleActive;
     final hintColor = widget.isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.grayscaleButtonText;
+        ? AppColors.darkTextSecondary.withValues(alpha: 0.55)
+        : AppColors.grayscaleButtonText.withValues(alpha: 0.62);
     final labelColor = widget.isDark
         ? AppColors.darkTextSecondary
         : AppColors.grayscaleBodyText;
