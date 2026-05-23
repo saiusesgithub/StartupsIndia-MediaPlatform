@@ -97,8 +97,9 @@ Home uses Firestore articles via `FirestoreRepository`.
 
 Main data flows:
 
-- Latest articles: `articles` ordered by `updatedAt desc`, limited to the
-  first 20 for initial reads.
+- Home Top News: `articles` ordered by `updatedAt desc`, limited to 10.
+- Home category sections: one Firestore query per category, each limited to 10.
+- General latest article reads are limited to the first 20 by default.
 - Trending articles: Firestore query where `isTrending == true`, ordered by
   `updatedAt desc`.
 - Category articles: Firestore query where `category` matches common case
