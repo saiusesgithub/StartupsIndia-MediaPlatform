@@ -28,7 +28,7 @@ service cloud.firestore {
                     (
                       isSignedIn() &&
                       request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['likedBy', 'likesCount', 'bookmarkedBy', 'viewCount', 'updatedAt'])
+                        .hasOnly(['likedBy', 'likesCount', 'bookmarkedBy', 'commentsCount', 'viewCount', 'updatedAt'])
                     );
 
       // Comments — authenticated users can read and post.

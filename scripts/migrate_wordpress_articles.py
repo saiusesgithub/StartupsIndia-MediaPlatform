@@ -327,6 +327,7 @@ def transform_post(
         "wpId": int(wp_id) if wp_id.isdigit() else wp_id,
         "wpSlug": str(post.get("slug", "") or ""),
         "wpLink": str(post.get("link", "") or ""),
+        "sourceUrl": str(post.get("link", "") or ""),
         "wpCategories": wp_categories,
         "authorId": "",
         "category": category,

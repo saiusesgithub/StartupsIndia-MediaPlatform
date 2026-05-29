@@ -138,12 +138,17 @@ class PostRepository {
     required String avatarUrl,
     required String content,
   }) async {
-    await _articles.doc(articleId).collection('comments').add({
+    final batch = _firestore.batch();
+    final articleRef = _articles.doc(articleId);
+    final commentRef = articleRef.collection('comments').doc();
+    batch.set(commentRef, {
       'userId': userId,
       'authorName': authorName,
       'avatarUrl': avatarUrl,
       'content': content,
       'createdAt': FieldValue.serverTimestamp(),
     });
+    batch.update(articleRef, {'commentsCount': FieldValue.increment(1)});
+    await batch.commit();
   }
 }

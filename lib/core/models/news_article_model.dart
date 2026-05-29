@@ -8,6 +8,7 @@ class NewsArticleModel {
   final String headline;
   final String sourceName;
   final String sourceId;
+  final String sourceUrl;
   final String sourceLogoAsset;
   final String thumbnailAsset;
   final String featuredImageUrl;
@@ -35,6 +36,7 @@ class NewsArticleModel {
     required this.headline,
     required this.sourceName,
     this.sourceId = '',
+    this.sourceUrl = '',
     required this.sourceLogoAsset,
     required this.thumbnailAsset,
     this.featuredImageUrl = '',
@@ -63,6 +65,7 @@ class NewsArticleModel {
     String? headline,
     String? sourceName,
     String? sourceId,
+    String? sourceUrl,
     String? sourceLogoAsset,
     String? thumbnailAsset,
     String? featuredImageUrl,
@@ -90,6 +93,7 @@ class NewsArticleModel {
       headline: headline ?? this.headline,
       sourceName: sourceName ?? this.sourceName,
       sourceId: sourceId ?? this.sourceId,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
       sourceLogoAsset: sourceLogoAsset ?? this.sourceLogoAsset,
       thumbnailAsset: thumbnailAsset ?? this.thumbnailAsset,
       featuredImageUrl: featuredImageUrl ?? this.featuredImageUrl,
@@ -128,6 +132,11 @@ class NewsArticleModel {
       headline: map['headline'] as String? ?? '',
       sourceName: map['sourceName'] as String? ?? '',
       sourceId: map['sourceId'] as String? ?? '',
+      sourceUrl:
+          map['sourceUrl'] as String? ??
+          map['wpLink'] as String? ??
+          map['link'] as String? ??
+          '',
       sourceLogoAsset: map['sourceLogoAsset'] as String? ?? '',
       thumbnailAsset: map['thumbnailAsset'] as String? ?? '',
       featuredImageUrl:
@@ -165,6 +174,7 @@ class NewsArticleModel {
       'headline': headline,
       'sourceName': sourceName,
       'sourceId': sourceId,
+      'sourceUrl': sourceUrl,
       'sourceLogoAsset': sourceLogoAsset,
       'thumbnailAsset': thumbnailAsset,
       'featuredImageUrl': featuredImageUrl,

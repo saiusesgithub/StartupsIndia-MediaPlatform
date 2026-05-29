@@ -10,6 +10,7 @@ class NewsArticle {
   final String headline;
   final String sourceName;
   final String sourceId;
+  final String sourceUrl;
   final String sourceLogoAsset; // local asset path for now
   final String thumbnailAsset; // local asset path for now
   final String timeAgo;
@@ -27,6 +28,7 @@ class NewsArticle {
     required this.headline,
     required this.sourceName,
     this.sourceId = '',
+    this.sourceUrl = '',
     required this.sourceLogoAsset,
     required this.thumbnailAsset,
     required this.timeAgo,
@@ -48,6 +50,11 @@ class NewsArticle {
       headline: map['headline'] as String? ?? '',
       sourceName: map['sourceName'] as String? ?? '',
       sourceId: map['sourceId'] as String? ?? '',
+      sourceUrl:
+          map['sourceUrl'] as String? ??
+          map['wpLink'] as String? ??
+          map['link'] as String? ??
+          '',
       sourceLogoAsset: map['sourceLogoAsset'] as String? ?? '',
       thumbnailAsset: map['thumbnailAsset'] as String? ?? '',
       timeAgo: map['timeAgo'] as String? ?? '',
@@ -66,6 +73,7 @@ class NewsArticle {
     'headline': headline,
     'sourceName': sourceName,
     'sourceId': sourceId,
+    'sourceUrl': sourceUrl,
     'sourceLogoAsset': sourceLogoAsset,
     'thumbnailAsset': thumbnailAsset,
     'timeAgo': timeAgo,
@@ -87,6 +95,7 @@ extension NewsArticleModelAdapter on NewsArticle {
       headline: headline,
       sourceName: sourceName,
       sourceId: sourceId,
+      sourceUrl: sourceUrl,
       sourceLogoAsset: sourceLogoAsset,
       thumbnailAsset: thumbnailAsset,
       timeAgo: timeAgo,

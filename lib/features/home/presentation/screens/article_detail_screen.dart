@@ -787,10 +787,10 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   void _shareArticle() {
     final article = _article;
     if (article == null) return;
+    final sourceUrl = article.sourceUrl.trim();
     Share.share(
       '${article.headline}\n\n'
-      'Read more on StartupsIndia — India\'s startup news app\n'
-      'https://play.google.com/store/apps/details?id=com.startupsindia.app',
+      '${sourceUrl.isNotEmpty ? sourceUrl : 'https://startupsindia.in'}',
     );
   }
 
