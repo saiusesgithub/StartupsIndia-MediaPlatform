@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../theme/style_guide.dart';
 
 class AppTextField extends StatefulWidget {
@@ -10,6 +11,7 @@ class AppTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final bool readOnly;
   final bool enabled;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppTextField({
     super.key,
@@ -21,6 +23,7 @@ class AppTextField extends StatefulWidget {
     this.validator,
     this.readOnly = false,
     this.enabled = true,
+    this.inputFormatters,
   });
 
   @override
@@ -75,16 +78,14 @@ class _AppTextFieldState extends State<AppTextField> {
             final borderColor = hasError
                 ? AppColors.errorDark
                 : _isFocused
-                    ? AppColors.primaryDefault
-                    : (isDark ? AppColors.darkBorder : AppColors.grayscaleLine);
+                ? AppColors.primaryDefault
+                : (isDark ? AppColors.darkBorder : AppColors.grayscaleLine);
 
             final fillColor = hasError
-                ? (isDark
-                    ? const Color(0xFF2A1015)
-                    : AppColors.errorLight)
+                ? (isDark ? const Color(0xFF2A1015) : AppColors.errorLight)
                 : (isDark
-                    ? AppColors.darkInputBackground
-                    : AppColors.grayscaleWhite);
+                      ? AppColors.darkInputBackground
+                      : AppColors.grayscaleWhite);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,6 +111,7 @@ class _AppTextFieldState extends State<AppTextField> {
                           keyboardType: widget.isPassword
                               ? TextInputType.visiblePassword
                               : widget.keyboardType,
+                          inputFormatters: widget.inputFormatters,
                           style: AppTypography.textSmall.copyWith(
                             color: isDark
                                 ? AppColors.darkTextPrimary
@@ -121,10 +123,12 @@ class _AppTextFieldState extends State<AppTextField> {
                             hintText: widget.hintText,
                             hintStyle: AppTypography.textSmall.copyWith(
                               color: isDark
-                                  ? AppColors.darkTextSecondary
-                                      .withValues(alpha: 0.55)
-                                  : AppColors.grayscaleButtonText
-                                      .withValues(alpha: 0.62),
+                                  ? AppColors.darkTextSecondary.withValues(
+                                      alpha: 0.55,
+                                    )
+                                  : AppColors.grayscaleButtonText.withValues(
+                                      alpha: 0.62,
+                                    ),
                               fontSize: 14,
                             ),
                             border: InputBorder.none,
@@ -136,15 +140,20 @@ class _AppTextFieldState extends State<AppTextField> {
                             fillColor: Colors.transparent,
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 14),
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
                           ),
                         ),
                       ),
                       if (hasError && !widget.isPassword)
                         const Padding(
                           padding: EdgeInsets.only(right: 12),
-                          child: Icon(Icons.close,
-                              color: AppColors.errorDark, size: 16),
+                          child: Icon(
+                            Icons.close,
+                            color: AppColors.errorDark,
+                            size: 16,
+                          ),
                         ),
                       if (widget.isPassword)
                         IconButton(

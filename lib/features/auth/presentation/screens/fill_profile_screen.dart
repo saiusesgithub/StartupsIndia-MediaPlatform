@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/app_error_reporter.dart';
+import '../../../../core/utils/phone_number_validator.dart';
 import '../../../auth/domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 
@@ -259,16 +261,12 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                                 label: 'Phone Number*',
                                 hintText: '+91 98765 43210',
                                 keyboardType: TextInputType.phone,
-                                validator: (val) {
-                                  if (val == null || val.trim().isEmpty) {
-                                    return 'Phone number is required';
-                                  }
-                                  final ok = RegExp(
-                                    r'^[\+\d\-\s]{7,15}$',
-                                  ).hasMatch(val.trim());
-                                  if (!ok) return 'Enter a valid phone number';
-                                  return null;
-                                },
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9+\-\s()]'),
+                                  ),
+                                ],
+                                validator: validatePhoneNumber,
                               ),
                             ],
                           ),

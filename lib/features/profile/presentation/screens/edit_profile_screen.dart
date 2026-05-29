@@ -1,7 +1,7 @@
-import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../auth/domain/models/user_model.dart';
@@ -9,6 +9,7 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/utils/app_error_reporter.dart';
+import '../../../../core/utils/phone_number_validator.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -189,6 +190,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 hintText: '+91 98765 43210',
                                 validator: _validatePhone,
                                 keyboardType: TextInputType.phone,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9+\-\s()]'),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -512,11 +518,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   String? _validatePhone(String? value) {
-    final text = (value ?? '').trim();
-    if (text.isEmpty) return 'Phone number is required';
-    final phoneRegex = RegExp(r'^[\+\d\-\s]{7,18}$');
-    if (!phoneRegex.hasMatch(text)) return 'Enter a valid phone number';
-    return null;
+    return validatePhoneNumber(value);
   }
 
   Widget _buildRoleBanner(bool isDark) {
