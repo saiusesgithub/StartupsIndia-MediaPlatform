@@ -10,8 +10,9 @@ class AboutScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleSecondaryButton,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleSecondaryButton,
       body: SafeArea(
         child: Column(
           children: [
@@ -41,12 +42,13 @@ class AboutScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, bool isDark) {
-    final surfaceColor =
-        isDark ? AppColors.darkSurface : AppColors.grayscaleWhite;
-    final borderColor =
-        isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
-    final textColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : AppColors.grayscaleWhite;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.grayscaleTitleActive;
 
     return Container(
       height: 56,
@@ -85,11 +87,11 @@ class AboutScreen extends StatelessWidget {
         color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
       ),
       child: Column(
         children: [
-          // App icon placeholder
           Container(
             width: 80,
             height: 80,
@@ -97,10 +99,12 @@ class AboutScreen extends StatelessWidget {
               color: AppColors.primaryDefault,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
-              Icons.rocket_launch_rounded,
-              color: Colors.white,
-              size: 40,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                'assets/startupsindia/Icon.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -126,13 +130,13 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
             decoration: BoxDecoration(
               color: AppColors.primaryDefault.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                  color: AppColors.primaryDefault.withValues(alpha: 0.3)),
+                color: AppColors.primaryDefault.withValues(alpha: 0.3),
+              ),
             ),
             child: Text(
               'Version 1.0.0',
@@ -223,8 +227,11 @@ class _Card extends StatelessWidget {
   final String label;
   final List<Widget> children;
 
-  const _Card(
-      {required this.isDark, required this.label, required this.children});
+  const _Card({
+    required this.isDark,
+    required this.label,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -247,18 +254,13 @@ class _Card extends StatelessWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            color:
-                isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+            color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color:
-                  isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: children,
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: children),
         ),
       ],
     );
@@ -333,8 +335,11 @@ class _TechRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _TechRow(
-      {required this.isDark, required this.label, required this.value});
+  const _TechRow({
+    required this.isDark,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -391,8 +396,7 @@ class _MadeWithFlutter extends StatelessWidget {
           ),
           const Spacer(),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: const Color(0xFF54C5F8).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
@@ -403,8 +407,11 @@ class _MadeWithFlutter extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.flutter_dash,
-                    color: Color(0xFF54C5F8), size: 16),
+                const Icon(
+                  Icons.flutter_dash,
+                  color: Color(0xFF54C5F8),
+                  size: 16,
+                ),
                 const SizedBox(width: 5),
                 Text(
                   'Flutter',

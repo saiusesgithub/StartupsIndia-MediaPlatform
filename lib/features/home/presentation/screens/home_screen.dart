@@ -7,17 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/models/news_article_model.dart';
-import '../../../../core/models/user_model.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/home_mock_data.dart';
 import '../providers/news_provider.dart';
 import 'section_list_screen.dart';
-
-final homeCurrentUserProvider = FutureProvider.autoDispose<UserModel?>((ref) {
-  return ref.read(authRepositoryProvider).getCurrentUserModel();
-});
 
 // Section definitions: (label, category, icon)
 const _kSections = [
@@ -73,8 +67,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isGuest = FirebaseAuth.instance.currentUser == null;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleWhite,
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -88,7 +83,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   '${i + 1}',
                   _kSections[i].$1,
                   isDark,
-                  onViewAll: () => _openSection(_kSections[i].$1, _kSections[i].$2),
+                  onViewAll: () =>
+                      _openSection(_kSections[i].$1, _kSections[i].$2),
                 ),
               ),
               SliverToBoxAdapter(
@@ -147,12 +143,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(bool isDark, bool isGuest) {
-    final user = FirebaseAuth.instance.currentUser;
-    final userModel = ref.watch(homeCurrentUserProvider).asData?.value;
-    final avatarUrl = (userModel?.avatarUrl.isNotEmpty == true)
-        ? userModel!.avatarUrl
-        : user?.photoURL;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
       child: Row(
@@ -213,39 +203,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
             ],
           ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(
-                context, isGuest ? '/signup' : '/profile'),
-            child: ClipOval(
-              child: Container(
-                width: 36,
-                height: 36,
-                color: isDark
-                    ? AppColors.darkSurface
-                    : AppColors.grayscaleSecondaryButton,
-                child: avatarUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: avatarUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => _avatarFallback(isDark),
-                      )
-                    : _avatarFallback(isDark),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
-
-  Widget _avatarFallback(bool isDark) => Icon(
-        Icons.person_rounded,
-        size: 20,
-        color: isDark
-            ? AppColors.darkTextSecondary
-            : AppColors.grayscaleButtonText,
-      );
 
   // ── Hero Banner ──────────────────────────────────────────────────────────
 
@@ -302,8 +263,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildHeroSkeleton(bool isDark) {
-    final base = isDark ? const Color(0xFF1A2636) : AppColors.grayscaleSecondaryButton;
-    final highlight = isDark ? const Color(0xFF263547) : AppColors.grayscaleLine;
+    final base = isDark
+        ? const Color(0xFF1A2636)
+        : AppColors.grayscaleSecondaryButton;
+    final highlight = isDark
+        ? const Color(0xFF263547)
+        : AppColors.grayscaleLine;
     return Shimmer.fromColors(
       baseColor: base,
       highlightColor: highlight,
@@ -394,10 +359,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           itemCount: 3,
           itemBuilder: (_, _) => _SkeletonCard(isDark: isDark),
         ),
-        error: (_, _) => _buildEmptySection(
-          'No articles yet',
-          isDark,
-        ),
+        error: (_, _) => _buildEmptySection('No articles yet', isDark),
         data: (items) {
           if (items.isEmpty) {
             return _buildEmptySection('No articles yet', isDark);
@@ -434,10 +396,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ── Podcast section ───────────────────────────────────────────────────────
 
-  Widget _buildPodcastSection(
-    bool isDark, {
-    required bool isGuest,
-  }) {
+  Widget _buildPodcastSection(bool isDark, {required bool isGuest}) {
     final articlesAsync = ref.watch(homeNewsByCategoryProvider('podcast'));
     const guestPreviewLimit = 3;
     return SizedBox(
@@ -725,11 +684,8 @@ class _RealHeroSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(
-        context,
-        '/article-detail',
-        arguments: article,
-      ),
+      onTap: () =>
+          Navigator.pushNamed(context, '/article-detail', arguments: article),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -763,7 +719,9 @@ class _RealHeroSlide extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _CategoryBadge(label: article.category.isEmpty ? 'NEWS' : article.category),
+                _CategoryBadge(
+                  label: article.category.isEmpty ? 'NEWS' : article.category,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   article.headline,
@@ -850,10 +808,7 @@ class _HomeSectionCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _ArticleBackgroundImage(
-              article: article,
-              fallbackColor: cardBg,
-            ),
+            _ArticleBackgroundImage(article: article, fallbackColor: cardBg),
             // Gradient overlay (bottom-heavy)
             Positioned.fill(
               child: DecoratedBox(
@@ -983,8 +938,12 @@ class _SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = isDark ? const Color(0xFF1A2636) : AppColors.grayscaleSecondaryButton;
-    final highlight = isDark ? const Color(0xFF263547) : AppColors.grayscaleLine;
+    final base = isDark
+        ? const Color(0xFF1A2636)
+        : AppColors.grayscaleSecondaryButton;
+    final highlight = isDark
+        ? const Color(0xFF263547)
+        : AppColors.grayscaleLine;
     return Shimmer.fromColors(
       baseColor: base,
       highlightColor: highlight,

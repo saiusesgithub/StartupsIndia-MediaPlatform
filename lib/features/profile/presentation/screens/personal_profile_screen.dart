@@ -18,22 +18,23 @@ import '../../../explore/domain/models/post_model.dart';
 
 enum _Tab { overview, activity, groups, bookmarks }
 
-final profileSavedArticlesProvider =
-    StreamProvider.autoDispose<List<NewsArticleModel>>((ref) {
+final profileSavedArticlesProvider = StreamProvider<List<NewsArticleModel>>((
+  ref,
+) {
   final user = ref.watch(authStateChangesProvider).value;
   if (user == null) return Stream.value(<NewsArticleModel>[]);
   return ref.watch(firestoreRepositoryProvider).getBookmarkedArticles(user.uid);
 });
 
-final profileLikedArticlesProvider =
-    StreamProvider.autoDispose<List<NewsArticleModel>>((ref) {
+final profileLikedArticlesProvider = StreamProvider<List<NewsArticleModel>>((
+  ref,
+) {
   final user = ref.watch(authStateChangesProvider).value;
   if (user == null) return Stream.value(<NewsArticleModel>[]);
   return ref.watch(firestoreRepositoryProvider).getLikedArticles(user.uid);
 });
 
-final profileSavedVideosProvider =
-    StreamProvider.autoDispose<List<PostModel>>((ref) {
+final profileSavedVideosProvider = StreamProvider<List<PostModel>>((ref) {
   final user = ref.watch(authStateChangesProvider).value;
   if (user == null) return Stream.value(<PostModel>[]);
   return PostRepository().getBookmarkedPosts(user.uid);
@@ -47,8 +48,7 @@ class PersonalProfileScreen extends ConsumerStatefulWidget {
       _PersonalProfileScreenState();
 }
 
-class _PersonalProfileScreenState
-    extends ConsumerState<PersonalProfileScreen> {
+class _PersonalProfileScreenState extends ConsumerState<PersonalProfileScreen> {
   late Future<UserModel?> _userFuture;
   _Tab _activeTab = _Tab.overview;
 
@@ -89,12 +89,13 @@ class _PersonalProfileScreenState
           return Scaffold(
             backgroundColor: bg,
             body: const Center(
-                child:
-                    CircularProgressIndicator(color: AppColors.primaryDefault)),
+              child: CircularProgressIndicator(color: AppColors.primaryDefault),
+            ),
           );
         }
 
-        final user = snapshot.data ??
+        final user =
+            snapshot.data ??
             const UserModel(
               uid: '',
               displayName: 'Your Name',
@@ -112,14 +113,16 @@ class _PersonalProfileScreenState
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                  child: _HeaderBar(user: user, isDark: isDark)),
+                child: _HeaderBar(user: user, isDark: isDark),
+              ),
               SliverToBoxAdapter(
-                  child: _ProfileCard(
-                user: user,
-                handle: _handle(user),
-                isDark: isDark,
-                onEditProfile: _openEditProfile,
-              )),
+                child: _ProfileCard(
+                  user: user,
+                  handle: _handle(user),
+                  isDark: isDark,
+                  onEditProfile: _openEditProfile,
+                ),
+              ),
               SliverToBoxAdapter(child: _ProBanner(isDark: isDark)),
               SliverPersistentHeader(
                 pinned: true,
@@ -167,8 +170,7 @@ class _PersonalProfileScreenState
             isDark: isDark,
             emptyIcon: Icons.bookmark_border_rounded,
             emptyTitle: 'No saved articles',
-            emptySubtitle:
-                'Tap the bookmark on any article to save it here.',
+            emptySubtitle: 'Tap the bookmark on any article to save it here.',
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -238,86 +240,83 @@ class _ProfileCommunitiesSliver extends ConsumerWidget {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, i) {
-            final c = joined[i];
-            return GestureDetector(
-              onTap: () => Navigator.pushNamed(
-                context,
-                '/community-detail',
-                arguments: c.id,
-              ),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
+        delegate: SliverChildBuilderDelegate((context, i) {
+          final c = joined[i];
+          return GestureDetector(
+            onTap: () => Navigator.pushNamed(
+              context,
+              '/community-detail',
+              arguments: c.id,
+            ),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.darkSurface
+                    : AppColors.grayscaleWhite,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
                   color: isDark
-                      ? AppColors.darkSurface
-                      : AppColors.grayscaleWhite,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : AppColors.grayscaleLine,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: c.color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          c.emoji,
-                          style: const TextStyle(fontSize: 22),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            c.name,
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.grayscaleTitleActive,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${_fmtCount(c.memberCount)} members',
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.grayscaleBodyText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.grayscaleButtonText,
-                    ),
-                  ],
+                      ? AppColors.darkBorder
+                      : AppColors.grayscaleLine,
                 ),
               ),
-            );
-          },
-          childCount: joined.length,
-        ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: c.color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        c.emoji,
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.name,
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.grayscaleTitleActive,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_fmtCount(c.memberCount)} members',
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.grayscaleBodyText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleButtonText,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }, childCount: joined.length),
       ),
     );
   }
@@ -340,6 +339,8 @@ class _SavedVideosSliver extends ConsumerWidget {
     return SliverPadding(
       padding: const EdgeInsets.all(16),
       sliver: videosAsync.when(
+        skipLoadingOnReload: true,
+        skipLoadingOnRefresh: true,
         loading: () => const SliverToBoxAdapter(
           child: Center(child: CircularProgressIndicator()),
         ),
@@ -351,11 +352,13 @@ class _SavedVideosSliver extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 48),
-                  Icon(Icons.play_circle_outline_rounded,
-                      size: 48,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.grayscaleButtonText),
+                  Icon(
+                    Icons.play_circle_outline_rounded,
+                    size: 48,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleButtonText,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     'No saved videos',
@@ -411,14 +414,21 @@ class _VideoThumb extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           post.thumbnailUrl.startsWith('http')
-              ? Image.network(post.thumbnailUrl, fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(color: AppColors.darkSurface))
+              ? CachedNetworkImage(
+                  imageUrl: post.thumbnailUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) =>
+                      Container(color: AppColors.darkSurface),
+                )
               : Container(color: AppColors.darkSurface),
           const Positioned(
             bottom: 6,
             left: 6,
-            child: Icon(Icons.play_circle_filled_rounded,
-                color: Colors.white70, size: 28),
+            child: Icon(
+              Icons.play_circle_filled_rounded,
+              color: Colors.white70,
+              size: 28,
+            ),
           ),
           if (post.headline.isNotEmpty)
             Positioned(
@@ -471,6 +481,8 @@ class _ArticleListSliver extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return articlesAsync.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
       loading: () => const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 48),
@@ -500,24 +512,19 @@ class _ArticleListSliver extends StatelessWidget {
         }
 
         return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              if (index.isOdd) {
-                return Divider(
-                  height: 1,
-                  indent: 24,
-                  endIndent: 24,
-                  color: isDark
-                      ? AppColors.darkBorder
-                      : AppColors.grayscaleLine,
-                );
-              }
+          delegate: SliverChildBuilderDelegate((context, index) {
+            if (index.isOdd) {
+              return Divider(
+                height: 1,
+                indent: 24,
+                endIndent: 24,
+                color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+              );
+            }
 
-              final article = _toNewsArticle(articles[index ~/ 2]);
-              return NewsTile(article: article);
-            },
-            childCount: articles.length * 2 - 1,
-          ),
+            final article = _toNewsArticle(articles[index ~/ 2]);
+            return NewsTile(article: article);
+          }, childCount: articles.length * 2 - 1),
         );
       },
     );
@@ -558,8 +565,9 @@ class _HeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText;
+    final iconColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.grayscaleButtonText;
 
     return SafeArea(
       bottom: false,
@@ -578,17 +586,17 @@ class _HeaderBar extends StatelessWidget {
             ),
             const Spacer(),
             IconButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/notifications'),
-              icon: Icon(Icons.notifications_none_rounded,
-                  color: iconColor, size: 24),
+              onPressed: () => Navigator.pushNamed(context, '/notifications'),
+              icon: Icon(
+                Icons.notifications_none_rounded,
+                color: iconColor,
+                size: 24,
+              ),
               tooltip: 'Notifications',
             ),
             IconButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/settings'),
-              icon: Icon(Icons.settings_outlined,
-                  color: iconColor, size: 22),
+              onPressed: () => Navigator.pushNamed(context, '/settings'),
+              icon: Icon(Icons.settings_outlined, color: iconColor, size: 22),
               tooltip: 'Settings',
             ),
           ],
@@ -622,7 +630,8 @@ class _ProfileCard extends StatelessWidget {
           color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
+            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+          ),
         ),
         child: Column(
           children: [
@@ -631,18 +640,21 @@ class _ProfileCard extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(18)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
                   child: Container(
                     height: 90,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primaryDefault
-                              .withValues(alpha: isDark ? 0.40 : 0.22),
-                          const Color(0xFF1A0A2E)
-                              .withValues(alpha: isDark ? 0.70 : 0.30),
+                          AppColors.primaryDefault.withValues(
+                            alpha: isDark ? 0.40 : 0.22,
+                          ),
+                          const Color(
+                            0xFF1A0A2E,
+                          ).withValues(alpha: isDark ? 0.70 : 0.30),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -662,7 +674,9 @@ class _ProfileCard extends StatelessWidget {
                     onTap: onEditProfile,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: isDark
                             ? AppColors.darkBackground.withValues(alpha: 0.7)
@@ -731,10 +745,13 @@ class _ProfileCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryDefault
-                                .withValues(alpha: 0.12),
+                            color: AppColors.primaryDefault.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -798,8 +815,10 @@ class _ProfileCard extends StatelessWidget {
                       if (user.websiteUrl.isNotEmpty)
                         _MetaChip(
                           icon: Icons.link_rounded,
-                          label: user.websiteUrl
-                              .replaceFirst(RegExp(r'https?://'), ''),
+                          label: user.websiteUrl.replaceFirst(
+                            RegExp(r'https?://'),
+                            '',
+                          ),
                           isDark: isDark,
                           isLink: true,
                         ),
@@ -823,12 +842,21 @@ class _ProfileCard extends StatelessWidget {
       user.roleDetails['location']?.toString().trim() ?? '';
 
   static String _joinedDate() {
-    final created =
-        FirebaseAuth.instance.currentUser?.metadata.creationTime;
+    final created = FirebaseAuth.instance.currentUser?.metadata.creationTime;
     if (created == null) return '';
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[created.month - 1]} ${created.year}';
   }
@@ -879,17 +907,16 @@ class _ProBanner extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.primaryDefault
-                  .withValues(alpha: isDark ? 0.18 : 0.08),
-              const Color(0xFFFF6B35)
-                  .withValues(alpha: isDark ? 0.10 : 0.04),
+              AppColors.primaryDefault.withValues(alpha: isDark ? 0.18 : 0.08),
+              const Color(0xFFFF6B35).withValues(alpha: isDark ? 0.10 : 0.04),
             ],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: AppColors.primaryDefault.withValues(alpha: 0.25)),
+            color: AppColors.primaryDefault.withValues(alpha: 0.25),
+          ),
         ),
         child: Row(
           children: [
@@ -900,8 +927,11 @@ class _ProBanner extends StatelessWidget {
                 color: AppColors.primaryDefault.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.workspace_premium_rounded,
-                  color: AppColors.primaryDefault, size: 18),
+              child: const Icon(
+                Icons.workspace_premium_rounded,
+                color: AppColors.primaryDefault,
+                size: 18,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -965,7 +995,11 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
     (tab: _Tab.overview, icon: Icons.person_outline_rounded, label: 'Overview'),
     (tab: _Tab.activity, icon: Icons.timeline_rounded, label: 'Activity'),
     (tab: _Tab.groups, icon: Icons.people_outline_rounded, label: 'Groups'),
-    (tab: _Tab.bookmarks, icon: Icons.bookmark_border_rounded, label: 'Bookmarks'),
+    (
+      tab: _Tab.bookmarks,
+      icon: Icons.bookmark_border_rounded,
+      label: 'Bookmarks',
+    ),
   ];
 
   @override
@@ -975,61 +1009,65 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final bg =
-        isDark ? AppColors.darkBackground : const Color(0xFFF5F5F7);
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final bg = isDark ? AppColors.darkBackground : const Color(0xFFF5F5F7);
     return Container(
       color: bg,
       child: Row(
         children: _items
-            .map((item) => Expanded(
-                  child: GestureDetector(
-                    onTap: () => onTabSelected(item.tab),
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: activeTab == item.tab
-                                ? AppColors.primaryDefault
-                                : Colors.transparent,
-                            width: 2.5,
-                          ),
+            .map(
+              (item) => Expanded(
+                child: GestureDetector(
+                  onTap: () => onTabSelected(item.tab),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: activeTab == item.tab
+                              ? AppColors.primaryDefault
+                              : Colors.transparent,
+                          width: 2.5,
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            item.icon,
-                            size: 20,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          item.icon,
+                          size: 20,
+                          color: activeTab == item.tab
+                              ? AppColors.primaryDefault
+                              : (isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.grayscaleButtonText),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          item.label,
+                          style: AppTypography.textSmall.copyWith(
+                            fontSize: 9,
+                            fontWeight: activeTab == item.tab
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                             color: activeTab == item.tab
                                 ? AppColors.primaryDefault
                                 : (isDark
-                                    ? AppColors.darkTextSecondary
-                                    : AppColors.grayscaleButtonText),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.label,
-                            style: AppTypography.textSmall.copyWith(
-                              fontSize: 9,
-                              fontWeight: activeTab == item.tab
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: activeTab == item.tab
-                                  ? AppColors.primaryDefault
-                                  : (isDark
                                       ? AppColors.darkTextSecondary
                                       : AppColors.grayscaleButtonText),
-                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ))
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -1102,8 +1140,9 @@ class _OverviewSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     final labelMap = _roleDetailLabels[user.role] ?? {};
     final roleRows = labelMap.entries
-        .where((e) =>
-            user.roleDetails[e.key]?.toString().trim().isNotEmpty == true)
+        .where(
+          (e) => user.roleDetails[e.key]?.toString().trim().isNotEmpty == true,
+        )
         .toList();
 
     return SliverPadding(
@@ -1129,10 +1168,7 @@ class _OverviewSliver extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           if (roleRows.isNotEmpty) ...[
-            _SectionHeader(
-              title: _roleSectionTitle(user.role),
-              isDark: isDark,
-            ),
+            _SectionHeader(title: _roleSectionTitle(user.role), isDark: isDark),
             const SizedBox(height: 8),
             _InfoCard(
               isDark: isDark,
@@ -1148,8 +1184,9 @@ class _OverviewSliver extends StatelessWidget {
                       ),
                     _DetailRow(
                       label: roleRows[i].value,
-                      value:
-                          user.roleDetails[roleRows[i].key]!.toString().trim(),
+                      value: user.roleDetails[roleRows[i].key]!
+                          .toString()
+                          .trim(),
                       isDark: isDark,
                     ),
                   ],
@@ -1168,13 +1205,13 @@ class _OverviewSliver extends StatelessWidget {
   }
 
   static String _roleSectionTitle(String role) => switch (role) {
-        'student' => 'Education',
-        'founder' => 'Startup',
-        'mentor' => 'Mentorship',
-        'investor' => 'Investment',
-        'college' => 'College Info',
-        _ => 'Details',
-      };
+    'student' => 'Education',
+    'founder' => 'Startup',
+    'mentor' => 'Mentorship',
+    'investor' => 'Investment',
+    'college' => 'College Info',
+    _ => 'Details',
+  };
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -1210,7 +1247,8 @@ class _InfoCard extends StatelessWidget {
         color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
       ),
       child: child,
     );
@@ -1221,8 +1259,11 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final bool isDark;
-  const _DetailRow(
-      {required this.label, required this.value, required this.isDark});
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1274,7 +1315,8 @@ class _ActivitySliver extends StatelessWidget {
         isDark: isDark,
         icon: Icons.timeline_rounded,
         title: 'No activity yet',
-        subtitle: 'Your likes, comments, and community activity will appear here.',
+        subtitle:
+            'Your likes, comments, and community activity will appear here.',
       ),
     );
   }
@@ -1328,12 +1370,15 @@ class _AchievementsRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
+                color: isDark
+                    ? AppColors.darkSurface
+                    : AppColors.grayscaleWhite,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : AppColors.grayscaleLine),
+                  color: isDark
+                      ? AppColors.darkBorder
+                      : AppColors.grayscaleLine,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1398,8 +1443,7 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primaryDefault.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child:
-                Icon(icon, color: AppColors.primaryDefault, size: 26),
+            child: Icon(icon, color: AppColors.primaryDefault, size: 26),
           ),
           const SizedBox(height: 14),
           Text(
@@ -1466,11 +1510,14 @@ class _Avatar extends StatelessWidget {
   }
 
   Widget _fallback() => Container(
-        color: AppColors.primaryDefault.withValues(alpha: 0.15),
-        alignment: Alignment.center,
-        child: const Icon(Icons.person_rounded,
-            color: AppColors.primaryDefault, size: 38),
-      );
+    color: AppColors.primaryDefault.withValues(alpha: 0.15),
+    alignment: Alignment.center,
+    child: const Icon(
+      Icons.person_rounded,
+      color: AppColors.primaryDefault,
+      size: 38,
+    ),
+  );
 }
 
 // ── Meta chip (location / joined / website) ───────────────────────────────────
