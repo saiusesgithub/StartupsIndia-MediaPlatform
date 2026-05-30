@@ -200,14 +200,34 @@ class FirestoreRepository {
     String category, {
     int limit = kInitialArticleLimit,
   }) {
-    return _queryForCategory(category)
-        .limit(limit)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+    final normalized = category.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      // All-articles query: server-side orderBy is safe here (no category filter).
+      return _latestArticlesQuery()
+          .limit(limit)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
               .map(NewsArticleModel.fromFirestore)
-              .toList(growable: false),
-        );
+              .toList(growable: false));
+    }
+    // Category filter without orderBy avoids the composite-index requirement.
+    // We sort client-side instead.
+    final variants = _categoryVariants(normalized);
+    return _articles
+        .where('category', whereIn: variants)
+        .limit(limit * 3)
+        .snapshots()
+        .map((snapshot) {
+          final articles = snapshot.docs
+              .map(NewsArticleModel.fromFirestore)
+              .toList();
+          articles.sort((a, b) {
+            final aTime = a.createdAt ?? DateTime(0);
+            final bTime = b.createdAt ?? DateTime(0);
+            return bTime.compareTo(aTime);
+          });
+          return articles.take(limit).toList(growable: false);
+        });
   }
 
   Future<ArticlePage> fetchNewsByCategoryPage(

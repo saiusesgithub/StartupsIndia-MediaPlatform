@@ -48,10 +48,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _heroController = PageController();
     _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted) return;
-      final trending = ref.read(trendingNewsProvider).asData?.value ?? [];
-      final count = trending.isNotEmpty
-          ? trending.take(5).length
-          : HomeMockData.featured.length;
+      final latest = ref.read(latestNewsProvider).asData?.value ?? [];
+      final count = latest.take(5).length;
       if (count <= 1) return;
       final next = (_heroPage + 1) % count;
       _heroController.animateToPage(
@@ -252,8 +250,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ── Hero Banner ──────────────────────────────────────────────────────────
 
   Widget _buildHeroBanner(bool isDark) {
-    final trendingAsync = ref.watch(trendingNewsProvider);
-    final articles = trendingAsync.asData?.value ?? [];
+    final latestAsync = ref.watch(latestNewsProvider);
+    final articles = latestAsync.asData?.value ?? [];
     final heroArticles = articles.take(5).toList();
 
     return Padding(
@@ -263,7 +261,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: SizedBox(
           height: 220,
           child: heroArticles.isEmpty
-              ? _buildMockHeroSlide(HomeMockData.featured[0])
+              ? _buildHeroSkeleton(isDark)
               : Stack(
                   children: [
                     PageView.builder(
@@ -303,45 +301,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildMockHeroSlide(HomeFeaturedStory story) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/trending'),
+  Widget _buildHeroSkeleton(bool isDark) {
+    final base = isDark ? const Color(0xFF1A2636) : AppColors.grayscaleSecondaryButton;
+    final highlight = isDark ? const Color(0xFF263547) : AppColors.grayscaleLine;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [story.gradientStart, story.gradientEnd],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 36),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CategoryBadge(label: story.badge),
-            const SizedBox(height: 12),
-            Text(
-              story.headline,
-              style: AppTypography.displaySmallBold.copyWith(
-                fontSize: 20,
-                color: Colors.white,
-                height: 1.25,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              story.highlightLine,
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 13,
-                color: AppColors.primaryDefault,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const Spacer(),
-            _ReadFullStoryButton(
-              onTap: () => Navigator.pushNamed(context, '/trending'),
-            ),
-          ],
+          color: base,
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
     );
@@ -734,6 +703,8 @@ class _ArticleBackgroundImage extends StatelessWidget {
       return CachedNetworkImage(
         imageUrl: image,
         fit: BoxFit.cover,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
         placeholder: (_, _) => fallback,
         errorWidget: (_, _, _) => fallback,
       );
