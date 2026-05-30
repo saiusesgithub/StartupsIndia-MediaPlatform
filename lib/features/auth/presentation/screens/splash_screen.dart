@@ -49,15 +49,22 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _entryController.forward();
-    Future.delayed(const Duration(milliseconds: 2700), _navigate);
+    unawaited(_navigate());
   }
 
   Future<void> _navigate() async {
+    final destinationFuture = _resolveDestination();
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    final destination = await destinationFuture;
+
     if (!mounted) return;
+    Navigator.pushReplacementNamed(context, destination);
+  }
+
+  Future<String> _resolveDestination() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      Navigator.pushReplacementNamed(context, '/welcome');
-      return;
+      return '/welcome';
     }
 
     // Check whether the user has completed onboarding.
@@ -74,8 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
       destination = '/home';
     }
 
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, destination);
+    return destination;
   }
 
   @override
@@ -92,8 +98,9 @@ class _SplashScreenState extends State<SplashScreen>
       value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
           .copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.grayscaleWhite,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -177,9 +184,7 @@ class _GlowCircle extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, Colors.transparent],
-        ),
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
       ),
     );
   }
@@ -215,13 +220,17 @@ class _PulsingDotsState extends State<_PulsingDots>
     final end = (start + 0.4).clamp(0.0, 1.0);
     return TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.20, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(
+          begin: 0.20,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 1,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.20)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.20,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 1,
       ),
     ]).animate(

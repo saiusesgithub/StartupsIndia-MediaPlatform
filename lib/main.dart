@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show FlutterError, PlatformDispatcher, kDebugMode, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -78,7 +81,7 @@ Future<void> _initializeLocalNotifications() async {
     iOS: iosSettings,
   );
 
-  await _localNotificationsPlugin.initialize(settings);
+  await _localNotificationsPlugin.initialize(settings: settings);
 
   await _localNotificationsPlugin
       .resolvePlatformSpecificImplementation<
@@ -103,11 +106,30 @@ Future<void> _showForegroundLocalNotification(RemoteMessage message) async {
   const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
   await _localNotificationsPlugin.show(
-    message.hashCode,
-    notification.title,
-    notification.body,
-    details,
+    id: message.hashCode,
+    title: notification.title,
+    body: notification.body,
+    notificationDetails: details,
   );
+}
+
+Future<void> _initializeProductionDiagnostics() async {
+  if (kIsWeb) return;
+
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid: kDebugMode
+        ? const AndroidDebugProvider()
+        : const AndroidPlayIntegrityProvider(),
+    providerApple: kDebugMode
+        ? const AppleDebugProvider()
+        : const AppleAppAttestProvider(),
+  );
+
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
 }
 
 void main() async {
@@ -115,6 +137,7 @@ void main() async {
 
   // Initialise Firebase before anything else
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await _initializeProductionDiagnostics();
 
   // Firestore is available after Firebase initialization; pre-configure it once.
   FirebaseFirestore.instance.settings = const Settings(

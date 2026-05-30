@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/app_config.dart';
 import '../models/news_article_model.dart';
 import '../models/user_model.dart';
 import '../providers/firebase_providers.dart';
@@ -48,15 +49,12 @@ class FirestoreRepository {
     required String role,
     required List<String> interests,
   }) {
-    return _users.doc(uid).set(
-      {
-        'role': role,
-        'interests': interests,
-        'onboardingCompleted': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    return _users.doc(uid).set({
+      'role': role,
+      'interests': interests,
+      'onboardingCompleted': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<UserModel?> getUserById(String uid) async {
@@ -94,9 +92,12 @@ class FirestoreRepository {
     final titleCase = lower.isEmpty
         ? lower
         : '${lower[0].toUpperCase()}${lower.substring(1)}';
-    return <String>{raw, lower, lower.toUpperCase(), titleCase}
-        .where((value) => value.isNotEmpty)
-        .toList(growable: false);
+    return <String>{
+      raw,
+      lower,
+      lower.toUpperCase(),
+      titleCase,
+    }.where((value) => value.isNotEmpty).toList(growable: false);
   }
 
   Query<Map<String, dynamic>> _categoryArticlesQuery(String category) {
@@ -134,7 +135,9 @@ class FirestoreRepository {
     );
   }
 
-  Stream<List<NewsArticleModel>> watchArticles({int limit = kInitialArticleLimit}) {
+  Stream<List<NewsArticleModel>> watchArticles({
+    int limit = kInitialArticleLimit,
+  }) {
     return _latestArticlesQuery()
         .limit(limit)
         .snapshots()
@@ -203,9 +206,11 @@ class FirestoreRepository {
       return _latestArticlesQuery()
           .limit(limit)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map(NewsArticleModel.fromFirestore)
-              .toList(growable: false));
+          .map(
+            (snapshot) => snapshot.docs
+                .map(NewsArticleModel.fromFirestore)
+                .toList(growable: false),
+          );
     }
     // Category filter without orderBy avoids the composite-index requirement.
     // We sort client-side instead.
@@ -279,8 +284,8 @@ class FirestoreRepository {
         .map(
           (snapshot) => snapshot.docs
               .map(NewsArticleModel.fromFirestore)
-          .map((article) => article.copyWith(isBookmarked: true))
-          .toList(growable: false),
+              .map((article) => article.copyWith(isBookmarked: true))
+              .toList(growable: false),
         );
   }
 
@@ -294,8 +299,8 @@ class FirestoreRepository {
         .map(
           (snapshot) => snapshot.docs
               .map(NewsArticleModel.fromFirestore)
-          .map((article) => article.copyWith(isLiked: true))
-          .toList(growable: false),
+              .map((article) => article.copyWith(isLiked: true))
+              .toList(growable: false),
         );
   }
 
@@ -334,8 +339,8 @@ class FirestoreRepository {
 
   Future<String> uploadImage(String imagePath) async {
     final cloudinary = CloudinaryPublic(
-      'dmrp1d1tv',
-      'startups india upload preset',
+      AppConfig.cloudinaryCloudName,
+      AppConfig.cloudinaryUploadPreset,
       cache: false,
     );
 
@@ -356,9 +361,10 @@ class FirestoreRepository {
   // ── user_topics ──────────────────────────────────────────────────────────
 
   Stream<List<String>> watchUserTopics(String uid) {
-    return _userTopics.doc(uid).snapshots().map(
-          (doc) => List<String>.from(doc.data()?['topics'] as List? ?? []),
-        );
+    return _userTopics
+        .doc(uid)
+        .snapshots()
+        .map((doc) => List<String>.from(doc.data()?['topics'] as List? ?? []));
   }
 
   Future<void> followTopic(String uid, String topic) {
