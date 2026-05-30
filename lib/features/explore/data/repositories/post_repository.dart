@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/models/post_model.dart';
 
+const int kInitialPostLimit = 20;
+const int kInitialCommentLimit = 100;
+
 class PostRepository {
   final _firestore = FirebaseFirestore.instance;
 
@@ -12,9 +15,10 @@ class PostRepository {
 
   // ── Posts feed ────────────────────────────────────────────────────────────
 
-  Stream<List<PostModel>> watchPosts() {
+  Stream<List<PostModel>> watchPosts({int limit = kInitialPostLimit}) {
     return _posts
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snap) => snap.docs.map(PostModel.fromFirestore).toList());
   }
@@ -26,8 +30,7 @@ class PostRepository {
     await _firestore.runTransaction((tx) async {
       final doc = await tx.get(docRef);
       if (!doc.exists) return;
-      final likedBy =
-          List<String>.from(doc.data()!['likedBy'] as List? ?? []);
+      final likedBy = List<String>.from(doc.data()!['likedBy'] as List? ?? []);
       if (likedBy.contains(userId)) {
         likedBy.remove(userId);
       } else {
@@ -41,54 +44,69 @@ class PostRepository {
     final docRef = _posts.doc(postId);
     final doc = await docRef.get();
     if (!doc.exists) return;
-    final bookmarkedBy =
-        List<String>.from(doc.data()!['bookmarkedBy'] as List? ?? []);
+    final bookmarkedBy = List<String>.from(
+      doc.data()!['bookmarkedBy'] as List? ?? [],
+    );
     if (bookmarkedBy.contains(userId)) {
-      await docRef
-          .update({'bookmarkedBy': FieldValue.arrayRemove([userId])});
+      await docRef.update({
+        'bookmarkedBy': FieldValue.arrayRemove([userId]),
+      });
     } else {
-      await docRef
-          .update({'bookmarkedBy': FieldValue.arrayUnion([userId])});
+      await docRef.update({
+        'bookmarkedBy': FieldValue.arrayUnion([userId]),
+      });
     }
   }
 
   Future<void> incrementPostShareCount(String postId) async {
-    await _posts
-        .doc(postId)
-        .update({'shareCount': FieldValue.increment(1)});
+    await _posts.doc(postId).update({'shareCount': FieldValue.increment(1)});
   }
 
   // ── Bookmarked posts ──────────────────────────────────────────────────────
 
-  Stream<List<PostModel>> getBookmarkedPosts(String userId) {
+  Stream<List<PostModel>> getBookmarkedPosts(
+    String userId, {
+    int limit = kInitialPostLimit,
+  }) {
     return _posts
         .where('bookmarkedBy', arrayContains: userId)
+        .limit(limit)
         .snapshots()
         .map((snap) => snap.docs.map(PostModel.fromFirestore).toList());
   }
 
   // ── Comments ──────────────────────────────────────────────────────────────
 
-  Stream<List<CommentModel>> watchPostComments(String postId) {
+  Stream<List<CommentModel>> watchPostComments(
+    String postId, {
+    int limit = kInitialCommentLimit,
+  }) {
     return _posts
         .doc(postId)
         .collection('comments')
         .orderBy('createdAt')
+        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => CommentModel.fromFirestore(d))
-            .toList());
+        .map(
+          (snap) =>
+              snap.docs.map((d) => CommentModel.fromFirestore(d)).toList(),
+        );
   }
 
-  Stream<List<CommentModel>> watchArticleComments(String articleId) {
+  Stream<List<CommentModel>> watchArticleComments(
+    String articleId, {
+    int limit = kInitialCommentLimit,
+  }) {
     return _articles
         .doc(articleId)
         .collection('comments')
         .orderBy('createdAt')
+        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => CommentModel.fromFirestore(d))
-            .toList());
+        .map(
+          (snap) =>
+              snap.docs.map((d) => CommentModel.fromFirestore(d)).toList(),
+        );
   }
 
   Future<void> addPostComment({
@@ -107,8 +125,9 @@ class PostRepository {
       'content': content,
       'createdAt': FieldValue.serverTimestamp(),
     });
-    batch.update(_posts.doc(postId),
-        {'commentsCount': FieldValue.increment(1)});
+    batch.update(_posts.doc(postId), {
+      'commentsCount': FieldValue.increment(1),
+    });
     await batch.commit();
   }
 
