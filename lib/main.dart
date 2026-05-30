@@ -220,7 +220,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       navigatorKey: navigatorKey,
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
-      title: 'News App',
+      title: 'StartupsIndia',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
