@@ -72,11 +72,9 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
     // google_sign_in v7.0.0+ uses authenticate() instead of signIn()
     if (_googleSignIn == null) return null;
 
-    final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-    if (googleUser == null) return null; // user cancelled
+    final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
     final AuthCredential credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken,

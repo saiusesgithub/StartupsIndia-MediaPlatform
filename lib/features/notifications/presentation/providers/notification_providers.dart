@@ -1,7 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/firebase_providers.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../../data/repositories/firebase_notification_repository_impl.dart';
 import '../../domain/models/app_notification.dart';

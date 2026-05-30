@@ -26,8 +26,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleWhite,
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -174,7 +175,7 @@ class _ExploreTopicTile extends StatelessWidget {
               width: 60,
               height: 60,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
+              errorBuilder: (_, _, _) {
                 return Container(
                   width: 60,
                   height: 60,

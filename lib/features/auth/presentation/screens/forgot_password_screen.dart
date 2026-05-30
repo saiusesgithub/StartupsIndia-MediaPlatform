@@ -47,7 +47,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final authRepo = ref.read(authRepositoryProvider);
 
     try {
-      // Send the reset email directly. If the user only has a Google account, 
+      // Send the reset email directly. If the user only has a Google account,
       // Firebase will still send a password reset email to allow them to add
       // a password provider to their account, or it will succeed silently/fail
       // based on Firebase project settings.
@@ -96,13 +96,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleWhite,
       appBar: AppBar(
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
-        surfaceTintColor:
-            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.grayscaleWhite,
+        surfaceTintColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.grayscaleWhite,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
@@ -122,18 +125,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           switchOutCurve: Curves.easeIn,
           child: switch (_state) {
             _ScreenState.loading => const _LoadingView(),
-            _ScreenState.success =>
-              _SuccessView(email: _emailController.text.trim()),
-            _ScreenState.googleAccount =>
-              _GoogleAccountView(email: _emailController.text.trim()),
+            _ScreenState.success => _SuccessView(
+              email: _emailController.text.trim(),
+            ),
+            _ScreenState.googleAccount => _GoogleAccountView(
+              email: _emailController.text.trim(),
+            ),
             _ => _InputView(
-                key: const ValueKey('input'),
-                formKey: _formKey,
-                emailController: _emailController,
-                validateEmail: _validateEmail,
-                onSubmit: _submit,
-                errorMessage: _errorMessage,
-              ),
+              key: const ValueKey('input'),
+              formKey: _formKey,
+              emailController: _emailController,
+              validateEmail: _validateEmail,
+              onSubmit: _submit,
+              errorMessage: _errorMessage,
+            ),
           },
         ),
       ),
@@ -180,7 +185,7 @@ class _InputView extends StatelessWidget {
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryDefault.withOpacity(0.10),
+                        color: AppColors.primaryDefault.withValues(alpha: 0.10),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -218,17 +223,23 @@ class _InputView extends StatelessWidget {
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: AppColors.errorDark.withOpacity(0.08),
+                        color: AppColors.errorDark.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: AppColors.errorDark.withOpacity(0.3)),
+                          color: AppColors.errorDark.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded,
-                              color: AppColors.errorDark, size: 18),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.errorDark,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -249,13 +260,12 @@ class _InputView extends StatelessWidget {
         ),
         // ── CTA bottom ───────────────────────────────────────────────────
         Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           decoration: BoxDecoration(
             color: AppColors.grayscaleWhite,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, -2),
               ),
@@ -321,7 +331,7 @@ class _SuccessView extends StatelessWidget {
             width: 110,
             height: 110,
             decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withOpacity(0.12),
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -356,7 +366,9 @@ class _SuccessView extends StatelessWidget {
                   ),
                 ),
                 const TextSpan(
-                    text: '\n\nClick the link in the email to reset\nyour password.'),
+                  text:
+                      '\n\nClick the link in the email to reset\nyour password.',
+                ),
               ],
             ),
           ),
@@ -373,8 +385,11 @@ class _SuccessView extends StatelessWidget {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () =>
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false),
+              onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (r) => false,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDefault,
                 elevation: 0,
@@ -415,7 +430,7 @@ class _GoogleAccountView extends StatelessWidget {
             width: 110,
             height: 110,
             decoration: BoxDecoration(
-              color: const Color(0xFF4285F4).withOpacity(0.10),
+              color: const Color(0xFF4285F4).withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -461,8 +476,11 @@ class _GoogleAccountView extends StatelessWidget {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () =>
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false),
+              onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (r) => false,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDefault,
                 elevation: 0,

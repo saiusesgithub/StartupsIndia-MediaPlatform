@@ -58,14 +58,17 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleWhite,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
-        surfaceTintColor:
-            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.grayscaleWhite,
+        surfaceTintColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.grayscaleWhite,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
@@ -157,10 +160,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 )
               : CustomPaint(
                   painter: _DashedBorderPainter(
-                    color: (isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.grayscaleButtonText)
-                        .withValues(alpha: 0.6),
+                    color:
+                        (isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.grayscaleButtonText)
+                            .withValues(alpha: 0.6),
                     radius: 12,
                   ),
                   child: Center(
@@ -224,7 +228,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        Divider(height: 1, color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine),
+        Divider(
+          height: 1,
+          color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+        ),
       ],
     );
   }
@@ -234,7 +241,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       controller: _bodyController,
       focusNode: _bodyFocusNode,
       style: AppTypography.textMedium.copyWith(
-        color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText,
+        color: isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.grayscaleBodyText,
         height: 1.6,
       ),
       keyboardType: TextInputType.multiline,
@@ -245,7 +254,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       decoration: InputDecoration(
         hintText: 'Add News/Article',
         hintStyle: AppTypography.textLarge.copyWith(
-          color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText,
+          color: isDark
+              ? AppColors.darkTextSecondary
+              : AppColors.grayscaleButtonText,
         ),
         border: InputBorder.none,
         isDense: true,
@@ -283,15 +294,26 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                       : AppColors.grayscaleInputBackground,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.grayscaleLine,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _toolButton(icon: Icons.format_bold_rounded, isDark: isDark),
-                    _toolButton(icon: Icons.format_italic_rounded, isDark: isDark),
-                    _toolButton(icon: Icons.format_list_bulleted_rounded, isDark: isDark),
+                    _toolButton(
+                      icon: Icons.format_bold_rounded,
+                      isDark: isDark,
+                    ),
+                    _toolButton(
+                      icon: Icons.format_italic_rounded,
+                      isDark: isDark,
+                    ),
+                    _toolButton(
+                      icon: Icons.format_list_bulleted_rounded,
+                      isDark: isDark,
+                    ),
                     _toolButton(icon: Icons.link_rounded, isDark: isDark),
                   ],
                 ),
@@ -300,8 +322,15 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                _toolButton(icon: Icons.text_fields_rounded, label: 'Aa', isDark: isDark),
-                _toolButton(icon: Icons.format_align_left_rounded, isDark: isDark),
+                _toolButton(
+                  icon: Icons.text_fields_rounded,
+                  label: 'Aa',
+                  isDark: isDark,
+                ),
+                _toolButton(
+                  icon: Icons.format_align_left_rounded,
+                  isDark: isDark,
+                ),
                 _toolButton(icon: Icons.image_outlined, isDark: isDark),
                 _toolButton(icon: Icons.more_horiz_rounded, isDark: isDark),
                 const Spacer(),
@@ -348,7 +377,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  Widget _toolButton({required IconData icon, required bool isDark, String? label}) {
+  Widget _toolButton({
+    required IconData icon,
+    required bool isDark,
+    String? label,
+  }) {
     return IconButton(
       visualDensity: VisualDensity.compact,
       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -441,13 +474,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         authorId: userModel.uid,
         category: 'Trending', // Default category
         headline: _titleController.text.trim(),
-        sourceName:
-            userModel.displayName ??
-            'Anonymous', // ignore: unnecessary_null_coalescing
+        sourceName: userModel.displayName.isEmpty
+            ? 'Anonymous'
+            : userModel.displayName,
         sourceId: userModel.uid,
-        sourceLogoAsset:
-            userModel.avatarUrl ??
-            'assets/icons/default_avatar.png', // ignore: unnecessary_null_coalescing
+        sourceLogoAsset: userModel.avatarUrl.isEmpty
+            ? 'assets/icons/default_avatar.png'
+            : userModel.avatarUrl,
         thumbnailAsset: imageUrl,
         timeAgo: 'now',
         body: _bodyController.text.trim(),
@@ -468,8 +501,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       // Success feedback on Home screen
       final messenger = ScaffoldMessenger.of(context);
-      Navigator.of(context, rootNavigator: true)
-          .pushNamedAndRemoveUntil('/home', (route) => false);
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pushNamedAndRemoveUntil('/home', (route) => false);
       messenger.showSnackBar(const SnackBar(content: Text('News Published!')));
     } catch (e) {
       if (!mounted) return;

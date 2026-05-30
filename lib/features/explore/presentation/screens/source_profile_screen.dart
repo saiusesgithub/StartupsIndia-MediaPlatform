@@ -48,8 +48,9 @@ class _SourceProfileScreenState extends State<SourceProfileScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleWhite,
       body: SafeArea(
         child: CustomScrollView(
           cacheExtent: 900,
@@ -278,13 +279,13 @@ class _SourceAvatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => _fallback(),
-                errorWidget: (_, __, ___) => _fallback(),
+                placeholder: (_, _) => _fallback(),
+                errorWidget: (_, _, _) => _fallback(),
               )
             : Image.asset(
                 url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _fallback(),
+                errorBuilder: (_, _, _) => _fallback(),
               ),
       ),
     );
@@ -419,11 +420,11 @@ class _TabItem extends StatelessWidget {
             style: AppTypography.textMedium.copyWith(
               color: active
                   ? (isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.grayscaleTitleActive)
+                        ? AppColors.darkTextPrimary
+                        : AppColors.grayscaleTitleActive)
                   : (isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.grayscaleButtonText),
+                        ? AppColors.darkTextSecondary
+                        : AppColors.grayscaleButtonText),
               fontWeight: active ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
