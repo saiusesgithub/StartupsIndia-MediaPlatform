@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -65,7 +65,9 @@ final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  debugPrint('FCM background message: ${message.messageId}');
+  if (kDebugMode) {
+    debugPrint('FCM background message: ${message.messageId}');
+  }
 }
 
 Future<void> _initializeLocalNotifications() async {
@@ -130,15 +132,21 @@ void main() async {
         sound: true,
         provisional: false,
       );
-  debugPrint(
-    'FCM permission status: ${notificationSettings.authorizationStatus}',
-  );
+  if (kDebugMode) {
+    debugPrint(
+      'FCM permission status: ${notificationSettings.authorizationStatus}',
+    );
+  }
 
   try {
     final token = await FirebaseMessaging.instance.getToken();
-    debugPrint('FCM token: $token');
+    if (kDebugMode) {
+      debugPrint('FCM token: $token');
+    }
   } catch (e) {
-    debugPrint('FCM token unavailable: $e');
+    if (kDebugMode) {
+      debugPrint('FCM token unavailable: $e');
+    }
   }
 
   // Initialize Google Sign-In singleton (Required in v7.0.0+).
@@ -260,7 +268,8 @@ class _MyAppState extends ConsumerState<MyApp> {
           return CommentsScreen(article: args as NewsArticleModel);
         },
         '/community-detail': (context) {
-          final id = ModalRoute.of(context)?.settings.arguments as String? ?? '';
+          final id =
+              ModalRoute.of(context)?.settings.arguments as String? ?? '';
           return CommunityDetailScreen(communityId: id);
         },
         '/community-collection': (context) {
@@ -279,10 +288,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               category: args.category,
             );
           }
-          return const SectionListScreen(
-            title: 'Articles',
-            category: '',
-          );
+          return const SectionListScreen(title: 'Articles', category: '');
         },
         '/trending': (context) => const TrendingScreen(),
         '/notifications': (context) => const NotificationsScreen(),
