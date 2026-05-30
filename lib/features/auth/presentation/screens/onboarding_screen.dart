@@ -27,18 +27,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<OnboardingModel> _pages = [
     OnboardingModel(
-      title: "Lorem Ipsum is simply\ndummy",
-      subtitle: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
+      title: "Stay ahead of India's\nstartup ecosystem",
+      subtitle: "Follow the latest startup news, funding updates, and founder stories in one place.",
       imagePath: "assets/images/onboarding1_img.png",
     ),
     OnboardingModel(
-      title: "Lorem Ipsum is simply\ndummy",
-      subtitle: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
+      title: "Discover ideas and\nopportunities",
+      subtitle: "Explore communities, events, courses, and insights built for ambitious founders.",
       imagePath: "assets/images/onboarding2_img.png",
     ),
     OnboardingModel(
-      title: "Lorem Ipsum is simply\ndummy",
-      subtitle: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
+      title: "Build your startup\nnetwork",
+      subtitle: "Connect with the ecosystem and keep the resources that matter close at hand.",
       imagePath: "assets/images/onboarding3_img.png",
     ),
   ];
