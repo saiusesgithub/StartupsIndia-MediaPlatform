@@ -208,7 +208,7 @@ bundletool install-apks --apks=test.apks
 10. ~~Add fingerprints to Firebase.~~ ✅
 11. ~~Download fresh local `google-services.json`.~~ ✅
 12. Restrict Cloudinary upload preset.
-13. ~~Tighten Firestore `posts/comments` rule.~~ ✅ Deploy with: `firebase deploy --only firestore:rules`.
+13. ~~Tighten and deploy Firestore `posts/comments` rules.~~ ✅ Deployed to `startupsindia-mediaplatform`.
 
 **Phase 3 — Tomorrow (1 hr):** Build + smoke test
 14. `flutter clean && flutter pub get && flutter analyze` — fix any issues.
