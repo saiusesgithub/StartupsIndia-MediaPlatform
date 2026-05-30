@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/models/user_model.dart';
@@ -417,6 +418,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return SizedBox(
       height: 200,
       child: articlesAsync.when(
+        skipLoadingOnRefresh: true,
         loading: () => ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -437,6 +439,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             itemCount: items.length,
             itemBuilder: (context, i) {
               final card = _HomeSectionCard(
+                key: ValueKey(items[i].id),
                 article: items[i],
                 onTap: () => Navigator.pushNamed(
                   context,
@@ -471,6 +474,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return SizedBox(
       height: 200,
       child: articlesAsync.when(
+        skipLoadingOnRefresh: true,
         loading: () => ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -488,6 +492,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             itemCount: items.length,
             itemBuilder: (context, i) {
               final card = _HomeSectionCard(
+                key: ValueKey(items[i].id),
                 article: items[i],
                 isPodcast: true,
                 onTap: () => Navigator.pushNamed(
@@ -544,13 +549,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildEmptySection(String msg, bool isDark) {
     return Center(
-      child: Text(
-        msg,
-        style: AppTypography.textSmall.copyWith(
-          color: isDark
-              ? AppColors.darkTextSecondary
-              : AppColors.grayscaleBodyText,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.article_outlined,
+            size: 32,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.grayscaleButtonText,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            msg,
+            style: AppTypography.textSmall.copyWith(
+              fontSize: 13,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -830,6 +849,7 @@ class _HomeSectionCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _HomeSectionCard({
+    super.key,
     required this.article,
     required this.onTap,
     this.isPodcast = false,
@@ -992,12 +1012,18 @@ class _SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 155,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
-        borderRadius: BorderRadius.circular(14),
+    final base = isDark ? const Color(0xFF1A2636) : AppColors.grayscaleSecondaryButton;
+    final highlight = isDark ? const Color(0xFF263547) : AppColors.grayscaleLine;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: highlight,
+      child: Container(
+        width: 155,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: base,
+          borderRadius: BorderRadius.circular(14),
+        ),
       ),
     );
   }
