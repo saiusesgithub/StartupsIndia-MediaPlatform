@@ -1,4 +1,4 @@
-package in.startupsindia.app
+package `in`.startupsindia.app
 
 import io.flutter.embedding.android.FlutterActivity
 
