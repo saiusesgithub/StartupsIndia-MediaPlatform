@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
 import '../../../../core/repository/firestore_repository.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 import '../../../auth/domain/models/user_model.dart';
 import '../providers/auth_providers.dart';
 
@@ -36,7 +37,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
     final email = user?.email ?? '';
     _emailController.text = email;
     _fullNameController.text = user?.displayName ?? '';
-    _usernameController.text = email.contains('@') ? email.split('@').first : '';
+    _usernameController.text = email.contains('@')
+        ? email.split('@').first
+        : '';
   }
 
   @override
@@ -91,9 +94,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
 
       if (currentUser == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not authenticated')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User not authenticated')));
         setState(() => _isSubmitting = false);
         return;
       }
@@ -104,8 +107,10 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
       final interests = List<String>.from(setup['interests'] as List? ?? []);
       final username = _usernameController.text.trim();
       final firestoreRepo = ref.read(firestoreRepositoryProvider);
-      final available =
-          await firestoreRepo.isUsernameAvailable(username, currentUser.uid);
+      final available = await firestoreRepo.isUsernameAvailable(
+        username,
+        currentUser.uid,
+      );
       if (!available) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,7 +152,12 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
       for (final interest in interests) {
         try {
           await firestoreRepo.followTopic(currentUser.uid, interest);
-        } catch (_) {
+        } catch (error, stackTrace) {
+          AppErrorReporter.record(
+            error,
+            stackTrace,
+            reason: 'Failed to follow onboarding topic',
+          );
           // Ignore — user can re-follow topics from settings later.
         }
       }
@@ -156,9 +166,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving profile: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -171,8 +181,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
     final role = setup['role'] as String? ?? '';
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleSecondaryButton,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleSecondaryButton,
       body: SafeArea(
         child: Stack(
           children: [
@@ -214,9 +225,12 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                                 hintText: 'yourhandle',
                                 validator: (val) {
                                   final text = val?.trim() ?? '';
-                                  if (text.isEmpty) return 'Username is required';
-                                  if (!RegExp(r'^[a-zA-Z0-9_]{3,24}$')
-                                      .hasMatch(text)) {
+                                  if (text.isEmpty) {
+                                    return 'Username is required';
+                                  }
+                                  if (!RegExp(
+                                    r'^[a-zA-Z0-9_]{3,24}$',
+                                  ).hasMatch(text)) {
                                     return 'Use 3-24 letters, numbers or _';
                                   }
                                   return null;
@@ -302,12 +316,13 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
   // ── Header ──────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context, bool isDark) {
-    final surfaceColor =
-        isDark ? AppColors.darkSurface : AppColors.grayscaleWhite;
-    final borderColor =
-        isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
-    final textColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : AppColors.grayscaleWhite;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.grayscaleTitleActive;
 
     return Container(
       height: 56,
@@ -319,8 +334,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed:
-                _isSubmitting ? null : () => Navigator.of(context).maybePop(),
+            onPressed: _isSubmitting
+                ? null
+                : () => Navigator.of(context).maybePop(),
             icon: Icon(Icons.arrow_back_rounded, color: textColor, size: 22),
           ),
           Expanded(
@@ -358,8 +374,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
                 backgroundColor: isDark
                     ? AppColors.darkSurface
                     : const Color(0xFFEEF1F4),
-                backgroundImage:
-                    _pickedImage != null ? FileImage(_pickedImage!) : null,
+                backgroundImage: _pickedImage != null
+                    ? FileImage(_pickedImage!)
+                    : null,
                 child: _pickedImage == null
                     ? Icon(
                         Icons.person_rounded,
@@ -404,7 +421,9 @@ class _FillProfileScreenState extends ConsumerState<FillProfileScreen> {
 
   Widget _buildContinueButton(bool isDark) {
     return Container(
-      color: isDark ? AppColors.darkBackground : AppColors.grayscaleSecondaryButton,
+      color: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleSecondaryButton,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: GestureDetector(
         onTap: _isSubmitting ? null : _submit,
@@ -457,52 +476,175 @@ class _RoleField {
 List<_RoleField> _roleFieldsFor(String role) {
   return switch (role) {
     'student' => const [
-        _RoleField(key: 'collegeName', label: 'College Name', hint: 'Your college'),
-        _RoleField(key: 'degreeCourse', label: 'Degree / Course', hint: 'B.Tech, BBA, MBA'),
-        _RoleField(key: 'year', label: 'Year', hint: '1st, 2nd, 3rd, Final'),
-        _RoleField(key: 'branch', label: 'Branch / Specialization', hint: 'Computer Science'),
-        _RoleField(key: 'skills', label: 'Skills', hint: 'Design, Flutter, AI'),
-        _RoleField(key: 'lookingFor', label: 'Looking For', hint: 'Internship, co-founder, learning'),
-      ],
+      _RoleField(
+        key: 'collegeName',
+        label: 'College Name',
+        hint: 'Your college',
+      ),
+      _RoleField(
+        key: 'degreeCourse',
+        label: 'Degree / Course',
+        hint: 'B.Tech, BBA, MBA',
+      ),
+      _RoleField(key: 'year', label: 'Year', hint: '1st, 2nd, 3rd, Final'),
+      _RoleField(
+        key: 'branch',
+        label: 'Branch / Specialization',
+        hint: 'Computer Science',
+      ),
+      _RoleField(key: 'skills', label: 'Skills', hint: 'Design, Flutter, AI'),
+      _RoleField(
+        key: 'lookingFor',
+        label: 'Looking For',
+        hint: 'Internship, co-founder, learning',
+      ),
+    ],
     'founder' => const [
-        _RoleField(key: 'startupName', label: 'Startup Name', hint: 'Your startup'),
-        _RoleField(key: 'startupStage', label: 'Startup Stage', hint: 'Idea, MVP, Revenue, Scaling'),
-        _RoleField(key: 'industry', label: 'Industry', hint: 'Fintech, SaaS, AI'),
-        _RoleField(key: 'startupDescription', label: 'Startup Description', hint: 'What are you building?'),
-        _RoleField(key: 'businessNeeds', label: 'Looking For', hint: 'Funding, mentors, hiring'),
-        _RoleField(key: 'startupLocation', label: 'Startup Location', hint: 'City / State'),
-        _RoleField(key: 'teamSize', label: 'Team Size', hint: '5', keyboardType: TextInputType.number),
-      ],
+      _RoleField(
+        key: 'startupName',
+        label: 'Startup Name',
+        hint: 'Your startup',
+      ),
+      _RoleField(
+        key: 'startupStage',
+        label: 'Startup Stage',
+        hint: 'Idea, MVP, Revenue, Scaling',
+      ),
+      _RoleField(key: 'industry', label: 'Industry', hint: 'Fintech, SaaS, AI'),
+      _RoleField(
+        key: 'startupDescription',
+        label: 'Startup Description',
+        hint: 'What are you building?',
+      ),
+      _RoleField(
+        key: 'businessNeeds',
+        label: 'Looking For',
+        hint: 'Funding, mentors, hiring',
+      ),
+      _RoleField(
+        key: 'startupLocation',
+        label: 'Startup Location',
+        hint: 'City / State',
+      ),
+      _RoleField(
+        key: 'teamSize',
+        label: 'Team Size',
+        hint: '5',
+        keyboardType: TextInputType.number,
+      ),
+    ],
     'mentor' => const [
-        _RoleField(key: 'profession', label: 'Profession / Designation', hint: 'Product Leader'),
-        _RoleField(key: 'company', label: 'Company / Organization', hint: 'Company name'),
-        _RoleField(key: 'expertise', label: 'Expertise', hint: 'Product, GTM, fundraising'),
-        _RoleField(key: 'yearsExperience', label: 'Years of Experience', hint: '10', keyboardType: TextInputType.number),
-        _RoleField(key: 'industry', label: 'Industry', hint: 'SaaS, fintech'),
-        _RoleField(key: 'mentorshipArea', label: 'Mentorship Area', hint: 'Startup, marketing, finance'),
-        _RoleField(key: 'availability', label: 'Availability', hint: 'Free, paid, group session'),
-      ],
+      _RoleField(
+        key: 'profession',
+        label: 'Profession / Designation',
+        hint: 'Product Leader',
+      ),
+      _RoleField(
+        key: 'company',
+        label: 'Company / Organization',
+        hint: 'Company name',
+      ),
+      _RoleField(
+        key: 'expertise',
+        label: 'Expertise',
+        hint: 'Product, GTM, fundraising',
+      ),
+      _RoleField(
+        key: 'yearsExperience',
+        label: 'Years of Experience',
+        hint: '10',
+        keyboardType: TextInputType.number,
+      ),
+      _RoleField(key: 'industry', label: 'Industry', hint: 'SaaS, fintech'),
+      _RoleField(
+        key: 'mentorshipArea',
+        label: 'Mentorship Area',
+        hint: 'Startup, marketing, finance',
+      ),
+      _RoleField(
+        key: 'availability',
+        label: 'Availability',
+        hint: 'Free, paid, group session',
+      ),
+    ],
     'investor' => const [
-        _RoleField(key: 'investorType', label: 'Investor Type', hint: 'Angel, VC, family office'),
-        _RoleField(key: 'firmName', label: 'Firm Name', hint: 'Firm / fund name'),
-        _RoleField(key: 'investmentRange', label: 'Investment Range', hint: '10L - 1Cr'),
-        _RoleField(key: 'preferredIndustries', label: 'Preferred Industries', hint: 'AI, SaaS, consumer'),
-        _RoleField(key: 'preferredStage', label: 'Preferred Startup Stage', hint: 'Idea, MVP, revenue'),
-        _RoleField(key: 'portfolioCompanies', label: 'Portfolio Companies', hint: 'Optional'),
-      ],
+      _RoleField(
+        key: 'investorType',
+        label: 'Investor Type',
+        hint: 'Angel, VC, family office',
+      ),
+      _RoleField(key: 'firmName', label: 'Firm Name', hint: 'Firm / fund name'),
+      _RoleField(
+        key: 'investmentRange',
+        label: 'Investment Range',
+        hint: '10L - 1Cr',
+      ),
+      _RoleField(
+        key: 'preferredIndustries',
+        label: 'Preferred Industries',
+        hint: 'AI, SaaS, consumer',
+      ),
+      _RoleField(
+        key: 'preferredStage',
+        label: 'Preferred Startup Stage',
+        hint: 'Idea, MVP, revenue',
+      ),
+      _RoleField(
+        key: 'portfolioCompanies',
+        label: 'Portfolio Companies',
+        hint: 'Optional',
+      ),
+    ],
     'college' => const [
-        _RoleField(key: 'collegeName', label: 'College Name', hint: 'College / institute'),
-        _RoleField(key: 'collegeType', label: 'College Type', hint: 'Engineering, MBA, university'),
-        _RoleField(key: 'cityState', label: 'City / State', hint: 'Bengaluru, Karnataka'),
-        _RoleField(key: 'contactPersonName', label: 'Contact Person Name', hint: 'Full name'),
-        _RoleField(key: 'designation', label: 'Designation', hint: 'Placement officer'),
-        _RoleField(key: 'numberOfStudents', label: 'Number of Students', hint: '1200', keyboardType: TextInputType.number),
-        _RoleField(key: 'interestedIn', label: 'Interested In', hint: 'Programs, incubation, events'),
-      ],
+      _RoleField(
+        key: 'collegeName',
+        label: 'College Name',
+        hint: 'College / institute',
+      ),
+      _RoleField(
+        key: 'collegeType',
+        label: 'College Type',
+        hint: 'Engineering, MBA, university',
+      ),
+      _RoleField(
+        key: 'cityState',
+        label: 'City / State',
+        hint: 'Bengaluru, Karnataka',
+      ),
+      _RoleField(
+        key: 'contactPersonName',
+        label: 'Contact Person Name',
+        hint: 'Full name',
+      ),
+      _RoleField(
+        key: 'designation',
+        label: 'Designation',
+        hint: 'Placement officer',
+      ),
+      _RoleField(
+        key: 'numberOfStudents',
+        label: 'Number of Students',
+        hint: '1200',
+        keyboardType: TextInputType.number,
+      ),
+      _RoleField(
+        key: 'interestedIn',
+        label: 'Interested In',
+        hint: 'Programs, incubation, events',
+      ),
+    ],
     _ => const [
-        _RoleField(key: 'interestArea', label: 'Startup Interest Area', hint: 'AI, funding, product, community'),
-        _RoleField(key: 'lookingFor', label: 'Looking For', hint: 'Learning, networking, events'),
-      ],
+      _RoleField(
+        key: 'interestArea',
+        label: 'Startup Interest Area',
+        hint: 'AI, funding, product, community',
+      ),
+      _RoleField(
+        key: 'lookingFor',
+        label: 'Looking For',
+        hint: 'Learning, networking, events',
+      ),
+    ],
   };
 }
 
@@ -523,7 +665,9 @@ class _RoleDetailsSection extends StatelessWidget {
     if (fields.isEmpty) return const SizedBox.shrink();
 
     return _FormSection(
-      label: role.isEmpty ? 'Role Details' : '${role.replaceAll('_', ' ')} Details',
+      label: role.isEmpty
+          ? 'Role Details'
+          : '${role.replaceAll('_', ' ')} Details',
       isDark: isDark,
       children: [
         for (var i = 0; i < fields.length; i++) ...[

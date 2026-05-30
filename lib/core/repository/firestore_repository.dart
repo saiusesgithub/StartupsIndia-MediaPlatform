@@ -6,6 +6,7 @@ import '../config/app_config.dart';
 import '../models/news_article_model.dart';
 import '../models/user_model.dart';
 import '../providers/firebase_providers.dart';
+import '../utils/app_error_reporter.dart';
 
 const int kInitialArticleLimit = 20;
 
@@ -249,7 +250,13 @@ class FirestoreRepository {
       await _articles.doc(articleId).update({
         'viewCount': FieldValue.increment(1),
       });
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to increment article view count',
+      );
+    }
   }
 
   Future<NewsArticleModel?> getArticleById(String articleId) async {

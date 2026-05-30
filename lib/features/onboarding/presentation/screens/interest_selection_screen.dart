@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/style_guide.dart';
 
@@ -11,31 +12,42 @@ class _Interest {
   final String title;
   final IconData icon;
 
-  const _Interest({
-    required this.id,
-    required this.title,
-    required this.icon,
-  });
+  const _Interest({required this.id, required this.title, required this.icon});
 }
 
 const _interests = [
   _Interest(id: 'ai', title: 'AI', icon: Icons.auto_awesome_rounded),
   _Interest(id: 'saas', title: 'SaaS', icon: Icons.cloud_rounded),
   _Interest(
-      id: 'fintech',
-      title: 'Fintech',
-      icon: Icons.account_balance_wallet_rounded),
-  _Interest(id: 'edtech', title: 'Edtech', icon: Icons.cast_for_education_rounded),
+    id: 'fintech',
+    title: 'Fintech',
+    icon: Icons.account_balance_wallet_rounded,
+  ),
   _Interest(
-      id: 'creator_economy',
-      title: 'Creator Economy',
-      icon: Icons.palette_rounded),
+    id: 'edtech',
+    title: 'Edtech',
+    icon: Icons.cast_for_education_rounded,
+  ),
   _Interest(
-      id: 'ecommerce', title: 'E-commerce', icon: Icons.shopping_bag_rounded),
+    id: 'creator_economy',
+    title: 'Creator Economy',
+    icon: Icons.palette_rounded,
+  ),
   _Interest(
-      id: 'startup_news', title: 'Startup News', icon: Icons.newspaper_rounded),
+    id: 'ecommerce',
+    title: 'E-commerce',
+    icon: Icons.shopping_bag_rounded,
+  ),
   _Interest(
-      id: 'investing', title: 'Investing', icon: Icons.show_chart_rounded),
+    id: 'startup_news',
+    title: 'Startup News',
+    icon: Icons.newspaper_rounded,
+  ),
+  _Interest(
+    id: 'investing',
+    title: 'Investing',
+    icon: Icons.show_chart_rounded,
+  ),
 ];
 
 // ── Screen ─────────────────────────────────────────────────────────────────────
@@ -68,8 +80,7 @@ class _InterestSelectionScreenState
     if (uid == null) return;
 
     // The role was passed as a route argument from RoleSelectionScreen
-    final role =
-        ModalRoute.of(context)!.settings.arguments as String? ?? '';
+    final role = ModalRoute.of(context)!.settings.arguments as String? ?? '';
 
     setState(() => _isLoading = true);
     try {
@@ -77,12 +88,14 @@ class _InterestSelectionScreenState
       Navigator.pushNamed(
         context,
         '/fill-profile',
-        arguments: {
-          'role': role,
-          'interests': _selected.toList(),
-        },
+        arguments: {'role': role, 'interests': _selected.toList()},
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to save onboarding interests',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -105,8 +118,9 @@ class _InterestSelectionScreenState
       value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
           .copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.grayscaleWhite,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,7 +147,10 @@ class _InterestSelectionScreenState
                         const SizedBox(width: 12),
                         Expanded(
                           child: _StepProgressBar(
-                              current: 2, total: 2, isDark: isDark),
+                            current: 2,
+                            total: 2,
+                            isDark: isDark,
+                          ),
                         ),
                       ],
                     ),
@@ -348,7 +365,9 @@ class _InterestCard extends StatelessWidget {
         : (isDark ? AppColors.darkBorder : AppColors.grayscaleLine);
     final iconBg = isSelected
         ? AppColors.primarySurface
-        : (isDark ? AppColors.darkBackground : AppColors.grayscaleSecondaryButton);
+        : (isDark
+              ? AppColors.darkBackground
+              : AppColors.grayscaleSecondaryButton);
     final iconColor = isSelected
         ? AppColors.primaryDefault
         : (isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText);
@@ -361,10 +380,7 @@ class _InterestCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: borderColor,
-            width: isSelected ? 2 : 1,
-          ),
+          border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
           boxShadow: isDark
               ? null
               : [
@@ -417,20 +433,24 @@ class _InterestCard extends StatelessWidget {
                 height: 20,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color:
-                      isSelected ? AppColors.primaryDefault : Colors.transparent,
+                  color: isSelected
+                      ? AppColors.primaryDefault
+                      : Colors.transparent,
                   border: Border.all(
                     color: isSelected
                         ? AppColors.primaryDefault
                         : (isDark
-                            ? AppColors.darkBorder
-                            : AppColors.grayscaleLine),
+                              ? AppColors.darkBorder
+                              : AppColors.grayscaleLine),
                     width: 2,
                   ),
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check_rounded,
-                        size: 12, color: Colors.white)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 12,
+                        color: Colors.white,
+                      )
                     : null,
               ),
             ),

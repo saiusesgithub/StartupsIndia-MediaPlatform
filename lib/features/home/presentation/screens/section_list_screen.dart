@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/time_format_helper.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -63,9 +64,17 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
 
   Future<void> _loadUserId() async {
     try {
-      final model = await ref.read(authRepositoryProvider).getCurrentUserModel();
+      final model = await ref
+          .read(authRepositoryProvider)
+          .getCurrentUserModel();
       if (mounted) setState(() => _userId = model?.uid);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to initialize section-list user',
+      );
+    }
   }
 
   Future<void> _loadInitialArticles() async {
@@ -82,7 +91,8 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
           .read(firestoreRepositoryProvider)
           .fetchNewsByCategoryPage(widget.category);
       if (!mounted) return;
-      final sorted = [...page.articles]..sort((a, b) {
+      final sorted = [...page.articles]
+        ..sort((a, b) {
           final aTime = a.createdAt ?? DateTime(0);
           final bTime = b.createdAt ?? DateTime(0);
           return bTime.compareTo(aTime);
@@ -93,7 +103,12 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
         _hasMore = page.hasMore;
         _isLoadingInitial = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to load section articles',
+      );
       if (!mounted) return;
       setState(() {
         _loadError = 'Failed to load articles';
@@ -110,12 +125,12 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
     });
 
     try {
-      final page = await ref.read(firestoreRepositoryProvider).fetchNewsByCategoryPage(
-            widget.category,
-            startAfter: _lastDocument,
-          );
+      final page = await ref
+          .read(firestoreRepositoryProvider)
+          .fetchNewsByCategoryPage(widget.category, startAfter: _lastDocument);
       if (!mounted) return;
-      final sorted = [...page.articles]..sort((a, b) {
+      final sorted = [...page.articles]
+        ..sort((a, b) {
           final aTime = a.createdAt ?? DateTime(0);
           final bTime = b.createdAt ?? DateTime(0);
           return bTime.compareTo(aTime);
@@ -126,7 +141,12 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
         _hasMore = page.hasMore;
         _isLoadingMore = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to load more section articles',
+      );
       if (!mounted) return;
       setState(() {
         _loadError = 'Failed to load more articles';
@@ -142,8 +162,9 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
     const guestPreviewLimit = 3;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : const Color(0xFFF5F5F7),
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : const Color(0xFFF5F5F7),
       body: SafeArea(
         child: Column(
           children: [
@@ -152,80 +173,83 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
             Expanded(
               child: _isLoadingInitial
                   ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryDefault,
-                  ),
-                )
-                  : Builder(
-                builder: (context) {
-                  final filtered = _applyFilter(_articles);
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.article_outlined,
-                              size: 48,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.grayscaleButtonText,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No articles yet',
-                              style: AppTypography.displaySmallBold.copyWith(
-                                fontSize: 18,
-                                color: isDark
-                                    ? AppColors.darkTextPrimary
-                                    : AppColors.grayscaleTitleActive,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Check back soon for the latest ${widget.title.toLowerCase()} content.',
-                              textAlign: TextAlign.center,
-                              style: AppTypography.textSmall.copyWith(
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : AppColors.grayscaleBodyText,
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryDefault,
                       ),
-                    );
-                  }
-                  return ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    itemCount: filtered.length + (_hasMore ? 1 : 0),
-                    itemBuilder: (context, i) {
-                      if (i == filtered.length) {
-                        return _LoadMoreButton(
-                          isDark: isDark,
-                          isLoading: _isLoadingMore,
-                          errorText: _loadError,
-                          onTap: _loadMoreArticles,
+                    )
+                  : Builder(
+                      builder: (context) {
+                        final filtered = _applyFilter(_articles);
+                        if (filtered.isEmpty) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.article_outlined,
+                                    size: 48,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.grayscaleButtonText,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'No articles yet',
+                                    style: AppTypography.displaySmallBold
+                                        .copyWith(
+                                          fontSize: 18,
+                                          color: isDark
+                                              ? AppColors.darkTextPrimary
+                                              : AppColors.grayscaleTitleActive,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Check back soon for the latest ${widget.title.toLowerCase()} content.',
+                                    textAlign: TextAlign.center,
+                                    style: AppTypography.textSmall.copyWith(
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.grayscaleBodyText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          itemCount: filtered.length + (_hasMore ? 1 : 0),
+                          itemBuilder: (context, i) {
+                            if (i == filtered.length) {
+                              return _LoadMoreButton(
+                                isDark: isDark,
+                                isLoading: _isLoadingMore,
+                                errorText: _loadError,
+                                onTap: _loadMoreArticles,
+                              );
+                            }
+                            final tile = _SectionArticleTile(
+                              article: filtered[i],
+                              isDark: isDark,
+                              userId: _userId,
+                            );
+                            if (!isGuest || i < guestPreviewLimit) return tile;
+                            return GuestBlur(
+                              borderRadius: BorderRadius.circular(14),
+                              label: 'Sign Up',
+                              child: tile,
+                            );
+                          },
                         );
-                      }
-                      final tile = _SectionArticleTile(
-                        article: filtered[i],
-                        isDark: isDark,
-                        userId: _userId,
-                      );
-                      if (!isGuest || i < guestPreviewLimit) return tile;
-                      return GuestBlur(
-                        borderRadius: BorderRadius.circular(14),
-                        label: 'Sign Up',
-                        child: tile,
-                      );
-                    },
-                  );
-                },
-              ),
+                      },
+                    ),
             ),
           ],
         ),
@@ -321,15 +345,15 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
                 color: selected
                     ? AppColors.primaryDefault
                     : isDark
-                        ? AppColors.darkBackground
-                        : const Color(0xFFF5F5F7),
+                    ? AppColors.darkBackground
+                    : const Color(0xFFF5F5F7),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: selected
                       ? AppColors.primaryDefault
                       : isDark
-                          ? AppColors.darkBorder
-                          : AppColors.grayscaleLine,
+                      ? AppColors.darkBorder
+                      : AppColors.grayscaleLine,
                 ),
               ),
               alignment: Alignment.center,
@@ -337,13 +361,12 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
                 label,
                 style: AppTypography.textSmall.copyWith(
                   fontSize: 12,
-                  fontWeight:
-                      selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: selected
                       ? Colors.white
                       : isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.grayscaleBodyText,
+                      ? AppColors.darkTextSecondary
+                      : AppColors.grayscaleBodyText,
                 ),
               ),
             ),
@@ -369,10 +392,12 @@ class _LoadMoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
-    final secondaryColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.grayscaleTitleActive;
+    final secondaryColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.grayscaleBodyText;
 
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 6),
@@ -399,7 +424,9 @@ class _LoadMoreButton extends StatelessWidget {
                     : AppColors.grayscaleWhite,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
+                  color: isDark
+                      ? AppColors.darkBorder
+                      : AppColors.grayscaleLine,
                 ),
               ),
               child: isLoading
@@ -460,7 +487,8 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
   @override
   void initState() {
     super.initState();
-    _isBookmarked = widget.article.isBookmarked ||
+    _isBookmarked =
+        widget.article.isBookmarked ||
         (widget.userId != null &&
             widget.article.bookmarkedBy.contains(widget.userId));
   }
@@ -483,11 +511,8 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
     final viewStr = _fmtViews(article.viewCount);
 
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(
-        context,
-        '/article-detail',
-        arguments: article,
-      ),
+      onTap: () =>
+          Navigator.pushNamed(context, '/article-detail', arguments: article),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
@@ -551,10 +576,7 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
                   Row(
                     children: [
                       // Source logo
-                      _SourceLogo(
-                        url: article.sourceLogoAsset,
-                        isDark: isDark,
-                      ),
+                      _SourceLogo(url: article.sourceLogoAsset, isDark: isDark),
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(
@@ -610,8 +632,8 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
                           color: _isBookmarked
                               ? AppColors.primaryDefault
                               : isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.grayscaleButtonText,
+                              ? AppColors.darkTextSecondary
+                              : AppColors.grayscaleButtonText,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -642,7 +664,9 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
       color: isDark ? AppColors.darkBorder : AppColors.grayscaleSecondaryButton,
       child: Icon(
         Icons.image_outlined,
-        color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText,
+        color: isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.grayscaleButtonText,
       ),
     );
     if (url.startsWith('http')) {
@@ -656,14 +680,17 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
       );
     }
     if (url.isNotEmpty) {
-      return Image.asset(url, fit: BoxFit.cover, errorBuilder: (_, _, _) => fallback);
+      return Image.asset(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
     }
     return fallback;
   }
 
   Future<void> _toggleBookmark() async {
-    final userId = widget.userId ??
-        FirebaseAuth.instance.currentUser?.uid;
+    final userId = widget.userId ?? FirebaseAuth.instance.currentUser?.uid;
     if (userId == null || userId.isEmpty) {
       showGuestAuthPrompt(
         context,
@@ -678,7 +705,12 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
       await ref
           .read(firestoreRepositoryProvider)
           .toggleBookmark(widget.article.id, userId);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to bookmark section article',
+      );
       if (mounted) setState(() => _isBookmarked = prev);
     }
   }
@@ -753,7 +785,11 @@ class _SourceLogo extends StatelessWidget {
         color: AppColors.primaryDefault.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(3),
       ),
-      child: const Icon(Icons.newspaper, size: 10, color: AppColors.primaryDefault),
+      child: const Icon(
+        Icons.newspaper,
+        size: 10,
+        color: AppColors.primaryDefault,
+      ),
     );
     if (url.startsWith('http')) {
       return ClipRRect(

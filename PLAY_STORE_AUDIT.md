@@ -1,6 +1,6 @@
 # 📋 Play Store Readiness Audit — StartupsIndia
 
-## A. Overall Readiness Score: **48 / 100**
+## A. Overall Readiness Score: **78 / 100**
 
 You have a solid, functional app, but several **hard blockers** will get the upload rejected today. Most are quick fixes. Plan ~4–6 hours of focused work before your first Closed Testing upload.
 
@@ -27,29 +27,29 @@ You have a solid, functional app, but several **hard blockers** will get the upl
 
 | # | Issue | Location | Action |
 |---|---|---|---|
-| 1 | Firebase **App Check** not enabled | App-wide | Without it, anyone with your Firebase config (public by design) can hammer Firestore. Enable Play Integrity provider. |
-| 2 | No **Crashlytics** | — | You'll be blind to production crashes. Add `firebase_crashlytics`. |
-| 3 | Cloudinary unsigned preset hardcoded: `'dmrp1d1tv'` / `'startups india upload preset'` | [lib/core/repository/firestore_repository.dart:186](lib/core/repository/firestore_repository.dart#L186) | Anyone can decompile APK and abuse your account. Go to Cloudinary console → restrict the preset to allowed formats, max size (e.g. 10 MB), and a single folder. |
+| 1 | ~~Firebase App Check SDK not enabled~~ ✅ Mobile activation added | [lib/main.dart](lib/main.dart) | Release Android uses Play Integrity; debug builds use the debug provider. **Manual:** enable Play Integrity and stage enforcement in Firebase Console after smoke testing. |
+| 2 | ~~No Crashlytics~~ ✅ | [lib/main.dart](lib/main.dart) | Added `firebase_crashlytics`, Android Gradle plugin, fatal handlers, and non-fatal reporting for silent fallback paths. |
+| 3 | ~~Cloudinary values hardcoded directly in repository~~ ✅ Configurable defaults added | [lib/core/config/app_config.dart](lib/core/config/app_config.dart) | **Manual:** restrict the unsigned preset in Cloudinary Console to allowed formats, max size, and a dedicated folder. |
 | 4 | ~~Firebase Storage dependency in pubspec but never used in code~~ ✅ | [pubspec.yaml](pubspec.yaml) | Removed dependency and generated plugin registrations. |
-| 5 | Hardcoded splash delay `2700ms` regardless of auth state | [lib/features/auth/presentation/screens/splash_screen.dart:52](lib/features/auth/presentation/screens/splash_screen.dart#L52) | Replaces real session check with arbitrary wait. Acceptable for v1 but plan to remove. |
+| 5 | ~~Hardcoded splash delay `2700ms` regardless of auth state~~ ✅ | [lib/features/auth/presentation/screens/splash_screen.dart](lib/features/auth/presentation/screens/splash_screen.dart) | Session routing starts immediately while the splash animation gets a shorter 1100ms minimum display. |
 | 6 | ~~Firestore rules: `posts/{postId}/comments` moderation updates need field restrictions~~ ✅ | [firestore.rules](firestore.rules) | Restricted non-admin updates to `reportCount`, `reportedBy`, and `status`. |
-| 7 | Firestore wildcard rule `match /{document=**}` admin-only — fine — but means analytics/drafts collections rely on admin UID being valid | [firestore.rules:195-197](firestore.rules#L195-L197) | OK for MVP. Just be aware that the admin UID `dbIZyFkKffXNurjPApZX15kaRx42` is hardcoded — if compromised, scope is broad. |
-| 8 | No Firestore indexes file (`firestore.indexes.json`) | — | Run the app once in release-like mode, hit each screen; any "needs index" Firestore error logs a Console link to auto-create. Capture them before publish. |
-| 9 | No Storage rules file even though deps include `cloud_storage` | — | Either remove dep (#4) or add `storage.rules` denying public writes. |
+| 7 | Firestore wildcard rule `match /{document=**}` remains admin-only | [firestore.rules](firestore.rules) | Reviewed and retained for MVP admin-panel compatibility. Replace the hardcoded admin UID with claims before expanding admin access. |
+| 8 | ~~No Firestore indexes file~~ ✅ | [firestore.indexes.json](firestore.indexes.json) | Added tracked manifest. **Manual:** smoke-test screens and add any Console-generated composite indexes before index deployment. |
+| 9 | ~~No Storage rules file even though Firebase Storage dependency existed~~ ✅ | [pubspec.yaml](pubspec.yaml) | Storage dependency removed; uploads use Cloudinary. |
 | 10 | iOS bundle ID likely still `com.example.*` | `ios/Runner.xcodeproj/project.pbxproj` | Not blocking Play Store, but flag for when you publish iOS. |
-| 11 | Mock data files (`mock_explore_data.dart`, `mock_source_repository.dart`) imported by `author_tile.dart`, `topic_search_tile.dart`, `explore_screen.dart`, `source_profile_screen.dart` | [lib/features/explore/...] | Confirm `source_profile_screen` doesn't show mock data in the live app (it's reachable via Author taps). |
+| 11 | Explore sample content is reachable in the live app | [lib/features/explore/](lib/features/explore/) | Confirmed. **Product task:** replace sample topics, source profiles, and follow behavior with production data before review. Left unchanged to avoid breaking the working Explore UX without a backend contract. |
 | 12 | ~~`print` / `debugPrint` in production code~~ ✅ | [lib/main.dart](lib/main.dart) | FCM diagnostics are gated behind `kDebugMode`. |
-| 13 | Many `catch (e)` blocks silently swallow without logging | 14 files | Wire Crashlytics so you actually see them. |
+| 13 | ~~Silent fallback catches bypass production diagnostics~~ ✅ | [lib/core/utils/app_error_reporter.dart](lib/core/utils/app_error_reporter.dart) | Silent fallback paths now record non-fatal Crashlytics events while preserving current UI behavior. |
 
 ---
 
 ## D. ✨ Nice-to-Have
 
-- `--obfuscate --split-debug-info=build/symbols` on release build (smaller APK, harder to reverse)
-- Pagination on `getLatestNews()` / `watchPosts()` — currently fetches all docs
-- Switch `firebase_local_notifications: ^17` → `^21` to stop deprecation warnings (52 packages have updates)
-- Add a one-line `--dart-define=ENV=prod` flag in case you want to swap Firebase projects later
-- Add `assetlinks.json` to a web domain when you implement deep linking (V2)
+- ~~Use `--obfuscate --split-debug-info=build/symbols` on CI release builds~~ ✅ Symbols are retained as a CI artifact.
+- ~~Bound initial reads for `getLatestNews()` / `watchPosts()`~~ ✅ Article feeds already had paging APIs; media feeds and comments now have conservative limits.
+- ~~Switch `flutter_local_notifications: ^17` → `21.0.0`~~ ✅ API migration completed and Android debug build verified.
+- ~~Add `--dart-define=ENV=prod`~~ ✅ CI passes it; [app_config.dart](lib/core/config/app_config.dart) supports environment and Cloudinary overrides.
+- Add `assetlinks.json` to a web domain when deep linking ships (V2). This requires control of the production domain and Play signing certificate.
 
 ---
 
@@ -64,6 +64,7 @@ You have a solid, functional app, but several **hard blockers** will get the upl
 | Cloudinary credentials | 🟡 Unsigned preset exposed | Intended for client use, but **add restrictions in Cloudinary console** before launch. |
 | `serviceAccount.json` | 🟡 **Moved outside repo; rotate key** | File moved to `C:/Users/Saisr/serviceAccount.json`. Rotate in Firebase Console → Project Settings → Service Accounts. |
 | `key.properties` | ✅ Ignored | Local signing config and keystore patterns are ignored. |
+| CI Android Firebase config | ✅ Updated | GitHub Actions `GOOGLE_SERVICES_JSON` and `FIREBASE_ANDROID_APP_ID` secrets now target `in.startupsindia.app`. Signing and Admin SDK secrets were not changed. |
 | Account deletion | ✅ Implemented | [delete_account_screen.dart](lib/features/profile/presentation/screens/delete_account_screen.dart) re-auths + deletes Firestore doc + Auth user. Add a public web URL too (#G). |
 | Data collected | Email, name, photo, phone, bio, website, FCM token, uploaded images, likes/bookmarks history | All goes in Data Safety form. |
 

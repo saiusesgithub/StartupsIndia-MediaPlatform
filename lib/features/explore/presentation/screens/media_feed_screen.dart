@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../../../core/providers/user_topics_provider.dart';
 import '../../../../core/repository/firestore_repository.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../domain/models/media_post.dart';
@@ -95,15 +96,19 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
 
     if (tab == 'Trending') {
       final sorted = List<MediaPost>.from(items)
-        ..sort((a, b) =>
-            (b.likeCount + b.commentCount).compareTo(a.likeCount + a.commentCount));
+        ..sort(
+          (a, b) => (b.likeCount + b.commentCount).compareTo(
+            a.likeCount + a.commentCount,
+          ),
+        );
       return sorted;
     }
 
     final filter = _tabCategoryMap[tab] ?? '';
     if (filter.isEmpty) return items;
-    final filtered =
-        items.where((p) => p.category.toLowerCase().contains(filter)).toList();
+    final filtered = items
+        .where((p) => p.category.toLowerCase().contains(filter))
+        .toList();
     return filtered.isNotEmpty ? filtered : items;
   }
 
@@ -127,16 +132,18 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
         children: [
           if (isLoading)
             const Center(
-              child:
-                  CircularProgressIndicator(color: AppColors.primaryDefault),
+              child: CircularProgressIndicator(color: AppColors.primaryDefault),
             )
           else if (feedItems.isEmpty)
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.play_circle_outline_rounded,
-                      size: 56, color: Colors.white24),
+                  const Icon(
+                    Icons.play_circle_outline_rounded,
+                    size: 56,
+                    color: Colors.white24,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No videos yet',
@@ -197,8 +204,7 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
       isVerified: true,
       thumbnailUrl: post.thumbnailUrl,
       mediaUrl: post.videoUrl.isNotEmpty ? post.videoUrl : null,
-      mediaType:
-          post.mediaType == 'video' ? MediaType.video : MediaType.image,
+      mediaType: post.mediaType == 'video' ? MediaType.video : MediaType.image,
       sourceType: MediaSource.post,
       headline: post.headline,
       excerpt: post.excerpt,
@@ -208,14 +214,15 @@ class _MediaFeedScreenState extends ConsumerState<MediaFeedScreen> {
       commentCount: post.commentsCount,
       saveCount: post.bookmarkedBy.length,
       shareCount: post.shareCount,
-      isLiked: post.likedBy
-          .contains(FirebaseAuth.instance.currentUser?.uid ?? ''),
-      isSaved: post.bookmarkedBy
-          .contains(FirebaseAuth.instance.currentUser?.uid ?? ''),
+      isLiked: post.likedBy.contains(
+        FirebaseAuth.instance.currentUser?.uid ?? '',
+      ),
+      isSaved: post.bookmarkedBy.contains(
+        FirebaseAuth.instance.currentUser?.uid ?? '',
+      ),
       colorIndex: index,
     );
   }
-
 }
 
 // ── Header ─────────────────────────────────────────────────────────────────────
@@ -242,8 +249,7 @@ class _Header extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
                 children: [
                   RichText(
@@ -299,8 +305,11 @@ class _TabPill extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
 
-  const _TabPill(
-      {required this.label, required this.active, required this.onTap});
+  const _TabPill({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -364,14 +373,15 @@ class _MediaCardState extends ConsumerState<_MediaCard>
     _commentCount = widget.post.commentCount;
     _shareCount = widget.post.shareCount;
 
-    _heartCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    )..addStatusListener((s) {
-        if (s == AnimationStatus.completed) {
-          if (mounted) setState(() => _showHeartOverlay = false);
-        }
-      });
+    _heartCtrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 700),
+        )..addStatusListener((s) {
+          if (s == AnimationStatus.completed) {
+            if (mounted) setState(() => _showHeartOverlay = false);
+          }
+        });
     _heartAnim = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2), weight: 40),
       TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 20),
@@ -385,8 +395,7 @@ class _MediaCardState extends ConsumerState<_MediaCard>
   }
 
   Future<void> _initVideo(String url) async {
-    _videoController =
-        VideoPlayerController.networkUrl(Uri.parse(url));
+    _videoController = VideoPlayerController.networkUrl(Uri.parse(url));
     await _videoController!.initialize();
     if (mounted) {
       setState(() => _videoInitialized = true);
@@ -421,7 +430,12 @@ class _MediaCardState extends ConsumerState<_MediaCard>
             .read(firestoreRepositoryProvider)
             .toggleLike(widget.post.id, uid);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to like media',
+      );
       // Revert optimistic update on failure
       if (mounted) {
         setState(() {
@@ -446,7 +460,12 @@ class _MediaCardState extends ConsumerState<_MediaCard>
             .read(firestoreRepositoryProvider)
             .toggleBookmark(widget.post.id, uid);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to save media',
+      );
       if (mounted) setState(() => _isSaved = !_isSaved);
     }
   }
@@ -462,7 +481,13 @@ class _MediaCardState extends ConsumerState<_MediaCard>
         await ref
             .read(postRepositoryProvider)
             .incrementPostShareCount(widget.post.id);
-      } catch (_) {}
+      } catch (error, stackTrace) {
+        AppErrorReporter.record(
+          error,
+          stackTrace,
+          reason: 'Failed to increment media share count',
+        );
+      }
     }
   }
 
@@ -526,8 +551,11 @@ class _MediaCardState extends ConsumerState<_MediaCard>
           // Pause indicator
           if (_videoInitialized && !isPlaying)
             const Center(
-              child: Icon(Icons.pause_circle_filled_rounded,
-                  color: Colors.white54, size: 64),
+              child: Icon(
+                Icons.pause_circle_filled_rounded,
+                color: Colors.white54,
+                size: 64,
+              ),
             ),
 
           // Right sidebar
@@ -553,10 +581,7 @@ class _MediaCardState extends ConsumerState<_MediaCard>
             left: 0,
             right: 72,
             bottom: 0,
-            child: _BottomContent(
-              post: widget.post,
-              bottomPad: bottomPad,
-            ),
+            child: _BottomContent(post: widget.post, bottomPad: bottomPad),
           ),
         ],
       ),
@@ -607,7 +632,9 @@ class _MediaLayer extends StatelessWidget {
             if (videoController != null)
               const Center(
                 child: CircularProgressIndicator(
-                    color: Colors.white54, strokeWidth: 2),
+                  color: Colors.white54,
+                  strokeWidth: 2,
+                ),
               ),
           ],
         );
@@ -617,8 +644,7 @@ class _MediaLayer extends StatelessWidget {
           return CachedNetworkImage(
             imageUrl: post.thumbnailUrl,
             fit: BoxFit.cover,
-            errorWidget: (_, _, _) =>
-                _GradientFallback(index: post.colorIndex),
+            errorWidget: (_, _, _) => _GradientFallback(index: post.colorIndex),
           );
         }
         return _GradientFallback(index: post.colorIndex);
@@ -880,8 +906,11 @@ class _BottomContentState extends State<_BottomContent> {
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.verified_rounded,
-                  size: 13, color: AppColors.primaryDefault),
+              const Icon(
+                Icons.verified_rounded,
+                size: 13,
+                color: AppColors.primaryDefault,
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -896,8 +925,8 @@ class _BottomContentState extends State<_BottomContent> {
                       text: _expanded
                           ? post.excerpt
                           : (post.excerpt.length > 90
-                              ? '${post.excerpt.substring(0, 90)}... '
-                              : post.excerpt),
+                                ? '${post.excerpt.substring(0, 90)}... '
+                                : post.excerpt),
                       style: AppTypography.textSmall.copyWith(
                         fontSize: 13,
                         color: Colors.white70,
@@ -1071,7 +1100,9 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(
-                        color: AppColors.primaryDefault, strokeWidth: 2),
+                      color: AppColors.primaryDefault,
+                      strokeWidth: 2,
+                    ),
                   );
                 }
                 final comments = snap.data ?? [];
@@ -1087,17 +1118,14 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
                   );
                 }
                 return ListView.separated(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: comments.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: 14),
-                  itemBuilder: (ctx, i) =>
-                      _CommentTile(
-                        comment: comments[i],
-                        postId: widget.post.id,
-                        buildContext: ctx,
-                      ),
+                  separatorBuilder: (_, _) => const SizedBox(height: 14),
+                  itemBuilder: (ctx, i) => _CommentTile(
+                    comment: comments[i],
+                    postId: widget.post.id,
+                    buildContext: ctx,
+                  ),
                 );
               },
             ),
@@ -1107,8 +1135,7 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
           Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
             decoration: const BoxDecoration(
-              border: Border(
-                  top: BorderSide(color: Colors.white12)),
+              border: Border(top: BorderSide(color: Colors.white12)),
             ),
             child: Row(
               children: [
@@ -1128,7 +1155,9 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
                       filled: true,
                       fillColor: Colors.white10,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,
@@ -1146,8 +1175,9 @@ class _CommentSheetState extends ConsumerState<_CommentSheet> {
                           width: 36,
                           height: 36,
                           child: CircularProgressIndicator(
-                              color: AppColors.primaryDefault,
-                              strokeWidth: 2),
+                            color: AppColors.primaryDefault,
+                            strokeWidth: 2,
+                          ),
                         )
                       : Container(
                           width: 36,
@@ -1213,12 +1243,16 @@ class _CommentTile extends StatelessWidget {
                     imageUrl: comment.avatarUrl,
                     fit: BoxFit.cover,
                     errorWidget: (_, _, _) => const Icon(
-                        Icons.person_rounded,
-                        color: Colors.white54,
-                        size: 16),
+                      Icons.person_rounded,
+                      color: Colors.white54,
+                      size: 16,
+                    ),
                   )
-                : const Icon(Icons.person_rounded,
-                    color: Colors.white54, size: 16),
+                : const Icon(
+                    Icons.person_rounded,
+                    color: Colors.white54,
+                    size: 16,
+                  ),
           ),
         ),
         const SizedBox(width: 10),
@@ -1249,8 +1283,11 @@ class _CommentTile extends StatelessWidget {
           onTap: _report,
           child: const Padding(
             padding: EdgeInsets.only(left: 8),
-            child: Icon(Icons.more_vert_rounded,
-                color: Colors.white38, size: 18),
+            child: Icon(
+              Icons.more_vert_rounded,
+              color: Colors.white38,
+              size: 18,
+            ),
           ),
         ),
       ],

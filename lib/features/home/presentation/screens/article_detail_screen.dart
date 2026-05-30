@@ -10,6 +10,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/models/news_article_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
 import '../../../../core/utils/time_format_helper.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../features/explore/domain/models/post_model.dart';
@@ -23,11 +24,8 @@ class ArticleDetailScreen extends ConsumerStatefulWidget {
   final NewsArticleModel? article;
   final String? articleId;
 
-  const ArticleDetailScreen({
-    super.key,
-    this.article,
-    this.articleId,
-  }) : assert(article != null || articleId != null);
+  const ArticleDetailScreen({super.key, this.article, this.articleId})
+    : assert(article != null || articleId != null);
 
   @override
   ConsumerState<ArticleDetailScreen> createState() =>
@@ -95,7 +93,12 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
         _setArticle(article);
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to load article',
+      );
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -106,8 +109,9 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
 
   Future<void> _initializeUserId() async {
     try {
-      final userModel =
-          await ref.read(authRepositoryProvider).getCurrentUserModel();
+      final userModel = await ref
+          .read(authRepositoryProvider)
+          .getCurrentUserModel();
       if (!mounted) return;
       final userId = userModel?.uid;
       final article = _article;
@@ -119,7 +123,13 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
               article.bookmarkedBy.contains(userId) || article.isBookmarked;
         }
       });
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to initialize article user',
+      );
+    }
   }
 
   @override
@@ -128,8 +138,9 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
     final article = _article;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleWhite,
       body: SafeArea(
         child: Column(
           children: [
@@ -142,8 +153,8 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
                       ),
                     )
                   : _error != null || article == null
-                      ? _buildErrorState(isDark)
-                      : _buildBody(article, isDark),
+                  ? _buildErrorState(isDark)
+                  : _buildBody(article, isDark),
             ),
           ],
         ),
@@ -218,8 +229,8 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
               color: _isBookmarked
                   ? AppColors.primaryDefault
                   : isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.grayscaleBodyText,
+                  ? AppColors.darkTextSecondary
+                  : AppColors.grayscaleBodyText,
             ),
           ),
           // 3-dots
@@ -241,7 +252,8 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   // ── Body ──────────────────────────────────────────────────────────────────
 
   Widget _buildBody(NewsArticleModel article, bool isDark) {
-    final isPodcast = article.category.toLowerCase() == 'podcast' &&
+    final isPodcast =
+        article.category.toLowerCase() == 'podcast' &&
         article.youtubeVideoId.isNotEmpty;
     final bodyParts = _splitBodyForGallery(article.body);
 
@@ -346,7 +358,9 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                article.sourceName.isEmpty ? 'StartupsIndia' : article.sourceName,
+                article.sourceName.isEmpty
+                    ? 'StartupsIndia'
+                    : article.sourceName,
                 style: AppTypography.textSmall.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -444,7 +458,9 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..loadRequest(
-        Uri.parse('https://www.youtube.com/embed/$videoId?rel=0&modestbranding=1'),
+        Uri.parse(
+          'https://www.youtube.com/embed/$videoId?rel=0&modestbranding=1',
+        ),
       );
 
     return ClipRRect(
@@ -488,14 +504,15 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   }
 
   void _openFullScreenImage(
-      String url, List<String> allImages, int initialIndex) {
+    String url,
+    List<String> allImages,
+    int initialIndex,
+  ) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => _FullScreenGallery(
-          images: allImages,
-          initialIndex: initialIndex,
-        ),
+        builder: (_) =>
+            _FullScreenGallery(images: allImages, initialIndex: initialIndex),
       ),
     );
   }
@@ -554,10 +571,7 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
         ),
         blockquoteDecoration: BoxDecoration(
           border: Border(
-            left: BorderSide(
-              color: AppColors.primaryDefault,
-              width: 4,
-            ),
+            left: BorderSide(color: AppColors.primaryDefault, width: 4),
           ),
           color: AppColors.primaryDefault.withValues(alpha: 0.06),
           borderRadius: const BorderRadius.only(
@@ -654,14 +668,18 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
       error: (_, _) => const SizedBox.shrink(),
       data: (items) {
         final related = items
-            .where((item) =>
-                item.id != article.id &&
-                item.category.toLowerCase() == category)
+            .where(
+              (item) =>
+                  item.id != article.id &&
+                  item.category.toLowerCase() == category,
+            )
             .toList(growable: false);
         final fallback = items
-            .where((item) =>
-                item.id != article.id &&
-                (!isPodcast || item.category.toLowerCase() == 'podcast'))
+            .where(
+              (item) =>
+                  item.id != article.id &&
+                  (!isPodcast || item.category.toLowerCase() == 'podcast'),
+            )
             .take(8)
             .toList(growable: false);
         final visible = (related.isEmpty ? fallback : related).take(8).toList();
@@ -728,8 +746,16 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
       if (_likesCount < 0) _likesCount = 0;
     });
     try {
-      await ref.read(firestoreRepositoryProvider).toggleLike(article.id, userId);
-    } catch (_) {}
+      await ref
+          .read(firestoreRepositoryProvider)
+          .toggleLike(article.id, userId);
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to like article',
+      );
+    }
   }
 
   Future<void> _toggleBookmark() async {
@@ -749,7 +775,13 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
       await ref
           .read(firestoreRepositoryProvider)
           .toggleBookmark(article.id, userId);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to bookmark article',
+      );
+    }
   }
 
   void _shareArticle() {
@@ -951,16 +983,16 @@ class _ArticleDetailScreenState extends ConsumerState<ArticleDetailScreen> {
   }
 
   Widget _imageFallback(bool isDark) => Container(
-        color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
-        alignment: Alignment.center,
-        child: Icon(
-          Icons.image_outlined,
-          color: isDark
-              ? AppColors.darkTextSecondary
-              : AppColors.grayscaleButtonText,
-          size: 30,
-        ),
-      );
+    color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
+    alignment: Alignment.center,
+    child: Icon(
+      Icons.image_outlined,
+      color: isDark
+          ? AppColors.darkTextSecondary
+          : AppColors.grayscaleButtonText,
+      size: 30,
+    ),
+  );
 
   String _fmtEngagement(int value) {
     if (value >= 1000) {
@@ -1028,10 +1060,12 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedColor = color ??
+    final resolvedColor =
+        color ??
         (isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText);
-    final textColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.grayscaleTitleActive;
 
     return InkWell(
       onTap: onTap,
@@ -1080,11 +1114,8 @@ class _RelatedArticleCard extends StatelessWidget {
         : article.thumbnailAsset;
 
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(
-        context,
-        '/article-detail',
-        arguments: article,
-      ),
+      onTap: () =>
+          Navigator.pushNamed(context, '/article-detail', arguments: article),
       child: SizedBox(
         width: 172,
         child: DecoratedBox(
@@ -1146,10 +1177,7 @@ class _FullScreenGallery extends StatefulWidget {
   final List<String> images;
   final int initialIndex;
 
-  const _FullScreenGallery({
-    required this.images,
-    required this.initialIndex,
-  });
+  const _FullScreenGallery({required this.images, required this.initialIndex});
 
   @override
   State<_FullScreenGallery> createState() => _FullScreenGalleryState();
@@ -1294,12 +1322,15 @@ class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
     if (text.isEmpty || _posting) return;
     setState(() => _posting = true);
     try {
-      final userModel =
-          await ref.read(authRepositoryProvider).getCurrentUserModel();
+      final userModel = await ref
+          .read(authRepositoryProvider)
+          .getCurrentUserModel();
       final authorName = userModel?.displayName.isNotEmpty == true
           ? userModel!.displayName
           : userModel?.fullName ?? 'User';
-      await ref.read(postRepositoryProvider).addArticleComment(
+      await ref
+          .read(postRepositoryProvider)
+          .addArticleComment(
             articleId: widget.article.id,
             userId: uid,
             authorName: authorName,
@@ -1316,12 +1347,15 @@ class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomPad = MediaQuery.of(context).viewInsets.bottom;
-    final surfaceColor =
-        isDark ? AppColors.darkSurface : AppColors.grayscaleWhite;
-    final textPrimary =
-        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : AppColors.grayscaleWhite;
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.grayscaleTitleActive;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.grayscaleBodyText;
 
     return Container(
       decoration: BoxDecoration(
@@ -1375,8 +1409,11 @@ class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.chat_bubble_outline_rounded,
-                            size: 40, color: textSecondary),
+                        Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 40,
+                          color: textSecondary,
+                        ),
                         const SizedBox(height: 10),
                         Text(
                           'No comments yet',
@@ -1402,10 +1439,8 @@ class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: comments.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 14),
-                  itemBuilder: (_, i) => _SheetCommentTile(
-                    comment: comments[i],
-                    isDark: isDark,
-                  ),
+                  itemBuilder: (_, i) =>
+                      _SheetCommentTile(comment: comments[i], isDark: isDark),
                 );
               },
             ),
@@ -1443,7 +1478,9 @@ class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
                           ? AppColors.darkBackground
                           : AppColors.grayscaleSecondaryButton,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,
@@ -1461,7 +1498,9 @@ class _ArticleCommentSheetState extends ConsumerState<_ArticleCommentSheet> {
                           width: 36,
                           height: 36,
                           child: CircularProgressIndicator(
-                              color: AppColors.primaryDefault, strokeWidth: 2),
+                            color: AppColors.primaryDefault,
+                            strokeWidth: 2,
+                          ),
                         )
                       : Container(
                           width: 36,
@@ -1494,10 +1533,12 @@ class _SheetCommentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textPrimary =
-        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.grayscaleTitleActive;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.grayscaleBodyText;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1517,9 +1558,10 @@ class _SheetCommentTile extends StatelessWidget {
                     imageUrl: comment.avatarUrl,
                     fit: BoxFit.cover,
                     errorWidget: (_, _, _) => Icon(
-                        Icons.person_rounded,
-                        color: textSecondary,
-                        size: 16),
+                      Icons.person_rounded,
+                      color: textSecondary,
+                      size: 16,
+                    ),
                   )
                 : Icon(Icons.person_rounded, color: textSecondary, size: 16),
           ),

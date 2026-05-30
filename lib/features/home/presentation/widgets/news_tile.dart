@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../../../../core/presentation/widgets/shimmer_placeholder.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/news_article.dart';
@@ -67,7 +68,12 @@ class _NewsTileState extends ConsumerState<NewsTile> {
       setState(() {
         _currentUserId = userModel?.uid;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to initialize news tile user',
+      );
       // Ignore and keep guest behavior.
     }
   }
@@ -224,8 +230,8 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                           color: isLiked
                               ? Colors.redAccent
                               : isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.grayscaleButtonText,
+                              ? AppColors.darkTextSecondary
+                              : AppColors.grayscaleButtonText,
                           size: 20,
                         ),
                       ),
@@ -240,8 +246,8 @@ class _NewsTileState extends ConsumerState<NewsTile> {
                           color: _isBookmarked
                               ? AppColors.primaryDefault
                               : isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.grayscaleButtonText,
+                              ? AppColors.darkTextSecondary
+                              : AppColors.grayscaleButtonText,
                           size: 20,
                         ),
                       ),
@@ -274,7 +280,12 @@ class _NewsTileState extends ConsumerState<NewsTile> {
       await ref
           .read(firestoreRepositoryProvider)
           .toggleBookmark(widget.article.id, userId);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to bookmark news tile',
+      );
       if (!mounted) return;
       setState(() => _isBookmarked = previous);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -296,7 +307,8 @@ class _NewsTileState extends ConsumerState<NewsTile> {
       showGuestAuthPrompt(
         context,
         title: 'Sign in to like stories',
-        message: 'Create an account to react to articles and personalize your feed.',
+        message:
+            'Create an account to react to articles and personalize your feed.',
       );
       return;
     }
@@ -305,7 +317,12 @@ class _NewsTileState extends ConsumerState<NewsTile> {
       await ref
           .read(firestoreRepositoryProvider)
           .toggleLike(widget.article.id, userId);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to like news tile',
+      );
       ref.read(tileLikeStateProvider(widget.article.id).notifier).state =
           previous;
 

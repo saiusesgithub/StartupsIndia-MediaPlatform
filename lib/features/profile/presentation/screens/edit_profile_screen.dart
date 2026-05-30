@@ -8,6 +8,7 @@ import '../../../auth/domain/models/user_model.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
 import '../../../../theme/style_guide.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -487,7 +488,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         const SnackBar(content: Text('Profile updated successfully!')),
       );
       Navigator.of(context).maybePop();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to update profile',
+      );
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(

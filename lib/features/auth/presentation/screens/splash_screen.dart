@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../theme/style_guide.dart';
+import '../../../../core/utils/app_error_reporter.dart';
 import 'auth_screen_widgets.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -77,7 +78,12 @@ class _SplashScreenState extends State<SplashScreen>
           .get();
       final done = doc.data()?['onboardingCompleted'] as bool? ?? false;
       if (!done) destination = '/role-selection';
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppErrorReporter.record(
+        error,
+        stackTrace,
+        reason: 'Failed to resolve splash destination',
+      );
       destination = '/home';
     }
 
