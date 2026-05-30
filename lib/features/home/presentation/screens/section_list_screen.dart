@@ -82,8 +82,13 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
           .read(firestoreRepositoryProvider)
           .fetchNewsByCategoryPage(widget.category);
       if (!mounted) return;
+      final sorted = [...page.articles]..sort((a, b) {
+          final aTime = a.createdAt ?? DateTime(0);
+          final bTime = b.createdAt ?? DateTime(0);
+          return bTime.compareTo(aTime);
+        });
       setState(() {
-        _articles.addAll(page.articles);
+        _articles.addAll(sorted);
         _lastDocument = page.lastDocument;
         _hasMore = page.hasMore;
         _isLoadingInitial = false;
@@ -110,8 +115,13 @@ class _SectionListScreenState extends ConsumerState<SectionListScreen> {
             startAfter: _lastDocument,
           );
       if (!mounted) return;
+      final sorted = [...page.articles]..sort((a, b) {
+          final aTime = a.createdAt ?? DateTime(0);
+          final bTime = b.createdAt ?? DateTime(0);
+          return bTime.compareTo(aTime);
+        });
       setState(() {
-        _articles.addAll(page.articles);
+        _articles.addAll(sorted);
         _lastDocument = page.lastDocument;
         _hasMore = page.hasMore;
         _isLoadingMore = false;
@@ -497,7 +507,12 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
               child: SizedBox(
                 width: 88,
                 height: 88,
-                child: _buildThumbnail(article.thumbnailAsset, isDark),
+                child: _buildThumbnail(
+                  article.featuredImageUrl.isNotEmpty
+                      ? article.featuredImageUrl
+                      : article.thumbnailAsset,
+                  isDark,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -634,6 +649,8 @@ class _SectionArticleTileState extends ConsumerState<_SectionArticleTile> {
       return CachedNetworkImage(
         imageUrl: url,
         fit: BoxFit.cover,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
         placeholder: (_, _) => fallback,
         errorWidget: (_, _, _) => fallback,
       );

@@ -101,10 +101,7 @@ class FirestoreRepository {
 
   Query<Map<String, dynamic>> _categoryArticlesQuery(String category) {
     final variants = _categoryVariants(category);
-    return _articleOrderQuery().where(
-      'category',
-      whereIn: variants,
-    );
+    return _articles.where('category', whereIn: variants);
   }
 
   Query<Map<String, dynamic>> _queryForCategory(String category) {
