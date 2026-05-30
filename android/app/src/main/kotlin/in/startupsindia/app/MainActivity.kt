@@ -1,4 +1,4 @@
-package com.example.startups_india_media_platform
+package in.startupsindia.app
 
 import io.flutter.embedding.android.FlutterActivity
 
