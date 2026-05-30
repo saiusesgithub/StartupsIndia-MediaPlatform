@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
+import '../../../../core/utils/app_urls.dart';
 import '../../../../theme/style_guide.dart';
 
 const _dangerRed = Color(0xFFEF4444);
@@ -25,7 +26,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   void initState() {
     super.initState();
     final providers = FirebaseAuth.instance.currentUser?.providerData ?? [];
-    _isGoogleUser = providers.any((p) => p.providerId == 'google.com') &&
+    _isGoogleUser =
+        providers.any((p) => p.providerId == 'google.com') &&
         !providers.any((p) => p.providerId == 'password');
   }
 
@@ -40,8 +42,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleSecondaryButton,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleSecondaryButton,
       body: SafeArea(
         child: Stack(
           children: [
@@ -207,6 +210,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             isSubmitting: _isSubmitting,
             onTap: _deleteWithPassword,
           ),
+          const SizedBox(height: 12),
+          const _WebDeletionLink(),
         ],
       ),
     );
@@ -239,10 +244,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           ),
         ),
         const SizedBox(height: 28),
-        _DeleteButton(
-          isSubmitting: _isSubmitting,
-          onTap: _deleteWithGoogle,
-        ),
+        _DeleteButton(isSubmitting: _isSubmitting, onTap: _deleteWithGoogle),
+        const SizedBox(height: 12),
+        const _WebDeletionLink(),
       ],
     );
   }
@@ -276,15 +280,16 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     try {
       final googleUser = await GoogleSignIn.instance.authenticate();
       final auth = googleUser.authentication;
-      final credential =
-          GoogleAuthProvider.credential(idToken: auth.idToken);
+      final credential = GoogleAuthProvider.credential(idToken: auth.idToken);
       final user = FirebaseAuth.instance.currentUser!;
       await user.reauthenticateWithCredential(credential);
       await _eraseAndDelete(user);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Authentication failed. Please try again.')),
+        const SnackBar(
+          content: Text('Authentication failed. Please try again.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -292,15 +297,26 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   }
 
   Future<void> _eraseAndDelete(User user) async {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .delete();
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
     await user.delete();
 
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true)
-        .pushNamedAndRemoveUntil('/login', (_) => false);
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/login', (_) => false);
+  }
+}
+
+class _WebDeletionLink extends StatelessWidget {
+  const _WebDeletionLink();
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () => launchExternalUrl(AppUrls.deleteAccount),
+      child: const Text('View account deletion instructions'),
+    );
   }
 }
 
@@ -317,9 +333,7 @@ class _DeleteButton extends StatelessWidget {
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: isSubmitting
-              ? _dangerRed.withValues(alpha: 0.5)
-              : _dangerRed,
+          color: isSubmitting ? _dangerRed.withValues(alpha: 0.5) : _dangerRed,
           borderRadius: BorderRadius.circular(14),
         ),
         alignment: Alignment.center,
@@ -328,7 +342,9 @@ class _DeleteButton extends StatelessWidget {
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2.5),
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
               )
             : Text(
                 'Permanently Delete Account',

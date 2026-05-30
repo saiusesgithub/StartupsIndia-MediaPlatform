@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/models/news_article_model.dart';
+import '../../../../core/utils/app_urls.dart';
 import '../../../../core/widgets/guest_gate.dart';
 import '../../../../theme/style_guide.dart';
 import '../../domain/models/home_mock_data.dart';
@@ -102,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 '8',
                 'Upcoming Events',
                 isDark,
-                onViewAll: () => Navigator.pushNamed(context, '/events-all'),
+                onViewAll: () => launchExternalUrl(AppUrls.events),
               ),
             ),
             SliverToBoxAdapter(
@@ -113,7 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 '9',
                 'Courses',
                 isDark,
-                onViewAll: () => Navigator.pushNamed(context, '/courses-all'),
+                onViewAll: () => launchExternalUrl(AppUrls.programs),
               ),
             ),
             SliverToBoxAdapter(

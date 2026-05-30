@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/app_urls.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/providers/theme_service_provider.dart';
 import '../../../../theme/style_guide.dart';
@@ -68,7 +69,8 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.lock_outline_rounded,
                     iconColor: const Color(0xFF5C6BC0),
                     label: 'Change Password',
-                    onTap: () => Navigator.pushNamed(context, '/change-password'),
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/change-password'),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -130,8 +132,7 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.policy_outlined,
                     iconColor: const Color(0xFF4CAF50),
                     label: 'Privacy Policy',
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/privacy-policy'),
+                    onTap: () => launchExternalUrl(AppUrls.privacy),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -139,8 +140,7 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.description_outlined,
                     iconColor: const Color(0xFF00BCD4),
                     label: 'Terms of Service',
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/terms-of-service'),
+                    onTap: () => launchExternalUrl(AppUrls.terms),
                   ),
                   _RowDivider(isDark: isDark),
                   _SettingsRow(
@@ -184,8 +184,11 @@ class SettingsScreen extends ConsumerWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.logout_rounded,
-                            color: Color(0xFFEF4444), size: 18),
+                        const Icon(
+                          Icons.logout_rounded,
+                          color: Color(0xFFEF4444),
+                          size: 18,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           'Log Out',
@@ -213,10 +216,10 @@ class SettingsScreen extends ConsumerWidget {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor:
-            isDark ? AppColors.darkSurface : AppColors.grayscaleWhite,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.grayscaleWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -229,8 +232,11 @@ class SettingsScreen extends ConsumerWidget {
                   color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.logout_rounded,
-                    color: Color(0xFFEF4444), size: 24),
+                child: const Icon(
+                  Icons.logout_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 24,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -322,7 +328,6 @@ class SettingsScreen extends ConsumerWidget {
     if (!context.mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
-
 }
 
 // ── Section card ──────────────────────────────────────────────────────────────
@@ -367,10 +372,7 @@ class _Section extends StatelessWidget {
                 color: isDark ? AppColors.darkBorder : AppColors.grayscaleLine,
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: children,
-            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: children),
           ),
         ],
       ),

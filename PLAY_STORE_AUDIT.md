@@ -127,8 +127,9 @@ You'll need to prepare:
 | **Category** | News & Magazines (primary) |
 | **Tags** | startup, news, India, funding, entrepreneur |
 | **Contact email** | A real, monitored address |
-| **Privacy Policy URL** | **MANDATORY** — host on `startupsindia.in/privacy`. Must cover: email, name, phone, photos, FCM tokens, content uploads, Firebase Analytics if added |
-| **Account deletion URL** | **MANDATORY since 2024** — even though you have in-app deletion, Play wants a web URL. Host at `startupsindia.in/delete-account` with instructions |
+| **Privacy Policy URL** | **MANDATORY** — hosted at `https://www.startupsindia.in/privacy`. Must cover: email, name, phone, photos, FCM tokens, content uploads, Firebase Analytics if added |
+| **Account deletion URL** | **MANDATORY since 2024** — hosted at `https://www.startupsindia.in/delete-account` with instructions |
+| **Terms of Service URL** | Hosted at `https://www.startupsindia.in/terms` |
 | **Data Safety form** | Declare: personal info (email/name/phone), photos (uploaded), app activity (likes/bookmarks), device/identifiers (FCM token). Encrypted in transit ✓ Users can request deletion ✓ |
 | **Target audience** | 18+ (safer for news app with community comments) |
 | **Content rating** | Run the IARC questionnaire — likely Everyone or Teen depending on user-generated content |
@@ -138,8 +139,8 @@ You'll need to prepare:
 **Likely rejection triggers:**
 - ~~`com.example.*` package (blocker #1)~~ ✅
 - ~~Lorem Ipsum in onboarding (blocker #3)~~ ✅
-- Missing privacy policy URL
-- Missing account-deletion URL
+- ~~Missing privacy policy URL~~ ✅
+- ~~Missing account-deletion URL~~ ✅
 - ~~Notifications not requesting POST_NOTIFICATIONS (blocker #7)~~ ✅
 
 ---
@@ -219,7 +220,7 @@ bundletool install-apks --apks=test.apks
 17. Create app in Play Console.
 18. Fill: name, descriptions, category, tags, contact email.
 19. Upload screenshots (min 2, recommend 8): use a real Pixel-sized device, capture light + dark variants.
-20. Privacy policy URL + Account deletion URL (host on startupsindia.in).
+20. ~~Privacy policy URL + Account deletion URL (host on startupsindia.in).~~ ✅ Hosted at `https://www.startupsindia.in/privacy` and `https://www.startupsindia.in/delete-account`.
 21. Data Safety form (be honest about data collected).
 22. Content rating questionnaire.
 23. Target audience: 18+ (community has UGC).

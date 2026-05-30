@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/theme_service_provider.dart';
+import '../../../../core/utils/app_urls.dart';
 import '../../../../theme/style_guide.dart';
 import '../../../../core/presentation/widgets/app_text_field.dart';
 import '../providers/auth_providers.dart';
@@ -45,9 +46,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   String? _validatePassword(String? val) {
     if (val == null || val.isEmpty) return 'Password is required.';
     if (val.length < 8) return 'Must be at least 8 characters.';
-    if (!RegExp(r'[A-Z]').hasMatch(val)) return 'Must contain an uppercase letter.';
+    if (!RegExp(r'[A-Z]').hasMatch(val)) {
+      return 'Must contain an uppercase letter.';
+    }
     if (!RegExp(r'[0-9]').hasMatch(val)) return 'Must contain a number.';
-    if (!RegExp(r'[@#\$%^&*!?]').hasMatch(val)) return 'Must contain a special character.';
+    if (!RegExp(r'[@#\$%^&*!?]').hasMatch(val)) {
+      return 'Must contain a special character.';
+    }
     return null;
   }
 
@@ -118,11 +123,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: AppColors.errorDark,
-      behavior: SnackBarBehavior.floating,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.errorDark,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   String _friendlyError(String code) {
@@ -144,9 +151,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   void initState() {
     super.initState();
     _termsRecognizer = TapGestureRecognizer()
-      ..onTap = () => Navigator.pushNamed(context, '/terms-of-service');
+      ..onTap = () => launchExternalUrl(AppUrls.terms);
     _privacyRecognizer = TapGestureRecognizer()
-      ..onTap = () => Navigator.pushNamed(context, '/privacy-policy');
+      ..onTap = () => launchExternalUrl(AppUrls.privacy);
   }
 
   @override
@@ -168,8 +175,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
           .copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.grayscaleWhite,
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.grayscaleWhite,
         body: Stack(
           children: [
             // ── Dark-mode radial glow ──────────────────────────────────────
@@ -223,20 +231,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                             // Title + subtitle
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 28),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Create Account',
-                                    style:
-                                        AppTypography.displaySmallBold.copyWith(
-                                      color: isDark
-                                          ? AppColors.darkTextPrimary
-                                          : AppColors.grayscaleTitleActive,
-                                      fontSize: 26,
-                                    ),
+                                    style: AppTypography.displaySmallBold
+                                        .copyWith(
+                                          color: isDark
+                                              ? AppColors.darkTextPrimary
+                                              : AppColors.grayscaleTitleActive,
+                                          fontSize: 26,
+                                        ),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
@@ -256,8 +265,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
                             // Form fields
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 24),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
                               child: Form(
                                 key: _formKey,
                                 child: Column(
@@ -275,7 +285,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                     AppTextField(
                                       controller: _passwordController,
                                       label: 'Password',
-                                      hintText: 'Min 8 chars, 1 upper, 1 number, 1 symbol',
+                                      hintText:
+                                          'Min 8 chars, 1 upper, 1 number, 1 symbol',
                                       isPassword: true,
                                       validator: _validatePassword,
                                     ),
@@ -302,7 +313,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                     // Terms & Conditions
                                     GestureDetector(
                                       onTap: () => setState(
-                                          () => _agreedToTerms = !_agreedToTerms),
+                                        () => _agreedToTerms = !_agreedToTerms,
+                                      ),
                                       child: Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
@@ -312,13 +324,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                             height: 20,
                                             child: Checkbox(
                                               value: _agreedToTerms,
-                                              onChanged: (val) => setState(() =>
-                                                  _agreedToTerms = val ?? false),
+                                              onChanged: (val) => setState(
+                                                () => _agreedToTerms =
+                                                    val ?? false,
+                                              ),
                                               activeColor:
                                                   AppColors.primaryDefault,
                                               shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(4)),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
                                               side: BorderSide(
                                                 color: isDark
                                                     ? AppColors.darkBorder
@@ -332,15 +347,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                               text: TextSpan(
                                                 style: AppTypography.textSmall
                                                     .copyWith(
-                                                  color: isDark
-                                                      ? AppColors.darkTextSecondary
-                                                      : AppColors
-                                                          .grayscaleBodyText,
-                                                  fontSize: 13,
-                                                ),
+                                                      color: isDark
+                                                          ? AppColors
+                                                                .darkTextSecondary
+                                                          : AppColors
+                                                                .grayscaleBodyText,
+                                                      fontSize: 13,
+                                                    ),
                                                 children: [
                                                   const TextSpan(
-                                                      text: 'I agree to the '),
+                                                    text: 'I agree to the ',
+                                                  ),
                                                   TextSpan(
                                                     text: 'Terms of Service',
                                                     recognizer:
@@ -348,15 +365,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                                     style: AppTypography
                                                         .textSmall
                                                         .copyWith(
-                                                      color: AppColors
-                                                          .primaryDefault,
-                                                      fontWeight: FontWeight.w600,
-                                                      fontSize: 13,
-                                                      decoration: TextDecoration
-                                                          .underline,
-                                                      decorationColor: AppColors
-                                                          .primaryDefault,
-                                                    ),
+                                                          color: AppColors
+                                                              .primaryDefault,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 13,
+                                                          decoration:
+                                                              TextDecoration
+                                                                  .underline,
+                                                          decorationColor:
+                                                              AppColors
+                                                                  .primaryDefault,
+                                                        ),
                                                   ),
                                                   const TextSpan(text: ' and '),
                                                   TextSpan(
@@ -366,15 +386,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                                     style: AppTypography
                                                         .textSmall
                                                         .copyWith(
-                                                      color: AppColors
-                                                          .primaryDefault,
-                                                      fontWeight: FontWeight.w600,
-                                                      fontSize: 13,
-                                                      decoration: TextDecoration
-                                                          .underline,
-                                                      decorationColor: AppColors
-                                                          .primaryDefault,
-                                                    ),
+                                                          color: AppColors
+                                                              .primaryDefault,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 13,
+                                                          decoration:
+                                                              TextDecoration
+                                                                  .underline,
+                                                          decorationColor:
+                                                              AppColors
+                                                                  .primaryDefault,
+                                                        ),
                                                   ),
                                                 ],
                                               ),
@@ -393,7 +416,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             // CTAs
                             Padding(
                               padding: EdgeInsets.fromLTRB(
-                                  24, 24, 24, bottomPadding + 24),
+                                24,
+                                24,
+                                24,
+                                bottomPadding + 24,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -414,7 +441,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                     question: 'Already have an account?',
                                     actionLabel: 'Login',
                                     onTap: () => Navigator.pushReplacementNamed(
-                                        context, '/login'),
+                                      context,
+                                      '/login',
+                                    ),
                                   ),
                                 ],
                               ),
@@ -440,10 +469,7 @@ class _PasswordRequirements extends StatefulWidget {
   final bool isDark;
   final TextEditingController controller;
 
-  const _PasswordRequirements({
-    required this.isDark,
-    required this.controller,
-  });
+  const _PasswordRequirements({required this.isDark, required this.controller});
 
   @override
   State<_PasswordRequirements> createState() => _PasswordRequirementsState();
@@ -540,10 +566,12 @@ class _ReqChip extends StatelessWidget {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             child: met
-                ? const Icon(Icons.check_rounded,
+                ? const Icon(
+                    Icons.check_rounded,
                     key: ValueKey('check'),
                     size: 12,
-                    color: metColor)
+                    color: metColor,
+                  )
                 : const SizedBox.shrink(key: ValueKey('empty')),
           ),
           if (met) const SizedBox(width: 4),
@@ -571,13 +599,16 @@ class _ThemePreferenceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDarkMode = ref.watch(themeServiceProvider) == ThemeMode.dark;
-    final surface =
-        isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton;
+    final surface = isDark
+        ? AppColors.darkSurface
+        : AppColors.grayscaleSecondaryButton;
     final border = isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
-    final title =
-        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
-    final muted =
-        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleBodyText;
+    final title = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.grayscaleTitleActive;
+    final muted = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.grayscaleBodyText;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -628,8 +659,7 @@ class _ThemePreferenceCard extends ConsumerWidget {
           Switch(
             value: isDarkMode,
             activeThumbColor: AppColors.primaryDefault,
-            activeTrackColor:
-                AppColors.primaryDefault.withValues(alpha: 0.28),
+            activeTrackColor: AppColors.primaryDefault.withValues(alpha: 0.28),
             inactiveThumbColor: muted,
             inactiveTrackColor: border,
             trackOutlineColor: WidgetStatePropertyAll(border),
@@ -655,9 +685,7 @@ class _GlowCircle extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, Colors.transparent],
-        ),
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
       ),
     );
   }
