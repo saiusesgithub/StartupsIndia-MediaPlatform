@@ -108,6 +108,21 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
+      - name: Build signed release AAB for Play Store
+        run: >-
+          flutter build appbundle
+          --release
+          --obfuscate
+          --split-debug-info=build/symbols
+          --dart-define=ENV=prod
+
+      - name: Upload app-release.aab artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
       - name: Upload release symbols artifact
         uses: actions/upload-artifact@v4
         with:
@@ -144,15 +159,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: preview-0.0.${{ github.run_number }}
           APK_NAME: startups-india-preview-0.0.${{ github.run_number }}.apk
+          AAB_NAME: startups-india-playstore-0.0.${{ github.run_number }}.aab
         run: |
           set -e
           cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
+          cp build/app/outputs/bundle/release/app-release.aab "$AAB_NAME"
 
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release upload "$TAG_NAME" "$APK_NAME" --clobber
+            gh release upload "$TAG_NAME" "$APK_NAME" "$AAB_NAME" --clobber
           else
-            gh release create "$TAG_NAME" "$APK_NAME" \
+            gh release create "$TAG_NAME" "$APK_NAME" "$AAB_NAME" \
               --title "Preview 0.0.${{ github.run_number }}" \
-              --notes "Preview APK from commit ${{ github.sha }}" \
+              --notes "Preview APK and Play Store AAB from commit ${{ github.sha }}" \
               --prerelease
           fi
