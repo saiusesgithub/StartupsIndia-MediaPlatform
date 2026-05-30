@@ -92,6 +92,7 @@ Common fields used by the app:
 - `sourceId`
 - `sourceLogoAsset`
 - `thumbnailAsset`
+- `featuredImageUrl`, optional single featured image for detail pages; falls back to `thumbnailAsset`
 - `body`
 - `timeAgo`
 - `createdAt`
@@ -102,11 +103,34 @@ Common fields used by the app:
 - `bookmarkedBy`: string array
 - `isTrending`
 - `isSourceFollowing`
+- `imageGallery`: string array, rendered in the middle of article detail content
 
 Interactions:
 
 - `likedBy` and `likesCount` are updated in a transaction.
 - `bookmarkedBy` is updated by array union/remove.
+
+Read/query behavior:
+
+- Initial latest feed reads are limited to 20 articles ordered by `updatedAt`
+  descending.
+- Category feeds query `category` with common case variants of the requested
+  category ordered by `updatedAt` descending. Migration should still normalize
+  categories to lowercase going forward.
+- Trending feeds query `isTrending == true` ordered by `updatedAt` descending.
+- View-all section pages use cursor pagination with the last Firestore document
+  snapshot and the same `updatedAt` ordering.
+- Migration/import code should populate `updatedAt` for every article, because
+  Firestore `orderBy('updatedAt')` excludes documents where the field is
+  missing.
+
+Indexes likely needed in Firestore:
+
+- `articles`: `category` ascending, `updatedAt` descending
+- `articles`: `isTrending` ascending, `updatedAt` descending
+- `articles`: `authorId` ascending, `updatedAt` descending
+- `articles`: `bookmarkedBy` array, `updatedAt` descending
+- `articles`: `likedBy` array, `updatedAt` descending
 
 ## articles/{articleId}/comments/{commentId}
 

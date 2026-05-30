@@ -46,7 +46,8 @@ class WelcomeScreen extends StatelessWidget {
                         right: -40,
                         child: _GlowCircle(
                           size: 240,
-                          color: AppColors.primaryDefault.withValues(alpha: 0.18),
+                          color:
+                              AppColors.primaryDefault.withValues(alpha: 0.24),
                         ),
                       ),
 
@@ -59,9 +60,9 @@ class WelcomeScreen extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: AppColors.primaryDefault.withValues(
-                              alpha: isDark ? 0.07 : 0.06,
+                              alpha: isDark ? 0.16 : 0.06,
                             ),
-                            width: 1,
+                            width: isDark ? 1.2 : 1,
                           ),
                         ),
                       ),

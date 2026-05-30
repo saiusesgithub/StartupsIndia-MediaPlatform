@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../../../../core/presentation/widgets/shimmer_placeholder.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/repository/firestore_repository.dart';
+import '../../../../core/widgets/guest_gate.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/news_article.dart';
 import '../../../../theme/style_guide.dart';
@@ -258,8 +259,10 @@ class _NewsTileState extends ConsumerState<NewsTile> {
   Future<void> _toggleBookmark() async {
     final userId = _currentUserId;
     if (userId == null || userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to save news')),
+      showGuestAuthPrompt(
+        context,
+        title: 'Sign in to save stories',
+        message: 'Create an account to bookmark articles and find them later.',
       );
       return;
     }
@@ -290,8 +293,10 @@ class _NewsTileState extends ConsumerState<NewsTile> {
       ref.read(tileLikeStateProvider(widget.article.id).notifier).state =
           previous;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to like news')),
+      showGuestAuthPrompt(
+        context,
+        title: 'Sign in to like stories',
+        message: 'Create an account to react to articles and personalize your feed.',
       );
       return;
     }

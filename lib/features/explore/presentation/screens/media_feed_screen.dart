@@ -603,10 +603,12 @@ class _MediaLayer extends StatelessWidget {
               )
             else
               _GradientFallback(index: post.colorIndex),
-            const Center(
-              child: CircularProgressIndicator(
-                  color: Colors.white54, strokeWidth: 2),
-            ),
+            // Only show loading spinner if a video controller exists but hasn't initialized
+            if (videoController != null)
+              const Center(
+                child: CircularProgressIndicator(
+                    color: Colors.white54, strokeWidth: 2),
+              ),
           ],
         );
 
@@ -918,14 +920,7 @@ class _BottomContentState extends State<_BottomContent> {
             const SizedBox(height: 10),
           ],
 
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _CategoryPill(label: post.category),
-              _FollowTopicBtn(topic: post.category),
-            ],
-          ),
+          _CategoryPill(label: post.category),
         ],
       ),
     );
@@ -953,68 +948,6 @@ class _CategoryPill extends StatelessWidget {
           fontSize: 11,
           color: Colors.white,
           fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-class _FollowTopicBtn extends ConsumerWidget {
-  final String topic;
-
-  const _FollowTopicBtn({required this.topic});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final topicsAsync = ref.watch(userTopicsProvider);
-    final followed = topicsAsync.asData?.value ?? [];
-    final slug = topic.toLowerCase();
-    final isFollowing = followed.contains(slug);
-
-    return GestureDetector(
-      onTap: () async {
-        final uid = FirebaseAuth.instance.currentUser?.uid;
-        if (uid == null) return;
-        final repo = ref.read(firestoreRepositoryProvider);
-        if (isFollowing) {
-          await repo.unfollowTopic(uid, slug);
-        } else {
-          await repo.followTopic(uid, slug);
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isFollowing
-              ? Colors.white.withValues(alpha: 0.15)
-              : Colors.transparent,
-          border: Border.all(
-            color: isFollowing
-                ? Colors.white.withValues(alpha: 0.4)
-                : Colors.white70,
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isFollowing ? Icons.check_rounded : Icons.add_rounded,
-              size: 13,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              isFollowing ? 'Following $topic' : 'Follow $topic',
-              style: AppTypography.textSmall.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ],
         ),
       ),
     );

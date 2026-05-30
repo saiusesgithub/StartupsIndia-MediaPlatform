@@ -68,6 +68,12 @@ class CommentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.grayscaleTitleActive;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText;
+
     final visibleReplies = _visibleReplies();
     final bool hasHiddenReplies =
         !isExpanded && comment.replies.length > visibleReplies.length;
@@ -91,7 +97,7 @@ class CommentTile extends StatelessWidget {
                     Text(
                       comment.userName,
                       style: AppTypography.textMedium.copyWith(
-                        color: AppColors.grayscaleTitleActive,
+                        color: textPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -99,7 +105,7 @@ class CommentTile extends StatelessWidget {
                     Text(
                       comment.text,
                       style: AppTypography.textMedium.copyWith(
-                        color: AppColors.grayscaleTitleActive,
+                        color: textPrimary,
                         height: 1.35,
                       ),
                     ),
@@ -109,7 +115,7 @@ class CommentTile extends StatelessWidget {
                         Text(
                           comment.timeAgo,
                           style: AppTypography.textSmall.copyWith(
-                            color: AppColors.grayscaleButtonText,
+                            color: textSecondary,
                             fontSize: 12,
                           ),
                         ),
@@ -125,13 +131,13 @@ class CommentTile extends StatelessWidget {
                                 size: 14,
                                 color: comment.isLiked
                                     ? const Color(0xFFE91E63)
-                                    : AppColors.grayscaleButtonText,
+                                    : textSecondary,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${_formatCount(comment.likesCount)} likes',
                                 style: AppTypography.textSmall.copyWith(
-                                  color: AppColors.grayscaleButtonText,
+                                  color: textSecondary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -144,7 +150,7 @@ class CommentTile extends StatelessWidget {
                           child: Text(
                             'reply',
                             style: AppTypography.textSmall.copyWith(
-                              color: AppColors.grayscaleButtonText,
+                              color: textSecondary,
                               fontWeight: FontWeight.w500,
                               fontSize: 12,
                             ),
@@ -234,6 +240,22 @@ class _CommentAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Widget fallback() => Container(
+          color: isDark
+              ? AppColors.darkSurface
+              : AppColors.grayscaleSecondaryButton,
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.person_rounded,
+            size: radius,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.grayscaleButtonText,
+          ),
+        );
+
     return ClipOval(
       child: SizedBox(
         width: radius * 2,
@@ -242,26 +264,14 @@ class _CommentAvatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => _fallback(),
-                errorWidget: (_, __, ___) => _fallback(),
+                placeholder: (_, _) => fallback(),
+                errorWidget: (_, _, _) => fallback(),
               )
             : Image.asset(
                 url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _fallback(),
+                errorBuilder: (_, _, _) => fallback(),
               ),
-      ),
-    );
-  }
-
-  Widget _fallback() {
-    return Container(
-      color: AppColors.grayscaleSecondaryButton,
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.person_rounded,
-        size: radius,
-        color: AppColors.grayscaleButtonText,
       ),
     );
   }

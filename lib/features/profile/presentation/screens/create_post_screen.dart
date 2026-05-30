@@ -468,7 +468,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
       // Success feedback on Home screen
       final messenger = ScaffoldMessenger.of(context);
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      Navigator.of(context, rootNavigator: true)
+          .pushNamedAndRemoveUntil('/home', (route) => false);
       messenger.showSnackBar(const SnackBar(content: Text('News Published!')));
     } catch (e) {
       if (!mounted) return;

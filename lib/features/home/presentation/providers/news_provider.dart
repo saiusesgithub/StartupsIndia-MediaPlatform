@@ -13,6 +13,11 @@ final trendingNewsProvider = StreamProvider<List<NewsArticleModel>>((ref) {
   return ref.watch(firestoreRepositoryProvider).getTrendingNews();
 });
 
+final newsByCategoryProvider =
+    StreamProvider.family<List<NewsArticleModel>, String>((ref, category) {
+  return ref.watch(firestoreRepositoryProvider).getNewsByCategory(category);
+});
+
 final homeNewsByCategoryProvider =
     StreamProvider.family<List<NewsArticleModel>, String>((ref, category) {
   return ref
