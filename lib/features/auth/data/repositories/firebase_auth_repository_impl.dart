@@ -121,12 +121,12 @@ class FirebaseAuthRepositoryImpl implements AuthRepository {
           (user.displayName == null || user.displayName!.trim().isEmpty)
           ? 'News Creator'
           : user.displayName!.trim(),
-      bio: 'Sharing updates and insights from around the world.',
-      avatarUrl: user.photoURL ?? 'assets/images/thumb_politics.png',
-      websiteUrl: 'https://example.com',
-      followersCount: 2156,
-      followingCount: 567,
-      newsCount: 23,
+      bio: '',
+      avatarUrl: user.photoURL ?? '',
+      websiteUrl: '',
+      followersCount: 0,
+      followingCount: 0,
+      newsCount: 0,
     );
 
     await saveUserData(fallback);

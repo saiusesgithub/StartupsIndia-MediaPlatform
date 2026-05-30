@@ -48,7 +48,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ('startupName', 'Startup Name', 'e.g. TechVenture India'),
       ('startupStage', 'Startup Stage', 'e.g. Idea Stage, MVP, Revenue Stage'),
       ('industry', 'Industry', 'e.g. Fintech, EdTech, HealthTech'),
-      ('startupDescription', 'Startup Description', 'What problem are you solving?'),
+      (
+        'startupDescription',
+        'Startup Description',
+        'What problem are you solving?',
+      ),
       ('startupLocation', 'Location', 'e.g. Bangalore, Karnataka'),
       ('teamSize', 'Team Size', 'e.g. 5'),
       ('businessNeeds', 'Looking For', 'e.g. Funding, Mentors, Co-founders'),
@@ -66,7 +70,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ('investorType', 'Investor Type', 'e.g. Angel Investor, VC'),
       ('firmName', 'Firm Name', 'e.g. Accel Partners'),
       ('investmentRange', 'Investment Range', 'e.g. ₹10L – ₹1Cr'),
-      ('preferredIndustries', 'Preferred Industries', 'e.g. Fintech, SaaS, D2C'),
+      (
+        'preferredIndustries',
+        'Preferred Industries',
+        'e.g. Fintech, SaaS, D2C',
+      ),
       ('preferredStage', 'Preferred Stage', 'e.g. Pre-Seed, Seed, Series A'),
       ('portfolioCompanies', 'Portfolio Companies', 'e.g. Zepto, Razorpay'),
     ],
@@ -86,14 +94,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   };
 
   static String _roleSectionLabel(String role) => switch (role) {
-        'student' => 'Student Details',
-        'founder' => 'Startup Details',
-        'mentor' => 'Mentor Details',
-        'investor' => 'Investor Details',
-        'college' => 'College Details',
-        'startup_enthusiast' => 'Your Interests',
-        _ => 'Profile Details',
-      };
+    'student' => 'Student Details',
+    'founder' => 'Startup Details',
+    'mentor' => 'Mentor Details',
+    'investor' => 'Investor Details',
+    'college' => 'College Details',
+    'startup_enthusiast' => 'Your Interests',
+    _ => 'Profile Details',
+  };
 
   @override
   void initState() {
@@ -121,8 +129,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.grayscaleSecondaryButton,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.grayscaleSecondaryButton,
       body: SafeArea(
         child: Stack(
           children: [
@@ -233,7 +242,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   // ── Header ─────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context, bool isDark) {
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.grayscaleWhite;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : AppColors.grayscaleWhite;
     final borderColor = isDark ? AppColors.darkBorder : AppColors.grayscaleLine;
     final textColor = isDark
         ? AppColors.darkTextPrimary
@@ -249,7 +260,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: _isSubmitting ? null : () => Navigator.of(context).maybePop(),
+            onPressed: _isSubmitting
+                ? null
+                : () => Navigator.of(context).maybePop(),
             icon: Icon(Icons.close_rounded, color: textColor, size: 22),
           ),
           Expanded(
@@ -363,23 +376,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final authRepo = ref.read(authRepositoryProvider);
     final user = await authRepo.getCurrentUserModel();
     if (!mounted) return;
-
-    final UserModel resolved =
-        user ??
-        const UserModel(
-          uid: 'demo_user',
-          username: 'wilsonfranci',
-          fullName: 'Wilson Franci',
-          email: 'wilson@example.com',
-          phone: '+91 98765 43210',
-          displayName: 'Wilson Franci',
-          bio: 'Building the future of Indian startups.',
-          avatarUrl: '',
-          websiteUrl: 'https://example.com',
-          followersCount: 0,
-          followingCount: 0,
-          newsCount: 0,
-        );
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to edit your profile.')),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+    final resolved = user;
 
     // Build role-detail controllers before setState so they're ready for build
     final fields = _roleFields[resolved.role] ?? [];
@@ -392,8 +396,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     setState(() {
       _currentUser = resolved;
       _usernameController.text = resolved.username;
-      _fullNameController.text =
-          resolved.fullName.isEmpty ? resolved.displayName : resolved.fullName;
+      _fullNameController.text = resolved.fullName.isEmpty
+          ? resolved.displayName
+          : resolved.fullName;
       _emailController.text = resolved.email;
       _phoneController.text = resolved.phone;
       _bioController.text = resolved.bio;
@@ -420,20 +425,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final baseUser = _currentUser;
+    if (baseUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile is still loading.')),
+      );
+      return;
+    }
     setState(() => _isSubmitting = true);
-
-    final baseUser =
-        _currentUser ??
-        const UserModel(
-          uid: 'demo_user',
-          displayName: 'User',
-          bio: '',
-          avatarUrl: '',
-          websiteUrl: '',
-          followersCount: 0,
-          followingCount: 0,
-          newsCount: 0,
-        );
 
     try {
       final username = _usernameController.text.trim();
@@ -457,7 +456,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
 
       // Merge role-specific fields back, preserving any keys from other roles
-      final updatedRoleDetails = Map<String, dynamic>.from(baseUser.roleDetails);
+      final updatedRoleDetails = Map<String, dynamic>.from(
+        baseUser.roleDetails,
+      );
       for (final entry in _roleDetailControllers.entries) {
         updatedRoleDetails[entry.key] = entry.value.text.trim();
       }
@@ -524,12 +525,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         color: AppColors.primaryDefault.withValues(alpha: isDark ? 0.14 : 0.08),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: AppColors.primaryDefault.withValues(alpha: 0.25)),
+          color: AppColors.primaryDefault.withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lock_outline_rounded,
-              size: 16, color: AppColors.primaryDefault),
+          const Icon(
+            Icons.lock_outline_rounded,
+            size: 16,
+            color: AppColors.primaryDefault,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: RichText(
@@ -580,8 +585,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         for (var i = 0; i < fields.length; i++) ...[
           if (i > 0) const SizedBox(height: 14),
           AppTextField(
-            controller: _roleDetailControllers[fields[i].$1] ??
-                TextEditingController(),
+            controller:
+                _roleDetailControllers[fields[i].$1] ?? TextEditingController(),
             label: fields[i].$2,
             hintText: fields[i].$3,
           ),
@@ -594,11 +599,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Container(
       width: 108,
       height: 108,
-      color: isDark ? AppColors.darkSurface : AppColors.grayscaleSecondaryButton,
+      color: isDark
+          ? AppColors.darkSurface
+          : AppColors.grayscaleSecondaryButton,
       child: Icon(
         Icons.person_rounded,
         size: 52,
-        color: isDark ? AppColors.darkTextSecondary : AppColors.grayscaleButtonText,
+        color: isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.grayscaleButtonText,
       ),
     );
   }
@@ -761,4 +770,3 @@ class _MultilineFieldState extends State<_MultilineField> {
     );
   }
 }
-
